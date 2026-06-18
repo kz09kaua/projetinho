@@ -7,6 +7,7 @@
     @apply bg-background text-on-surface font-sans antialiased;
   }
 }
+
 /* CSS Variables para suporte a temas e customização */
 :root {
   /* Cores padrão (claro) */
@@ -38,35 +39,42 @@ body {
     background-color 0.3s,
     color 0.2s;
 }
+
 .bg-white,
 .bg-slate-50,
 .bg-gray-50,
 .bg-white\/90 {
   background-color: var(--bg-surface) !important;
 }
+
 .text-on-surface,
 .text-slate-600,
 .text-gray-800 {
   color: var(--text-on-surface) !important;
 }
+
 .border-slate-100,
 .border-slate-200,
 .border-gray-100 {
   border-color: var(--border-color) !important;
 }
+
 .text-primary,
 .text-blue-700,
 .text-blue-600 {
   color: var(--primary-color) !important;
 }
+
 .bg-primary,
 .bg-blue-700,
 .bg-blue-600 {
   background-color: var(--primary-color) !important;
 }
+
 .hover\:bg-primary:hover {
   background-color: var(--primary-hover) !important;
 }
+
 /* === MODO SÊNIOR === */
 .modo-senior {
   font-size: 118% !important;
@@ -123,4 +131,34 @@ body {
 }
 .alto-contraste .shadow-sm {
   box-shadow: 0 1px 2px 0 rgba(255, 204, 0, 0.2) !important;
+}
+
+/* ===== FORÇAR TEXTOS BRANCOS NO TEMA ESCURO ===== */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark p,
+.dark span,
+.dark li,
+.dark a:not(.text-blue-600):not(.text-blue-400):not(.text-blue-500) {
+  color: #ffffff; /* branco puro */
+}
+
+/* Ajusta links em geral para um azul mais claro no escuro */
+.dark a {
+  color: #93c5fd; /* azul claro (blue-300) */
+}
+
+/* Garante que o texto dentro de cards e containers fique branco */
+.dark .bg-white,
+.dark .bg-gray-800,
+.dark .bg-gray-700,
+.dark .bg-gray-900,
+.dark .bg-surface,
+.dark .bg-slate-50,
+.dark .bg-gray-50 {
+  color: #ffffff;
 }

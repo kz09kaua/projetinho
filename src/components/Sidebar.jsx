@@ -12,27 +12,25 @@ import {
   FaSearch,
   FaSignOutAlt,
   FaPills,
+  FaUserCheck,
   FaTachometerAlt,
 } from "react-icons/fa";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
   const menuItems = [
-    // Dashboard: apenas paciente e admin
     {
       path: "/dashboard-paciente",
       label: "Dashboard",
       icon: FaHome,
       roles: ["paciente", "admin"],
     },
-    // Comuns a todos os perfis
     {
       path: "/filas-atendimento",
       label: "Filas",
@@ -75,7 +73,6 @@ const Sidebar = () => {
       icon: FaCog,
       roles: ["paciente", "admin", "atendente"],
     },
-    // Atendente
     {
       path: "/atendente-dashboard",
       label: "Painel Atendente",
@@ -101,16 +98,19 @@ const Sidebar = () => {
       roles: ["atendente"],
     },
   ];
-
   const filteredItems = menuItems.filter((item) =>
     item.roles.includes(user?.role || "paciente"),
   );
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-white border-r border-gray-200 flex flex-col z-40">
-      <div className="p-5 border-b border-gray-200">
-        <h2 className="text-lg font-black text-blue-700">Minha UBS</h2>
-        <p className="text-xs text-gray-500">Unidade de Saúde</p>
+    <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col z-40">
+      <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-black text-blue-700 dark:text-blue-400">
+          Minha UBS
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Unidade de Saúde
+        </p>
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         {filteredItems.map((item) => (
@@ -120,8 +120,8 @@ const Sidebar = () => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-5 py-3 mx-2 rounded-lg transition-all ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 font-bold border-l-4 border-blue-700"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-bold border-l-4 border-blue-700 dark:border-blue-400"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`
             }
           >
@@ -130,10 +130,12 @@ const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 border-t border-gray-200 space-y-2">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
         <div className="px-3 py-2 text-sm">
-          <p className="font-medium text-gray-800">{user?.name || "Usuário"}</p>
-          <p className="text-xs text-gray-500">
+          <p className="font-medium text-gray-800 dark:text-gray-200">
+            {user?.name || "Usuário"}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {user?.role === "admin"
               ? "Administrador"
               : user?.role === "atendente"
@@ -143,7 +145,7 @@ const Sidebar = () => {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+          className="flex items-center gap-2 w-full px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
         >
           <FaSignOutAlt size={16} /> Sair
         </button>
@@ -151,5 +153,4 @@ const Sidebar = () => {
     </aside>
   );
 };
-
 export default Sidebar;

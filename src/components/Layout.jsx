@@ -17,152 +17,124 @@ import UserProfileModal from "./UserProfileModal";
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-
-  // Encerra a sessão após 30 minutos de inatividade
   useIdleTimer(30, logout);
-
-  // Se não houver usuário, renderiza apenas as páginas públicas (ex.: landing, login)
   if (!user) return children;
 
-  // Link do painel conforme o perfil
-  let painelLink = "/dashboard-paciente"; // padrão paciente
-  if (user?.role === "admin") {
-    painelLink = "/dashboard-paciente"; // admin vê o DashboardAdmin através do roteador
-  } else if (user?.role === "atendente") {
-    painelLink = "/atendente-dashboard"; // atendente vê seu próprio painel
-  }
+  let painelLink = "/dashboard-paciente";
+  if (user?.role === "admin") painelLink = "/dashboard-paciente";
+  else if (user?.role === "atendente") painelLink = "/atendente-dashboard";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      {/* Header fixo */}
-      <header className="fixed top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-white dark:bg-gray-800 border-b border-slate-100 dark:border-gray-700 shadow-sm">
-        {/* Logo */}
+      <header className="fixed top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center gap-2">
           <Link
             to="/dashboard-paciente"
-            className="text-xl font-bold text-blue-700 dark:text-blue-400 tracking-tight"
+            className="text-xl font-bold text-blue-700 dark:text-blue-400"
           >
             Minha UBS
           </Link>
         </div>
-
-        {/* Links de navegação (desktop) – com ícones */}
         <nav className="hidden md:flex items-center gap-8">
           <Link
             to={painelLink}
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaHome size={16} />
             <span>Painel</span>
           </Link>
-
           <Link
             to="/filas-atendimento"
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaListAlt size={16} />
             <span>Filas</span>
           </Link>
-
           <Link
             to="/agendamento"
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaCalendarAlt size={16} />
             <span>Agendamento</span>
           </Link>
-
           <Link
             to="/historico-medico"
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaHistory size={16} />
             <span>Histórico</span>
           </Link>
-
           <Link
             to="/vacinação"
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaSyringe size={16} />
             <span>Vacinas</span>
           </Link>
-
           <Link
             to="/configuracoes"
-            className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 transition"
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400"
           >
             <FaCog size={16} />
             <span>Configuração</span>
           </Link>
         </nav>
-
-        {/* Ícones à direita */}
         <div className="flex items-center gap-4">
-          <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700 transition">
+          <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <HiOutlineBell
               size={20}
-              className="text-slate-600 dark:text-slate-300"
+              className="text-gray-600 dark:text-gray-300"
             />
           </button>
-
-          {/* Ícone do usuário – agora clicável */}
           <button
             onClick={() => setProfileOpen(true)}
-            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded-lg transition"
+            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded-lg"
           >
             <HiOutlineUserCircle
               size={28}
-              className="text-slate-600 dark:text-slate-300"
+              className="text-gray-600 dark:text-gray-300"
             />
-            <span className="text-sm hidden md:inline text-slate-700 dark:text-slate-200">
+            <span className="text-sm hidden md:inline text-gray-700 dark:text-gray-200">
               {user?.name}
             </span>
           </button>
         </div>
       </header>
-
       <Sidebar />
-
-      {/* Conteúdo principal */}
-      <main className="md:ml-64 pt-20 px-6 pb-10 text-slate-800 dark:text-slate-100">
+      <main className="md:ml-64 pt-20 px-6 pb-10 text-gray-800 dark:text-gray-100">
         {children}
       </main>
-
-      {/* Modal de perfil */}
       <UserProfileModal
         isOpen={profileOpen}
         onClose={() => setProfileOpen(false)}
       />
-
-      {/* Footer */}
-      <footer className="w-full py-6 bg-white dark:bg-gray-800 border-t border-slate-100 dark:border-gray-700 md:ml-64">
+      <footer className="w-full py-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 md:ml-64">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center px-6 gap-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            © 2024 Minha UBS - Sistema de Gestão de Saúde Pública.
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            © 2024 Minha UBS
           </p>
           <div className="flex gap-6">
             <a
               href="#"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500"
             >
               Privacidade
             </a>
             <a
               href="#"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500"
             >
               Termos de Uso
             </a>
             <a
               href="#"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500"
             >
               Suporte
             </a>
             <a
               href="#"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500"
             >
               Portal Gov.br
             </a>
@@ -172,5 +144,4 @@ const Layout = ({ children }) => {
     </div>
   );
 };
-
 export default Layout;
