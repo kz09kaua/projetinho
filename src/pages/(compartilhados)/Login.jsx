@@ -1,50 +1,44 @@
-// src/pages/Login.jsx
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { HiUser, HiLockClosed } from 'react-icons/hi';
-import { Activity } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useAuth } from "../../contexts/AuthContext";
+import { HiUser, HiLockClosed } from "react-icons/hi";
+import { Activity } from "lucide-react";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { user, login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Não redireciona automaticamente se já estiver logado.
-  // O usuário deve clicar em "Sair" para sair, ou fazer login com outra conta.
-  // Se quiser redirecionar apenas após login bem-sucedido, faremos no handleSubmit.
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validação simples para evitar envio vazio
     if (!email.trim() || !password.trim()) {
-      setError('Preencha e-mail e senha.');
+      setError("Preencha e-mail e senha.");
       return;
     }
-    const success = login(email, password);
-    if (success) {
-      // Redireciona baseado no role após login
-      const stored = localStorage.getItem('sus_user');
-      if (stored) {
-        const loggedUser = JSON.parse(stored);
-        if (loggedUser.role === 'admin') navigate('/painel-administrador');
-        else if (loggedUser.role === 'atendente') navigate('/atendente-dashboard');
-        else navigate('/dashboard-paciente');
+    try {
+      const userData = await login(email, password);
+      if (userData) {
+        // login bem‑sucedido, redireciona conforme o perfil
+        if (userData.role === "admin") navigate("/dashboard-paciente");
+        else if (userData.role === "atendente")
+          navigate("/atendente-dashboard");
+        else navigate("/dashboard-paciente");
       } else {
-        navigate('/dashboard-paciente');
+        // credenciais inválidas
+        setError("Credenciais inválidas.");
       }
-    } else {
-      setError('Credenciais inválidas. Use admin@ubs.com / 123456 (Admin), atendente@ubs.com / 123456 (Atendente) ou paciente@email.com / 123456 (Paciente)');
+    } catch (err) {
+      // erro de bloqueio por tentativas ou outro erro
+      setError(err.message);
     }
   };
 
-  // Limpa os campos ao montar o componente (evita autopreenchimento indesejado)
   useEffect(() => {
-    setEmail('');
-    setPassword('');
+    setEmail("");
+    setPassword("");
   }, []);
 
   return (
@@ -66,15 +60,24 @@ const Login = () => {
               <Activity size={28} className="text-on-primary" />
             </div>
           </div>
-          <h2 className="text-3xl font-black text-on-surface tracking-tight">Minha UBS</h2>
-          <p className="text-on-surface-variant mt-2">Acesse sua conta para continuar</p>
+          <h2 className="text-3xl font-black text-on-surface tracking-tight">
+            Minha UBS
+          </h2>
+          <p className="text-on-surface-variant mt-2">
+            Acesse sua conta para continuar
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
           <div>
-            <label className="block text-sm font-bold text-on-surface mb-1">E-mail</label>
+            <label className="block text-sm font-bold text-on-surface mb-1">
+              E-mail
+            </label>
             <div className="relative">
-              <HiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" size={18} />
+              <HiUser
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-outline"
+                size={18}
+              />
               <input
                 type="text"
                 value={email}
@@ -89,13 +92,21 @@ const Login = () => {
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-on-surface">Senha</label>
-              <Link to="/esqueceu-senha" className="text-xs font-bold text-primary hover:opacity-80 transition">
+              <label className="block text-sm font-bold text-on-surface">
+                Senha
+              </label>
+              <Link
+                to="/esqueceu-senha"
+                className="text-xs font-bold text-primary hover:opacity-80 transition"
+              >
                 Esqueceu a senha?
               </Link>
             </div>
             <div className="relative">
-              <HiLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" size={18} />
+              <HiLockClosed
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-outline"
+                size={18}
+              />
               <input
                 type="password"
                 value={password}
@@ -128,13 +139,17 @@ const Login = () => {
 
         <div className="mt-8 text-center">
           <p className="text-on-surface-variant text-sm">
-            Não possui conta?{' '}
-            <Link to="/cadastro" className="font-bold text-primary hover:opacity-80 transition">
+            Não possui conta?{" "}
+            <Link
+              to="/cadastro"
+              className="font-bold text-primary hover:opacity-80 transition"
+            >
               Criar conta gratuita
             </Link>
           </p>
           <p className="text-xs text-outline mt-4">
-            Demo: admin@ubs.com / 123456 (Admin) | atendente@ubs.com / 123456 (Atendente) | paciente@email.com / 123456 (Paciente)
+            Demo: admin@ubs.com / 123456 (Admin) | atendente@ubs.com / 123456
+            (Atendente) | paciente@email.com / 123456 (Paciente)
           </p>
         </div>
       </motion.div>

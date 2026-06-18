@@ -92,12 +92,20 @@ const FilasAtendimento = () => {
           >
             <div className="flex justify-between items-start mb-4">
               <div
-                className={`p-3 rounded-xl ${item.prioridade === "Alta" ? "bg-red-100 text-red-700" : "bg-gray-100"}`}
+                className={`p-3 rounded-xl ${
+                  item.prioridade === "Alta"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-gray-100"
+                }`}
               >
                 <span className="material-symbols-outlined">stethoscope</span>
               </div>
               <span
-                className={`text-xs font-bold px-2 py-1 rounded-full ${item.prioridade === "Alta" ? "bg-red-100 text-red-800" : "bg-gray-100"}`}
+                className={`text-xs font-bold px-2 py-1 rounded-full ${
+                  item.prioridade === "Alta"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100"
+                }`}
               >
                 {item.prioridade === "Alta" ? "PRIORIDADE" : "NORMAL"}
               </span>
