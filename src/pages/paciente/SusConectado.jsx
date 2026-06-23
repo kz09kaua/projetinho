@@ -1,5 +1,5 @@
-// src/pages/SusConectado.jsx - VERSÃO ORIGINAL (paciente/admin)
-import { useState, useEffect } from "react";
+// src/pages/SusConectado.jsx
+import { useState, useEffect, useMemo } from "react";
 import {
   HiCloud,
   HiRefresh,
@@ -12,6 +12,7 @@ import {
   HiXCircle,
   HiSearch,
   HiX,
+  HiEye,
 } from "react-icons/hi";
 import Swal from "sweetalert2";
 
@@ -80,11 +81,15 @@ const SusConectado = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  const examesFiltrados = exames.filter(
-    (exame) =>
-      exame.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exame.medicoSolicitante.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const examesFiltrados = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return exames;
+    return exames.filter(
+      (e) =>
+        e.nome.toLowerCase().includes(term) ||
+        e.medicoSolicitante.toLowerCase().includes(term),
+    );
+  }, [exames, searchTerm]);
 
   const totalExames = examesFiltrados.length;
   const concluidos = examesFiltrados.filter(
@@ -99,27 +104,23 @@ const SusConectado = () => {
 
   const fetchDados = async () => {
     setIsLoading(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const novosIndicadores = {
-          coberturaVacinal: Math.floor(70 + Math.random() * 20),
-          mediaEspera: Math.floor(30 + Math.random() * 30),
-          leitosOcupados: Math.floor(70 + Math.random() * 25),
-        };
-        const novaProducao = Math.floor(900 + Math.random() * 200);
-        const now = new Date();
-        const hora = now.getHours().toString().padStart(2, "0");
-        const minuto = now.getMinutes().toString().padStart(2, "0");
-
-        setIndicadores(novosIndicadores);
-        setUbsData((prev) => ({
-          ...prev,
-          producaoMensal: novaProducao,
-          ultimaSincronizacao: `Hoje, ${hora}:${minuto}`,
-        }));
-        resolve();
-      }, 800);
-    });
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const novosIndicadores = {
+      coberturaVacinal: Math.floor(70 + Math.random() * 20),
+      mediaEspera: Math.floor(30 + Math.random() * 30),
+      leitosOcupados: Math.floor(70 + Math.random() * 25),
+    };
+    const novaProducao = Math.floor(900 + Math.random() * 200);
+    const now = new Date();
+    const hora = now.getHours().toString().padStart(2, "0");
+    const minuto = now.getMinutes().toString().padStart(2, "0");
+    setIndicadores(novosIndicadores);
+    setUbsData((prev) => ({
+      ...prev,
+      producaoMensal: novaProducao,
+      ultimaSincronizacao: `Hoje, ${hora}:${minuto}`,
+    }));
+    setIsLoading(false);
   };
 
   const sincronizar = async () => {
@@ -133,7 +134,7 @@ const SusConectado = () => {
       toast: true,
       position: "top-end",
       showConfirmButton: false,
-      timer: 2000,
+      timer: 2500,
       timerProgressBar: true,
     });
   };
@@ -146,279 +147,280 @@ const SusConectado = () => {
     Swal.fire({
       title: exame.nome,
       html: `
-        <div style="text-align: left">
+        <div style="text-align: left; line-height: 1.8;">
           <p><strong>Médico solicitante:</strong> ${exame.medicoSolicitante}</p>
           <p><strong>Data da solicitação:</strong> ${exame.dataSolicitacao}</p>
           <p><strong>Data do resultado:</strong> ${exame.dataResultado || "Não disponível"}</p>
-          <p><strong>Status:</strong> ${exame.status === "concluido" ? "✅ Concluído" : exame.status === "pendente" ? "⏳ Pendente" : "📅 Agendado"}</p>
-          <p><strong>Resultado/Informação:</strong> ${exame.resultado}</p>
+          <p><strong>Status:</strong> ${
+            exame.status === "concluido"
+              ? "Concluído"
+              : exame.status === "pendente"
+                ? "Pendente"
+                : "Agendado"
+          }</p>
+          <p><strong>Resultado:</strong> ${exame.resultado}</p>
         </div>
       `,
       icon: exame.status === "concluido" ? "success" : "info",
-      confirmButtonColor: "#0057B8",
+      confirmButtonColor: "#2563eb",
       confirmButtonText: "Fechar",
     });
   };
 
-  const limparBusca = () => {
-    setSearchTerm("");
-  };
+  const limparBusca = () => setSearchTerm("");
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-        🌐 SUS Conectado - Integração Nacional
-      </h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-8">
-        Acompanhe indicadores do DataSUS e dados em tempo real da sua UBS.
-      </p>
-
-      {/* Status da conexão */}
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-800/50 flex items-center justify-center">
-            <HiCloud className="text-green-700 dark:text-green-400 text-2xl" />
-          </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Cabeçalho */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <p className="font-bold text-green-800 dark:text-green-300">
-              ✅ Conexão com o DataSUS estabelecida em tempo real
-            </p>
-            <p className="text-sm text-green-700 dark:text-green-400">
-              Última sincronização: {ubsData.ultimaSincronizacao}
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <HiCloud className="text-blue-600" /> SUS Conectado
+            </h1>
+            <p className="text-gray-500">
+              Integração nacional – dados em tempo real
             </p>
           </div>
+          <button
+            onClick={sincronizar}
+            disabled={syncing}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition"
+          >
+            <HiRefresh className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Sincronizando..." : "Sincronizar"}
+          </button>
         </div>
-        <button
-          onClick={sincronizar}
-          disabled={syncing}
-          className="flex items-center gap-2 px-5 py-2 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition disabled:opacity-50"
-        >
-          <HiRefresh className={`${syncing ? "animate-spin" : ""}`} />{" "}
-          {syncing ? "Sincronizando..." : "Sincronizar agora"}
-        </button>
-      </div>
 
-      {/* Grid de cards */}
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
-        {/* Indicadores Nacionais */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <HiDatabase className="text-blue-700 dark:text-blue-400 text-xl" />
+        {/* Status da conexão */}
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <HiCloud className="text-green-700 text-2xl" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              Indicadores Nacionais
-            </h3>
-          </div>
-          <div className="space-y-5">
             <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-600 dark:text-gray-300">
-                  Cobertura vacinal (BR)
-                </span>
-                <span className="font-bold text-blue-700 dark:text-blue-400">
-                  {indicadores.coberturaVacinal}%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                  style={{ width: `${indicadores.coberturaVacinal}%` }}
-                />
-              </div>
-            </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Média de espera por especialista
-              </span>
-              <span className="font-bold text-amber-600 dark:text-amber-400">
-                {indicadores.mediaEspera} dias
-              </span>
-            </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Leitos SUS ocupados
-              </span>
-              <span className="font-bold text-red-600 dark:text-red-400">
-                {indicadores.leitosOcupados}%
-              </span>
-            </div>
-          </div>
-          {isLoading && (
-            <div className="mt-4 text-center text-gray-400 text-sm animate-pulse">
-              Atualizando dados...
-            </div>
-          )}
-        </div>
-
-        {/* Dados da UBS */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <HiUsers className="text-green-700 dark:text-green-400 text-xl" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              Dados da sua UBS
-            </h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Código SUS
-              </span>
-              <span className="font-mono font-bold">{ubsData.codigoSUS}</span>
-            </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Produção mensal
-              </span>
-              <span className="font-bold text-green-700 dark:text-green-400">
-                {ubsData.producaoMensal} atendimentos
-              </span>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-gray-600 dark:text-gray-300 flex items-center gap-1">
-                <HiClock /> Última sincronização
-              </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {ubsData.ultimaSincronizacao}
-              </span>
+              <p className="font-bold text-green-800">
+                Conexão com o DataSUS estabelecida
+              </p>
+              <p className="text-sm text-green-700">
+                Última sincronização: {ubsData.ultimaSincronizacao}
+              </p>
             </div>
           </div>
           <button
             onClick={sincronizar}
             disabled={syncing}
-            className="mt-6 w-full flex items-center justify-center gap-2 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-semibold transition disabled:opacity-50"
+            className="bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-xl font-semibold transition disabled:opacity-50"
           >
             <HiRefresh className={syncing ? "animate-spin" : ""} />{" "}
-            {syncing ? "Atualizando..." : "Atualizar dados"}
+            {syncing ? "Sincronizando..." : "Sincronizar agora"}
           </button>
         </div>
-      </div>
 
-      {/* Seção: Meus Exames */}
-      <div className="mt-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <HiClipboardList className="text-purple-700 dark:text-purple-400 text-2xl" />
-            </div>
+        {/* Cards de indicadores */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricCard
+            title="Cobertura Vacinal (BR)"
+            value={`${indicadores.coberturaVacinal}%`}
+            icon={HiDatabase}
+            color="blue"
+          />
+          <MetricCard
+            title="Média de Espera"
+            value={`${indicadores.mediaEspera} dias`}
+            icon={HiClock}
+            color="amber"
+          />
+          <MetricCard
+            title="Leitos SUS Ocupados"
+            value={`${indicadores.leitosOcupados}%`}
+            icon={HiUsers}
+            color="red"
+          />
+          <MetricCard
+            title="Produção Mensal"
+            value={ubsData.producaoMensal}
+            icon={HiDocumentText}
+            color="green"
+          />
+        </div>
+
+        {/* Seção Meus Exames - Agora em tabela */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                Meus Exames
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <HiClipboardList className="text-purple-600" /> Meus Exames
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500">
                 Exames solicitados pelos médicos do SUS
               </p>
             </div>
+            <div className="flex gap-2 text-sm flex-wrap">
+              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                ✓ {concluidos} concluídos
+              </span>
+              <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+                ⏳ {pendentes} pendentes
+              </span>
+              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                📅 {agendados} agendados
+              </span>
+            </div>
           </div>
-          <div className="flex gap-3 text-sm flex-wrap">
-            <div className="bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full text-green-700 dark:text-green-400">
-              ✅ {concluidos} concluídos
-            </div>
-            <div className="bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 rounded-full text-yellow-700 dark:text-yellow-400">
-              ⏳ {pendentes} pendentes
-            </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full text-blue-700 dark:text-blue-400">
-              📅 {agendados} agendados
-            </div>
-          </div>
-        </div>
 
-        {/* Barra de pesquisa */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Pesquisar por nome do exame ou médico solicitante..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            {searchTerm && (
-              <button
-                onClick={limparBusca}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <HiX />
-              </button>
-            )}
+          {/* Busca */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="relative max-w-md">
+              <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar exame ou médico..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+              {searchTerm && (
+                <button
+                  onClick={limparBusca}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <HiX />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Cards dos exames */}
-        {examesFiltrados.length === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 text-center border dark:border-gray-700">
-            <p className="text-gray-500 dark:text-gray-400">
-              Nenhum exame encontrado com os critérios informados.
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {examesFiltrados.map((exame) => (
-              <div
-                key={exame.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-5 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => verDetalhesExame(exame)}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <HiDocumentText
-                      className={`text-xl ${exame.status === "concluido" ? "text-green-600" : exame.status === "pendente" ? "text-yellow-600" : "text-blue-600"}`}
-                    />
-                    <h3 className="font-bold text-gray-800 dark:text-gray-100">
-                      {exame.nome}
-                    </h3>
-                  </div>
-                  {exame.status === "concluido" ? (
-                    <HiCheckCircle className="text-green-500 text-xl" />
-                  ) : (
-                    <HiXCircle className="text-gray-400 text-xl" />
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  Médico: {exame.medicoSolicitante}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Solicitação: {exame.dataSolicitacao}
-                </p>
-                {exame.dataResultado && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Resultado: {exame.dataResultado}
-                  </p>
+          {/* Tabela */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Exame
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Médico
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Solicitação
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Resultado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {examesFiltrados.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="px-6 py-8 text-center text-gray-500"
+                    >
+                      Nenhum exame encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  examesFiltrados.map((exame) => (
+                    <tr
+                      key={exame.id}
+                      className="hover:bg-blue-50 transition cursor-pointer"
+                      onClick={() => verDetalhesExame(exame)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">
+                        {exame.nome}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {exame.medicoSolicitante}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {exame.dataSolicitacao}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {exame.dataResultado || "—"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={exame.status} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            verDetalhesExame(exame);
+                          }}
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition"
+                          title="Visualizar"
+                        >
+                          <HiEye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
-                <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-between items-center">
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${exame.status === "concluido" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-700" : exame.status === "pendente" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-700" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}
-                  >
-                    {exame.status === "concluido"
-                      ? "Concluído"
-                      : exame.status === "pendente"
-                        ? "Pendente"
-                        : "Agendado"}
-                  </span>
-                  <button
-                    className="text-blue-600 dark:text-blue-400 text-xs font-medium hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      verDetalhesExame(exame);
-                    }}
-                  >
-                    Ver detalhes
-                  </button>
-                </div>
-              </div>
-            ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500 border-t dark:border-gray-700 pt-6">
-        Dados simulados para demonstração. Em produção, integre com a API
-        oficial do DataSUS.
+        <div className="mt-4 text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
+          Dados simulados para demonstração. Em produção, integre com a API
+          oficial do DataSUS.
+        </div>
       </div>
     </div>
+  );
+};
+
+// ============================================================
+// COMPONENTES AUXILIARES
+// ============================================================
+const MetricCard = ({ title, value, icon: Icon, color }) => {
+  const colorMap = {
+    blue: "bg-blue-50 text-blue-600 border-blue-200",
+    amber: "bg-amber-50 text-amber-600 border-amber-200",
+    red: "bg-red-50 text-red-600 border-red-200",
+    green: "bg-green-50 text-green-600 border-green-200",
+  };
+  return (
+    <div
+      className={`bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition ${colorMap[color]}`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-500">{title}</span>
+        <Icon size={22} className="opacity-70" />
+      </div>
+      <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
+  );
+};
+
+const StatusBadge = ({ status }) => {
+  const config = {
+    concluido: {
+      label: "Concluído",
+      bg: "bg-green-100",
+      text: "text-green-700",
+    },
+    pendente: {
+      label: "Pendente",
+      bg: "bg-yellow-100",
+      text: "text-yellow-700",
+    },
+    agendado: { label: "Agendado", bg: "bg-blue-100", text: "text-blue-700" },
+  };
+  const { label, bg, text } = config[status] || config.pendente;
+  return (
+    <span
+      className={`px-3 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}
+    >
+      {label}
+    </span>
   );
 };
 

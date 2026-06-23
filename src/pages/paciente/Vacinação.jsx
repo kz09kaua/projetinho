@@ -1,4 +1,4 @@
-// src/pages/Vacinação.jsx (versão com notificação local)
+// src/pages/Vacinação.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -9,7 +9,9 @@ import {
   HiQrcode,
   HiExclamation,
   HiSelector,
+  HiEye,
 } from "react-icons/hi";
+import { FaSyringe } from "react-icons/fa";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { QRCodeSVG } from "qrcode.react";
@@ -17,7 +19,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const MySwal = withReactContent(Swal);
 
-const Vacinação = () => {
+const Vacinacao = () => {
   const { user } = useAuth();
 
   const [historico] = useState([
@@ -45,6 +47,14 @@ const Vacinação = () => {
       lote: "TT9982",
       status: "pendente",
     },
+    {
+      id: 4,
+      vacina: "Febre Amarela",
+      dose: "Dose Única",
+      data: "20/01/2023",
+      lote: "FA7890",
+      status: "aplicada",
+    },
   ]);
 
   const pendentes = historico.filter((h) => h.status === "pendente");
@@ -56,7 +66,6 @@ const Vacinação = () => {
   const [carregandoUbs, setCarregandoUbs] = useState(false);
   const [notificacaoPermitida, setNotificacaoPermitida] = useState(false);
 
-  // Verifica permissão de notificação ao carregar o componente
   useEffect(() => {
     if ("Notification" in window) {
       if (Notification.permission === "granted") {
@@ -76,7 +85,6 @@ const Vacinação = () => {
     }
   }, [ubsEscolhida]);
 
-  // Função para pedir permissão de notificação
   const pedirPermissaoNotificacao = async () => {
     if ("Notification" in window) {
       const permission = await Notification.requestPermission();
@@ -85,7 +93,6 @@ const Vacinação = () => {
         Swal.fire({
           icon: "success",
           title: "Permissão concedida",
-          text: "Você receberá notificações no navegador.",
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -96,34 +103,21 @@ const Vacinação = () => {
         Swal.fire({
           icon: "warning",
           title: "Permissão negada",
-          text: "Você não receberá notificações. Altere nas configurações do navegador se desejar.",
-          confirmButtonColor: "var(--primary-color)",
+          text: "Altere nas configurações do navegador se desejar.",
+          confirmButtonColor: "#2563eb",
         });
         return false;
       }
-    } else {
-      Swal.fire({
-        icon: "error",
-        title: "Não suportado",
-        text: "Seu navegador não suporta notificações.",
-        confirmButtonColor: "var(--primary-color)",
-      });
-      return false;
     }
+    return false;
   };
 
-  // Função principal que substitui o envio de e-mail
   const enviarNotificacaoLocal = async () => {
     if (!ubsEscolhida) {
       Swal.fire("Atenção", "Selecione uma UBS.", "warning");
       return;
     }
 
-    // Conteúdo da notificação
-    const titulo = "Lembrete de Vacinação";
-    const corpo = `${vacinaPendente?.vacina} pendente. Compareça à ${ubsEscolhida} o mais breve possível.`;
-
-    // Exibir um alerta com SweetAlert2 (sempre)
     Swal.fire({
       icon: "info",
       title: "Lembrete ativado",
@@ -135,33 +129,22 @@ const Vacinação = () => {
         </div>
       `,
       confirmButtonText: "Ok",
-      confirmButtonColor: "var(--primary-color)",
-      footer: "Você será notificado novamente amanhã.",
+      confirmButtonColor: "#2563eb",
     });
 
-    // Tenta enviar notificação do navegador
     if (notificacaoPermitida) {
       try {
-        const notification = new Notification(titulo, {
-          body: corpo,
-          icon: "/vite.svg", // ou use um ícone seu
-          tag: "lembrete-vacina",
-          requireInteraction: true,
+        const notification = new Notification("Lembrete de Vacinação", {
+          body: `${vacinaPendente?.vacina} pendente. Compareça à ${ubsEscolhida}.`,
+          icon: "/vite.svg",
         });
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
-        // Fecha a notificação após 10 segundos
         setTimeout(() => notification.close(), 10000);
       } catch (err) {
-        console.error("Erro ao criar notificação:", err);
+        console.error(err);
       }
     } else {
-      // Se não tem permissão, oferece pedir permissão
       const result = await Swal.fire({
         title: "Receber notificações?",
-        text: "Ative as notificações para receber lembretes no navegador.",
         icon: "question",
         showCancelButton: true,
         confirmButtonText: "Ativar",
@@ -169,7 +152,6 @@ const Vacinação = () => {
       });
       if (result.isConfirmed) {
         await pedirPermissaoNotificacao();
-        // Se a permissão foi concedida, reenvia a notificação
         if (notificacaoPermitida) {
           enviarNotificacaoLocal();
         }
@@ -182,13 +164,11 @@ const Vacinação = () => {
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) *
         Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+        Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
   const buscarUbsProximas = async (lat, lng) => {
@@ -282,11 +262,11 @@ ${textoPendentes}
       title: "Carteira Digital Oficial",
       html: (
         <div className="text-center p-2">
-          <div className="bg-surface-container p-4 rounded-2xl mb-6 border border-outline-variant">
+          <div className="bg-gray-100 p-4 rounded-2xl mb-6">
             <p className="font-bold text-lg">{user?.name || "Maria Silva"}</p>
             <p className="text-sm font-semibold">CNS: 700 0000 0000 0000</p>
           </div>
-          <div className="flex flex-col items-center justify-center p-6 rounded-xl">
+          <div className="flex justify-center p-6">
             <QRCodeSVG
               value={gerarDadosRelatorio()}
               size={180}
@@ -300,157 +280,190 @@ ${textoPendentes}
     });
   };
 
-  const renderizarSelectUBS = () => {
-    if (carregandoUbs) {
-      return (
-        <div className="w-full p-3 border rounded-xl text-center">
-          Buscando UBS próximas...
+  const verDetalhesVacina = (vacina) => {
+    Swal.fire({
+      title: vacina.vacina,
+      html: `
+        <div style="text-align:left; line-height:1.8;">
+          <p><strong>Dose:</strong> ${vacina.dose}</p>
+          <p><strong>Data:</strong> ${vacina.data}</p>
+          <p><strong>Lote:</strong> ${vacina.lote}</p>
+          <p><strong>Status:</strong> ${vacina.status === "aplicada" ? "Aplicada" : "Pendente"}</p>
         </div>
-      );
-    }
-    return (
-      <div className="relative">
-        <select
-          value={ubsEscolhida}
-          onChange={(e) => setUbsEscolhida(e.target.value)}
-          className="w-full p-3 border rounded-xl appearance-none"
-        >
-          {ubsProximas.map((ubs) => (
-            <option key={ubs.id} value={ubs.nome}>
-              {ubs.nome} - {ubs.distance.toFixed(1)} km
-            </option>
-          ))}
-        </select>
-        <HiSelector
-          className="absolute right-3 top-1/2 -translate-y-1/2"
-          size={18}
-        />
-      </div>
-    );
+      `,
+      icon: vacina.status === "aplicada" ? "success" : "warning",
+      confirmButtonColor: "#2563eb",
+      confirmButtonText: "Fechar",
+    });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black">Minha Carteira de Vacinação</h1>
-          <p className="font-medium">Controle oficial de imunização.</p>
-        </div>
-        <button
-          onClick={handleExibirCarteira}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl"
-        >
-          <HiQrcode size={22} />
-          Gerar Relatório QR
-        </button>
-      </div>
-
-      {pendentes.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-red-100 border-l-8 border-red-500 p-5 rounded-2xl mb-8"
-        >
-          <div className="flex items-center gap-4">
-            <HiExclamation size={28} />
-            <div>
-              <p className="font-black text-lg">Vacinação Incompleta</p>
-              <p>
-                Dose de <strong>{vacinaPendente?.vacina}</strong> pendente.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      <div className="grid lg:grid-cols-3 gap-8 mb-12">
-        <motion.div className="lg:col-span-2 bg-blue-600 rounded-3xl p-8 text-white">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Cabeçalho */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-black">CERTIFICADO DE IMUNIZAÇÃO</h2>
-            <div className="mt-10">
-              <p className="text-2xl font-bold">
-                {user?.name || "Maria Silva"}
-              </p>
-            </div>
-            <div className="flex gap-10 mt-10">
-              <div>
-                <p>Doses Aplicadas</p>
-                <p className="text-3xl font-black">{aplicadas.length}</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div className="bg-white rounded-3xl border p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-6">
-              <HiClock size={24} />
-              <span className="font-black">Próximo Registro</span>
-            </div>
-            <div className="p-5 rounded-2xl border mb-4">
-              <p className="font-black text-xl">
-                {vacinaPendente?.vacina || "Nenhuma"}
-              </p>
-              <p className="font-bold mt-1">Reforço necessário</p>
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold flex items-center gap-2">
-                <HiLocationMarker size={16} />
-                Unidade mais próxima:
-              </label>
-              {renderizarSelectUBS()}
-            </div>
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <FaSyringe className="text-blue-600" /> Minha Carteira de
+              Vacinação
+            </h1>
+            <p className="text-gray-500">Controle oficial de imunização.</p>
           </div>
           <button
-            onClick={enviarNotificacaoLocal}
-            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2"
+            onClick={handleExibirCarteira}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition"
           >
-            <HiBell size={20} />
-            Ativar Notificação
+            <HiQrcode /> Gerar Relatório QR
           </button>
-        </motion.div>
-      </div>
+        </div>
 
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-black">Histórico de Aplicações</h3>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          {historico.map((v, i) => (
-            <motion.div
-              key={v.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="p-5 rounded-2xl border-2 flex gap-5"
+        {/* Alerta de vacina pendente */}
+        {pendentes.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-red-50 border-l-8 border-red-500 p-5 rounded-2xl mb-6"
+          >
+            <div className="flex items-center gap-4">
+              <HiExclamation size={28} className="text-red-600" />
+              <div>
+                <p className="font-bold text-lg text-red-800">
+                  Vacinação Incompleta
+                </p>
+                <p className="text-red-700">
+                  Dose de <strong>{vacinaPendente?.vacina}</strong> pendente.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Cards de resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-6 rounded-2xl shadow-lg">
+            <p className="text-sm opacity-80">Certificado de Imunização</p>
+            <p className="text-2xl font-bold mt-1">
+              {user?.name || "Maria Silva"}
+            </p>
+            <p className="text-3xl font-black mt-4">
+              {aplicadas.length} doses aplicadas
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-sm text-gray-400">Próximo Registro</p>
+            <p className="text-xl font-bold text-gray-800">
+              {vacinaPendente?.vacina || "Nenhuma"}
+            </p>
+            <p className="text-sm text-gray-500">Reforço necessário</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-sm text-gray-400 flex items-center gap-1">
+              <HiLocationMarker /> Unidade mais próxima
+            </p>
+            <div className="mt-2">
+              {carregandoUbs ? (
+                <p className="text-gray-500">Buscando...</p>
+              ) : (
+                <select
+                  value={ubsEscolhida}
+                  onChange={(e) => setUbsEscolhida(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  {ubsProximas.map((ubs) => (
+                    <option key={ubs.id} value={ubs.nome}>
+                      {ubs.nome} - {ubs.distance.toFixed(1)} km
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <button
+              onClick={enviarNotificacaoLocal}
+              className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition"
             >
-              <div
-                className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                  v.status === "aplicada"
-                    ? "bg-green-500 text-white"
-                    : "bg-red-500 text-white"
-                }`}
-              >
-                {v.status === "aplicada" ? (
-                  <HiCheckCircle size={30} />
-                ) : (
-                  <HiClock size={30} />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-lg">{v.vacina}</p>
-                <p className="font-bold text-sm">{v.dose}</p>
-                <div className="flex gap-4 mt-3 text-[11px] font-bold uppercase">
-                  <span>Lote: {v.lote}</span>
-                  <span>Data: {v.data}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              <HiBell /> Ativar Notificação
+            </button>
+          </div>
         </div>
-      </section>
+
+        {/* Histórico de aplicações - agora em tabela */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800">
+              Histórico de Aplicações
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Vacina
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Dose
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Data
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Lote
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {historico.map((v) => (
+                  <tr
+                    key={v.id}
+                    className="hover:bg-blue-50 transition cursor-pointer"
+                    onClick={() => verDetalhesVacina(v)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">
+                      {v.vacina}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{v.dose}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{v.data}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
+                      {v.lote}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          v.status === "aplicada"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {v.status === "aplicada" ? "Aplicada" : "Pendente"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          verDetalhesVacina(v);
+                        }}
+                        className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition"
+                        title="Visualizar"
+                      >
+                        <HiEye size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Vacinação;
+export default Vacinacao;
