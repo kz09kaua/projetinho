@@ -97,26 +97,21 @@ const AgendamentoAdmin = () => {
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [filterMedico, setFilterMedico] = useState("Todos");
   const [filterDate, setFilterDate] = useState("");
-  const [filterArchive, setFilterArchive] = useState("todos"); // "todos" ou "arquivados"
+  const [filterArchive, setFilterArchive] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: "data", direction: "asc" });
   const itemsPerPage = 8;
 
-  // Filtro, ordenação e paginação
   const filteredData = useMemo(() => {
     let result = agendamentos.filter((item) => {
-      // Filtro de arquivamento: "todos" mostra todos, "arquivados" mostra apenas arquivados
       if (filterArchive === "arquivados" && !item.arquivado) return false;
-
       const matchSearch =
         item.paciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.medico.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
-
       const matchStatus = filterStatus === "Todos" || item.status === filterStatus;
       const matchMedico = filterMedico === "Todos" || item.medico === filterMedico;
       const matchDate = filterDate === "" || item.data === filterDate;
-
       return matchSearch && matchStatus && matchMedico && matchDate;
     });
 
@@ -138,7 +133,6 @@ const AgendamentoAdmin = () => {
     return result;
   }, [agendamentos, searchTerm, filterStatus, filterMedico, filterDate, filterArchive, sortConfig]);
 
-  // Métricas
   const metrics = useMemo(() => {
     const total = filteredData.length;
     const confirmados = filteredData.filter((a) => a.status === "Confirmado").length;
@@ -158,45 +152,83 @@ const AgendamentoAdmin = () => {
   }, [filteredData, currentPage, itemsPerPage]);
 
   // ============================================================
-  // CRUD (mantido igual)
+  // CRUD CORRIGIDO (MODAL "NOVO AGENDAMENTO")
   // ============================================================
   const handleNovoAgendamento = () => {
     Swal.fire({
-      title: "Novo Agendamento",
+      title: 'Novo Agendamento',
       html: `
-        <input id="swal-paciente" class="swal2-input" placeholder="Paciente" />
-        <select id="swal-medico" class="swal2-input">
-          ${medicosMock.map((m) => `<option value="${m.nome}">${m.nome} - ${m.especialidade}</option>`).join("")}
-        </select>
-        <input id="swal-data" class="swal2-input" type="date" />
-        <input id="swal-horario" class="swal2-input" type="time" />
-        <input id="swal-observacoes" class="swal2-input" placeholder="Observações" />
+        <div style="text-align: left; max-width: 100%; padding: 0; margin: 0; box-sizing: border-box;">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Paciente</label>
+              <input id="swal-paciente" placeholder="Nome completo do paciente" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Médico</label>
+              <select id="swal-medico" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; background: white; box-sizing: border-box; appearance: auto;">
+                ${medicosMock.map((m) => `<option value="${m.nome}">${m.nome} - ${m.especialidade}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Data</label>
+              <input id="swal-data" type="date" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Horário</label>
+              <input id="swal-horario" type="time" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+          </div>
+          <div style="margin-bottom: 8px; box-sizing: border-box;">
+            <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Observações</label>
+            <textarea id="swal-observacoes" placeholder="Informações adicionais (opcional)" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; resize: none; min-height: 60px; box-sizing: border-box; background: white;"></textarea>
+          </div>
+        </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Agendar",
-      cancelButtonText: "Cancelar",
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Agendar',
+      cancelButtonText: 'Cancelar',
+      width: 560,
+      padding: '1.5rem',
+      customClass: {
+        popup: 'swal-custom-popup',
+        title: 'swal-custom-title',
+        confirmButton: 'swal-custom-confirm',
+        cancelButton: 'swal-custom-cancel',
+      },
       preConfirm: () => {
-        const paciente = document.getElementById("swal-paciente").value;
-        const medico = document.getElementById("swal-medico").value;
-        const data = document.getElementById("swal-data").value;
-        const horario = document.getElementById("swal-horario").value;
-        const observacoes = document.getElementById("swal-observacoes").value;
+        const paciente = document.getElementById('swal-paciente').value.trim();
+        const medico = document.getElementById('swal-medico').value;
+        const data = document.getElementById('swal-data').value;
+        const horario = document.getElementById('swal-horario').value;
+        const observacoes = document.getElementById('swal-observacoes').value.trim();
+
         if (!paciente || !medico || !data || !horario) {
-          Swal.showValidationMessage("Preencha todos os campos obrigatórios.");
+          Swal.showValidationMessage('Preencha todos os campos obrigatórios.');
           return;
         }
+
+        const dataAtual = new Date();
+        const dataSelecionada = new Date(data + 'T' + horario);
+        if (dataSelecionada < dataAtual) {
+          Swal.showValidationMessage('A data/hora não pode ser no passado.');
+          return;
+        }
+
         const medicoObj = medicosMock.find((m) => m.nome === medico);
         return {
           paciente,
           medico,
-          especialidade: medicoObj ? medicoObj.especialidade : "",
-          data: data.split("-").reverse().join("/"),
+          especialidade: medicoObj ? medicoObj.especialidade : '',
+          data: data.split('-').reverse().join('/'),
           horario,
           observacoes,
-          status: "Pendente",
+          status: 'Pendente',
         };
       },
     }).then((result) => {
@@ -204,10 +236,10 @@ const AgendamentoAdmin = () => {
         const novo = { id: Date.now(), ...result.value, arquivado: false };
         setAgendamentos((prev) => [novo, ...prev]);
         Swal.fire({
-          icon: "success",
-          title: "Agendamento criado!",
+          icon: 'success',
+          title: 'Agendamento criado!',
           toast: true,
-          position: "top-end",
+          position: 'top-end',
           showConfirmButton: false,
           timer: 2000,
           timerProgressBar: true,
@@ -216,23 +248,62 @@ const AgendamentoAdmin = () => {
     });
   };
 
+  // ============================================================
+  // MODAL DE EDIÇÃO CORRIGIDO
+  // ============================================================
   const handleEditar = (agendamento) => {
     const medicoOptions = medicosMock.map(
       (m) =>
         `<option value="${m.nome}" ${m.nome === agendamento.medico ? "selected" : ""}>${m.nome} - ${m.especialidade}</option>`
     ).join("");
 
+    const statusOptionsHtml = statusOptions.map(
+      (s) =>
+        `<option value="${s}" ${s === agendamento.status ? "selected" : ""}>${s}</option>`
+    ).join("");
+
     Swal.fire({
       title: "Editar Agendamento",
       html: `
-        <input id="swal-paciente" class="swal2-input" value="${agendamento.paciente}" placeholder="Paciente" />
-        <select id="swal-medico" class="swal2-input">${medicoOptions}</select>
-        <input id="swal-data" class="swal2-input" type="date" value="${agendamento.data.split("/").reverse().join("-")}" />
-        <input id="swal-horario" class="swal2-input" type="time" value="${agendamento.horario}" />
-        <input id="swal-observacoes" class="swal2-input" value="${agendamento.observacoes || ""}" placeholder="Observações" />
-        <select id="swal-status" class="swal2-input">
-          ${statusOptions.map((s) => `<option value="${s}" ${s === agendamento.status ? "selected" : ""}>${s}</option>`).join("")}
-        </select>
+        <div style="text-align: left; max-width: 100%; padding: 0; margin: 0; box-sizing: border-box;">
+          <!-- Linha Paciente e Médico -->
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Paciente</label>
+              <input id="swal-paciente" value="${agendamento.paciente}" placeholder="Paciente" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Médico</label>
+              <select id="swal-medico" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; background: white; box-sizing: border-box; appearance: auto;">
+                ${medicoOptions}
+              </select>
+            </div>
+          </div>
+          <!-- Linha Data e Horário -->
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Data</label>
+              <input id="swal-data" type="date" value="${agendamento.data.split("/").reverse().join("-")}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Horário</label>
+              <input id="swal-horario" type="time" value="${agendamento.horario}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; background: white;" />
+            </div>
+          </div>
+          <!-- Linha Observações e Status -->
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Observações</label>
+              <textarea id="swal-observacoes" placeholder="Observações" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; resize: none; min-height: 60px; box-sizing: border-box; background: white;">${agendamento.observacoes || ""}</textarea>
+            </div>
+            <div style="flex: 1 1 calc(50% - 6px); min-width: 150px; box-sizing: border-box;">
+              <label style="display: block; font-weight: 600; margin-bottom: 4px; color: #1e293b; font-size: 0.9rem;">Status</label>
+              <select id="swal-status" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.95rem; background: white; box-sizing: border-box; appearance: auto;">
+                ${statusOptionsHtml}
+              </select>
+            </div>
+          </div>
+        </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -240,17 +311,27 @@ const AgendamentoAdmin = () => {
       cancelButtonColor: "#d33",
       confirmButtonText: "Salvar",
       cancelButtonText: "Cancelar",
+      width: 560,
+      padding: "1.5rem",
+      customClass: {
+        popup: "swal-custom-popup",
+        title: "swal-custom-title",
+        confirmButton: "swal-custom-confirm",
+        cancelButton: "swal-custom-cancel",
+      },
       preConfirm: () => {
-        const paciente = document.getElementById("swal-paciente").value;
+        const paciente = document.getElementById("swal-paciente").value.trim();
         const medico = document.getElementById("swal-medico").value;
         const data = document.getElementById("swal-data").value;
         const horario = document.getElementById("swal-horario").value;
-        const observacoes = document.getElementById("swal-observacoes").value;
+        const observacoes = document.getElementById("swal-observacoes").value.trim();
         const status = document.getElementById("swal-status").value;
+
         if (!paciente || !medico || !data || !horario) {
           Swal.showValidationMessage("Preencha todos os campos obrigatórios.");
           return;
         }
+
         const medicoObj = medicosMock.find((m) => m.nome === medico);
         return {
           paciente,
@@ -280,6 +361,9 @@ const AgendamentoAdmin = () => {
     });
   };
 
+  // ============================================================
+  // DEMAIS FUNÇÕES (ARQUIVAR, EXCLUIR, RELATÓRIO, ETC)
+  // ============================================================
   const handleArquivar = (agendamento) => {
     Swal.fire({
       title: "Arquivar agendamento",
@@ -394,9 +478,6 @@ const AgendamentoAdmin = () => {
     });
   };
 
-  // ============================================================
-  // RELATÓRIO PDF (mantido igual)
-  // ============================================================
   const handleRelatorio = async () => {
     if (filteredData.length === 0) {
       Swal.fire({
@@ -505,9 +586,6 @@ const AgendamentoAdmin = () => {
     }
   };
 
-  // ============================================================
-  // ORDENAÇÃO
-  // ============================================================
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,

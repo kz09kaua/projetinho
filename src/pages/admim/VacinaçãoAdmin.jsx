@@ -692,7 +692,7 @@ const VacinacaoAdmin = () => {
               onClick={exportarRelatorio}
               className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
             >
-              <FaFileDownload /> Relatório (PDF)
+              <FaFileDownload /> Relatório 
             </button>
           </div>
         </div>

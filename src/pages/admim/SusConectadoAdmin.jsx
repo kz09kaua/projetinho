@@ -185,7 +185,7 @@ const ExamCard = ({ exame, onDetalhes }) => {
             onDetalhes(exame);
           }}
         >
-          Ver detalhes <HiExternalLink size={14} />
+
         </button>
       </div>
     </div>

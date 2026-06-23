@@ -1,3 +1,4 @@
+// src/pages/admim/DashboardAdmin.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -447,7 +448,7 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      {/* Acesso rápido */}
+      {/* ========== ACESSO RÁPIDO CORRIGIDO ========== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link
           to="/agendamento"
@@ -459,7 +460,7 @@ const DashboardAdmin = () => {
           <span className="font-medium text-sm">Agendamentos</span>
         </Link>
         <Link
-          to="/gerenciar-filas"
+          to="/filas-atendimento"
           className="bg-white p-5 rounded-2xl border shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col items-center gap-3 group"
         >
           <div className="w-12 h-12 rounded-xl bg-green-100 group-hover:bg-green-200 transition flex items-center justify-center">
@@ -468,7 +469,7 @@ const DashboardAdmin = () => {
           <span className="font-medium text-sm">Gerenciar Filas</span>
         </Link>
         <Link
-          to="/estoque-vacinas"
+          to="/vacinação"
           className="bg-white p-5 rounded-2xl border shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col items-center gap-3 group"
         >
           <div className="w-12 h-12 rounded-xl bg-purple-100 group-hover:bg-purple-200 transition flex items-center justify-center">
