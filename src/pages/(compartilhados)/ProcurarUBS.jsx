@@ -1,39 +1,47 @@
-// src/pages/ProcurarUBS.jsx
-import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { 
-  Search, 
-  Navigation, 
-  MapPin, 
-  Hospital, 
-  Award,
-  Route,
-  Eye,
-  X,
-  Loader2
-} from 'lucide-react';
+// src/pages/ProcurarUBS.jsx - Versão padronizada com design consistente
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import {
+  HiSearch,
+  HiLocationMarker,
+  HiOfficeBuilding,
+  HiBadgeCheck,
+  HiEye,
+  HiX,
+  HiRefresh,
+  HiChevronDoubleLeft,
+  HiHome,
+  HiUser,
+  HiClock,
+  HiPhone,
+} from "react-icons/hi";
+import { FaSyringe } from "react-icons/fa";
 
 // ============================================================
 // CONFIGURAÇÃO DE ÍCONES LEAFLET
 // ============================================================
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 // Ícones personalizados
 const createIcon = (color) => {
   return new L.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    shadowSize: [41, 41],
   });
 };
 
@@ -41,18 +49,142 @@ const createIcon = (color) => {
 // DADOS FIXOS DAS UBS (Muriaé - MG)
 // ============================================================
 const ubsList = [
-  { id: 1, nome: 'UBS Central - Dr. João', endereco: 'Rua Domingos Vieira, 100, Centro', lat: -21.129, lng: -42.365, telefone: '(32) 3221-1000', horario: '07:00 - 17:00' },
-  { id: 2, nome: 'UBS Vila da Penha', endereco: 'Av. JK, 500, Vila da Penha', lat: -21.125, lng: -42.370, telefone: '(32) 3221-2000', horario: '07:00 - 17:00' },
-  { id: 3, nome: 'UBS São Cristóvão', endereco: 'Rua José Bonifácio, 50, São Cristóvão', lat: -21.135, lng: -42.360, telefone: '(32) 3221-3000', horario: '07:00 - 17:00' },
-  { id: 4, nome: 'UBS Santo Antônio', endereco: 'Praça Santana, 12, Santo Antônio', lat: -21.140, lng: -42.375, telefone: '(32) 3221-4000', horario: '07:00 - 17:00' },
-  { id: 5, nome: 'UBS João XXIII', endereco: 'Rua João Pinheiro, 200, João XXIII', lat: -21.145, lng: -42.380, telefone: '(32) 3221-5000', horario: '07:00 - 17:00' },
-  { id: 6, nome: 'UBS Primavera', endereco: 'Av. Rio Branco, 300, Primavera', lat: -21.120, lng: -42.358, telefone: '(32) 3221-6000', horario: '07:00 - 17:00' },
-  { id: 7, nome: 'UBS Industrial', endereco: 'Rua das Indústrias, 200, Industrial', lat: -21.115, lng: -42.345, telefone: '(32) 3221-7000', horario: '07:00 - 17:00' },
-  { id: 8, nome: 'UBS Santa Rita', endereco: 'Av. Santa Rita, 150, Santa Rita', lat: -21.150, lng: -42.390, telefone: '(32) 3221-8000', horario: '07:00 - 17:00' },
+  {
+    id: 1,
+    nome: "UBS Central - Dr. João",
+    endereco: "Rua Domingos Vieira, 100, Centro",
+    lat: -21.129,
+    lng: -42.365,
+    telefone: "(32) 3221-1000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 2,
+    nome: "UBS Vila da Penha",
+    endereco: "Av. JK, 500, Vila da Penha",
+    lat: -21.125,
+    lng: -42.37,
+    telefone: "(32) 3221-2000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 3,
+    nome: "UBS São Cristóvão",
+    endereco: "Rua José Bonifácio, 50, São Cristóvão",
+    lat: -21.135,
+    lng: -42.36,
+    telefone: "(32) 3221-3000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 4,
+    nome: "UBS Santo Antônio",
+    endereco: "Praça Santana, 12, Santo Antônio",
+    lat: -21.14,
+    lng: -42.375,
+    telefone: "(32) 3221-4000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 5,
+    nome: "UBS João XXIII",
+    endereco: "Rua João Pinheiro, 200, João XXIII",
+    lat: -21.145,
+    lng: -42.38,
+    telefone: "(32) 3221-5000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 6,
+    nome: "UBS Primavera",
+    endereco: "Av. Rio Branco, 300, Primavera",
+    lat: -21.12,
+    lng: -42.358,
+    telefone: "(32) 3221-6000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 7,
+    nome: "UBS Industrial",
+    endereco: "Rua das Indústrias, 200, Industrial",
+    lat: -21.115,
+    lng: -42.345,
+    telefone: "(32) 3221-7000",
+    horario: "07:00 - 17:00",
+  },
+  {
+    id: 8,
+    nome: "UBS Santa Rita",
+    endereco: "Av. Santa Rita, 150, Santa Rita",
+    lat: -21.15,
+    lng: -42.39,
+    telefone: "(32) 3221-8000",
+    horario: "07:00 - 17:00",
+  },
 ];
 
 // ============================================================
-// COMPONENTES AUXILIARES
+// COMPONENTES REUTILIZÁVEIS (padronizados)
+// ============================================================
+
+const Avatar = ({ nome, size = "sm" }) => {
+  const iniciais = nome
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const tamanho =
+    size === "sm"
+      ? "w-8 h-8 text-xs"
+      : size === "md"
+        ? "w-10 h-10 text-sm"
+        : "w-12 h-12 text-base";
+  return (
+    <div
+      className={`${tamanho} rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0`}
+    >
+      {iniciais}
+    </div>
+  );
+};
+
+const MetricCard = ({ title, value, icon: Icon, color = "blue", subtitle }) => {
+  const colorMap = {
+    blue: "from-blue-600 to-blue-700",
+    green: "from-emerald-500 to-emerald-600",
+    amber: "from-amber-500 to-amber-600",
+    red: "from-rose-500 to-rose-600",
+    teal: "from-teal-500 to-teal-600",
+    indigo: "from-indigo-500 to-indigo-600",
+    purple: "from-purple-500 to-purple-600",
+    gray: "from-slate-500 to-slate-600",
+  };
+
+  const gradient = colorMap[color] || colorMap.blue;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 p-4 min-w-[140px] flex-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xl font-bold text-gray-800 mt-1">{value}</p>
+          {subtitle && (
+            <p className="text-[10px] text-gray-400 truncate">{subtitle}</p>
+          )}
+        </div>
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg flex-shrink-0`}
+        >
+          <Icon size={18} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// COMPONENTES AUXILIARES DO MAPA
 // ============================================================
 
 // Componente para centralizar o mapa
@@ -75,9 +207,9 @@ const LocateUser = ({ setUserLocation }) => {
     const handleLocationFound = (e) => {
       setUserLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
     };
-    map.on('locationfound', handleLocationFound);
+    map.on("locationfound", handleLocationFound);
     return () => {
-      map.off('locationfound', handleLocationFound);
+      map.off("locationfound", handleLocationFound);
     };
   }, [map, setUserLocation]);
 
@@ -89,13 +221,15 @@ const LocateUser = ({ setUserLocation }) => {
 // ============================================================
 const calcularDistancia = (lat1, lng1, lat2, lng2) => {
   const toRad = (value) => (value * Math.PI) / 180;
-  const R = 6371; // Raio da Terra em km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -112,7 +246,7 @@ const ProcurarUBS = () => {
   // ===== ESTADOS =====
   const [userLocation, setUserLocation] = useState(null);
   const [searchResult, setSearchResult] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedUBS, setSelectedUBS] = useState(null);
   const [mapCenter, setMapCenter] = useState([-21.129, -42.365]);
   const [mapZoom, setMapZoom] = useState(14);
@@ -123,14 +257,14 @@ const ProcurarUBS = () => {
 
   // ===== CALCULAR DISTÂNCIAS =====
   const ubsComDistancia = useMemo(() => {
-    return ubsList.map(ubs => {
+    return ubsList.map((ubs) => {
       let distancia = null;
       if (userLocation) {
         distancia = calcularDistancia(
           userLocation.lat,
           userLocation.lng,
           ubs.lat,
-          ubs.lng
+          ubs.lng,
         );
       }
       return { ...ubs, distancia };
@@ -140,21 +274,22 @@ const ProcurarUBS = () => {
   // ===== UBS MAIS PRÓXIMA =====
   const ubsMaisProxima = useMemo(() => {
     if (!userLocation) return null;
-    const comDistancia = ubsComDistancia.filter(u => u.distancia !== null);
+    const comDistancia = ubsComDistancia.filter((u) => u.distancia !== null);
     if (comDistancia.length === 0) return null;
-    return comDistancia.reduce((a, b) => a.distancia < b.distancia ? a : b);
+    return comDistancia.reduce((a, b) => (a.distancia < b.distancia ? a : b));
   }, [ubsComDistancia, userLocation]);
 
   // ===== FILTRO DE BUSCA (sugestões) =====
   useEffect(() => {
-    if (searchTerm.trim() === '') {
+    if (searchTerm.trim() === "") {
       setSearchSuggestions([]);
       return;
     }
     const lower = searchTerm.toLowerCase();
-    const filtered = ubsList.filter(ubs =>
-      ubs.nome.toLowerCase().includes(lower) ||
-      ubs.endereco.toLowerCase().includes(lower)
+    const filtered = ubsList.filter(
+      (ubs) =>
+        ubs.nome.toLowerCase().includes(lower) ||
+        ubs.endereco.toLowerCase().includes(lower),
     );
     setSearchSuggestions(filtered);
   }, [searchTerm]);
@@ -168,7 +303,7 @@ const ProcurarUBS = () => {
       lat: first.lat,
       lng: first.lng,
       address: first.endereco,
-      name: first.nome
+      name: first.nome,
     });
     setMapCenter([first.lat, first.lng]);
     setMapZoom(16);
@@ -184,7 +319,7 @@ const ProcurarUBS = () => {
       lat: ubs.lat,
       lng: ubs.lng,
       address: ubs.endereco,
-      name: ubs.nome
+      name: ubs.nome,
     });
   };
 
@@ -195,67 +330,73 @@ const ProcurarUBS = () => {
   };
 
   const handleRotas = (ubs) => {
-    const origem = userLocation ? `${userLocation.lat},${userLocation.lng}` : '';
+    const origem = userLocation
+      ? `${userLocation.lat},${userLocation.lng}`
+      : "";
     const destino = `${ubs.lat},${ubs.lng}`;
     const url = `https://www.google.com/maps/dir/${origem}/${destino}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
+  };
+
+  const handleCentralizar = () => {
+    if (userLocation) {
+      setMapCenter([userLocation.lat, userLocation.lng]);
+      setMapZoom(15);
+    }
   };
 
   // ===== RENDER =====
   return (
-    <div className="min-h-screen bg-white">
-      {/* HERO SECTION - totalmente branco, sem métricas e sem botões */}
-      <div className="relative overflow-hidden bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex-1 text-center md:text-left">
-             
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight">
-                Encontrar UBS
-              </h1>
-              <p className="text-gray-600 text-lg mt-3 max-w-2xl">
-                Encontre rapidamente a unidade de saúde mais próxima da sua localização. 
-               
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header - padronizado */}
+        <HeaderSection />
 
-      {/* SEÇÃO PRINCIPAL: MAPA + SIDEBAR */}
-      <div id="map-section" className="max-w-7xl mx-auto px-4 py-8">
+        {/* Seção Principal: Mapa + Sidebar */}
         <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-          {/* SIDEBAR */}
-          <div className={`
+          {/* Sidebar */}
+          <div
+            className={`
             lg:w-1/3 xl:w-1/4 order-2 lg:order-1
-            ${showSidebar ? 'block' : 'hidden lg:block'}
-          `}>
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden h-[700px] flex flex-col sticky top-24">
+            ${showSidebar ? "block" : "hidden lg:block"}
+          `}
+          >
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 overflow-hidden h-[700px] flex flex-col">
               {/* Barra de pesquisa */}
-              <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+              <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
                 <form onSubmit={handleSearchSubmit} className="relative">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <HiSearch
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Pesquisar UBS, bairro ou endereço..."
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
                     />
                   </div>
                   {searchSuggestions.length > 0 && (
                     <div className="absolute z-50 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-                      {searchSuggestions.map(ubs => (
+                      {searchSuggestions.map((ubs) => (
                         <button
                           key={ubs.id}
                           onClick={() => handleSelectUBS(ubs)}
                           className="w-full text-left px-4 py-2 hover:bg-blue-50 transition flex items-center gap-2"
                         >
-                          <MapPin size={16} className="text-blue-600" />
+                          <HiLocationMarker
+                            size={16}
+                            className="text-blue-600"
+                          />
                           <div>
-                            <p className="font-medium text-gray-800">{ubs.nome}</p>
-                            <p className="text-xs text-gray-500">{ubs.endereco}</p>
+                            <p className="font-medium text-gray-800">
+                              {ubs.nome}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {ubs.endereco}
+                            </p>
                           </div>
                         </button>
                       ))}
@@ -264,7 +405,7 @@ const ProcurarUBS = () => {
                 </form>
               </div>
 
-              {/* Lista de UBS - ocupa todo o espaço disponível */}
+              {/* Lista de UBS */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-700">Todas as UBS</h3>
@@ -273,22 +414,30 @@ const ProcurarUBS = () => {
                   </span>
                 </div>
 
-                {ubsComDistancia.map(ubs => (
+                {ubsComDistancia.map((ubs) => (
                   <div
                     key={ubs.id}
                     className={`
                       p-3 rounded-xl border transition cursor-pointer
-                      ${selectedUBS?.id === ubs.id 
-                        ? 'border-blue-500 bg-blue-50 shadow-md' 
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                      ${
+                        selectedUBS?.id === ubs.id
+                          ? "border-blue-500 bg-blue-50 shadow-md"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                       }
                     `}
                     onClick={() => handleSelectUBS(ubs)}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800">{ubs.nome}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{ubs.endereco}</p>
+                        <div className="flex items-center gap-2">
+                          <Avatar nome={ubs.nome} size="sm" />
+                          <h4 className="font-semibold text-gray-800 text-sm">
+                            {ubs.nome}
+                          </h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {ubs.endereco}
+                        </p>
                         {ubs.distancia !== null && (
                           <p className="text-xs text-blue-600 mt-1 font-medium">
                             {formatarDistancia(ubs.distancia)} de distância
@@ -297,18 +446,24 @@ const ProcurarUBS = () => {
                       </div>
                       <div className="flex gap-1 ml-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleVerNoMapa(ubs); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerNoMapa(ubs);
+                          }}
                           className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
                           title="Ver no mapa"
                         >
-                          <Eye size={16} />
+                          <HiEye size={16} />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleRotas(ubs); }}
-                          className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRotas(ubs);
+                          }}
+                          className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
                           title="Rotas"
                         >
-                          <Route size={16} />
+                          <HiLocationMarker size={16} />
                         </button>
                       </div>
                     </div>
@@ -316,15 +471,19 @@ const ProcurarUBS = () => {
                 ))}
               </div>
 
-              {/* UBS mais próxima - fixa no rodapé */}
+              {/* UBS mais próxima */}
               {ubsMaisProxima && (
-                <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+                <div className="p-4 border-t border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                   <div className="flex items-center gap-2 text-blue-700 font-medium mb-1">
-                    <Award size={18} />
+                    <HiBadgeCheck size={18} />
                     <span>UBS mais próxima</span>
                   </div>
-                  <p className="font-bold text-gray-800">{ubsMaisProxima.nome}</p>
-                  <p className="text-sm text-gray-600">{ubsMaisProxima.endereco}</p>
+                  <p className="font-bold text-gray-800">
+                    {ubsMaisProxima.nome}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {ubsMaisProxima.endereco}
+                  </p>
                   <p className="text-sm text-blue-600 font-medium mt-1">
                     {formatarDistancia(ubsMaisProxima.distancia)}
                   </p>
@@ -333,31 +492,47 @@ const ProcurarUBS = () => {
             </div>
           </div>
 
-          {/* MAPA */}
-          <div className={`
+          {/* Mapa */}
+          <div
+            className={`
             flex-1 order-1 lg:order-2
-            ${showSidebar ? '' : 'w-full'}
-          `}>
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden relative h-[700px]">
+            ${showSidebar ? "" : "w-full"}
+          `}
+          >
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 overflow-hidden relative h-[700px]">
+              {/* Botões de controle */}
               <div className="absolute top-4 left-4 z-10 flex gap-2">
                 <button
                   onClick={() => setShowSidebar(!showSidebar)}
-                  className="bg-white p-2 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition"
+                  className="bg-white p-2.5 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition"
                 >
-                  {showSidebar ? <X size={20} /> : <MapPin size={20} />}
+                  {showSidebar ? (
+                    <HiX size={20} />
+                  ) : (
+                    <HiOfficeBuilding size={20} />
+                  )}
                 </button>
+                {userLocation && (
+                  <button
+                    onClick={handleCentralizar}
+                    className="bg-white p-2.5 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition"
+                    title="Centralizar na sua localização"
+                  >
+                    <HiLocationMarker size={20} className="text-blue-600" />
+                  </button>
+                )}
               </div>
 
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50 z-20">
-                  <Loader2 size={48} className="text-blue-600 animate-spin" />
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
                 </div>
               )}
 
               <MapContainer
                 center={mapCenter}
                 zoom={mapZoom}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: "100%", width: "100%" }}
                 whenReady={() => setIsLoading(false)}
                 ref={mapRef}
                 className="z-0"
@@ -367,21 +542,26 @@ const ProcurarUBS = () => {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {/* Localizar usuário */}
                 <LocateUser setUserLocation={setUserLocation} />
+                {mapCenter && (
+                  <MapCenter
+                    lat={mapCenter[0]}
+                    lng={mapCenter[1]}
+                    zoom={mapZoom}
+                  />
+                )}
 
-                {/* Centralizar mapa */}
-                {mapCenter && <MapCenter lat={mapCenter[0]} lng={mapCenter[1]} zoom={mapZoom} />}
-
-                {/* Marcador de localização do usuário */}
+                {/* Marcador do usuário */}
                 {userLocation && (
-                  <Marker 
+                  <Marker
                     position={[userLocation.lat, userLocation.lng]}
-                    icon={createIcon('blue')}
+                    icon={createIcon("blue")}
                   >
                     <Popup>
                       <div className="text-center">
-                        <strong className="text-gray-800">📍 Sua localização</strong>
+                        <strong className="text-gray-800">
+                          📍 Sua localização
+                        </strong>
                         <p className="text-sm text-gray-600">Você está aqui</p>
                       </div>
                     </Popup>
@@ -389,29 +569,41 @@ const ProcurarUBS = () => {
                 )}
 
                 {/* Marcadores das UBS */}
-                {ubsList.map(ubs => (
-                  <Marker 
+                {ubsList.map((ubs) => (
+                  <Marker
                     key={ubs.id}
                     position={[ubs.lat, ubs.lng]}
-                    icon={createIcon('red')}
+                    icon={createIcon("red")}
                   >
                     <Popup>
                       <div className="min-w-[200px]">
                         <h4 className="font-bold text-gray-800">{ubs.nome}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{ubs.endereco}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {ubs.endereco}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <HiPhone size={12} /> {ubs.telefone}
+                        </p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <HiClock size={12} /> {ubs.horario}
+                        </p>
                         {userLocation && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            {formatarDistancia(calcularDistancia(
-                              userLocation.lat, userLocation.lng,
-                              ubs.lat, ubs.lng
-                            ))}
+                          <p className="text-xs text-blue-600 mt-1 font-medium">
+                            {formatarDistancia(
+                              calcularDistancia(
+                                userLocation.lat,
+                                userLocation.lng,
+                                ubs.lat,
+                                ubs.lng,
+                              ),
+                            )}
                           </p>
                         )}
                         <button
                           onClick={() => handleRotas(ubs)}
                           className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center justify-center gap-2"
                         >
-                          <Route size={16} /> Rotas
+                          <HiLocationMarker size={16} /> Rotas
                         </button>
                       </div>
                     </Popup>
@@ -420,14 +612,16 @@ const ProcurarUBS = () => {
 
                 {/* Marcador do resultado da pesquisa */}
                 {searchResult && (
-                  <Marker 
+                  <Marker
                     position={[searchResult.lat, searchResult.lng]}
-                    icon={createIcon('green')}
+                    icon={createIcon("green")}
                   >
                     <Popup>
                       <div className="text-center">
                         <strong className="text-gray-800">🔍 Resultado</strong>
-                        <p className="text-sm text-gray-600">{searchResult.address}</p>
+                        <p className="text-sm text-gray-600">
+                          {searchResult.address}
+                        </p>
                       </div>
                     </Popup>
                   </Marker>
@@ -435,19 +629,24 @@ const ProcurarUBS = () => {
               </MapContainer>
             </div>
 
-            {/* Card de detalhes da localização encontrada */}
+            {/* Card de detalhes */}
             {searchResult && (
               <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-xl">
-                    <MapPin size={24} className="text-blue-600" />
+                    <HiLocationMarker size={24} className="text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-800">{searchResult.name || 'Localização'}</h4>
-                    <p className="text-sm text-gray-600">{searchResult.address}</p>
+                    <h4 className="font-bold text-gray-800">
+                      {searchResult.name || "Localização"}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {searchResult.address}
+                    </p>
                     {ubsMaisProxima && (
                       <p className="text-sm text-blue-600 font-medium">
-                        UBS mais próxima: {ubsMaisProxima.nome} ({formatarDistancia(ubsMaisProxima.distancia)})
+                        UBS mais próxima: {ubsMaisProxima.nome} (
+                        {formatarDistancia(ubsMaisProxima.distancia)})
                       </p>
                     )}
                   </div>
@@ -458,14 +657,78 @@ const ProcurarUBS = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-md"
                 >
-                  <Navigation size={18} />
+                  <HiLocationMarker size={18} />
                   Abrir rotas
                 </a>
               </div>
             )}
           </div>
         </div>
+
+        {/* Rodapé */}
+        <FooterSection />
       </div>
+    </div>
+  );
+};
+
+// ============================================================
+// SUBCOMPONENTES
+// ============================================================
+
+const HeaderSection = () => {
+  const hoje = new Date();
+  const dataFormatada = hoje.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 p-6 md:p-8 shadow-2xl">
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+      <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <HiHome className="w-4 h-4" />
+            <span>Dashboard</span>
+            <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
+            <span className="text-white font-medium">Procurar UBS</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
+            <HiLocationMarker className="w-7 h-7" />
+            Encontrar UBS
+          </h1>
+          <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
+            <span>Encontre rapidamente a unidade de saúde mais próxima</span>
+            <span className="w-1 h-1 rounded-full bg-white/30"></span>
+            <span>{dataFormatada}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/10">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
+            <HiUser className="w-4 h-4" />
+          </div>
+          <div className="text-white text-sm">
+            <p className="font-medium">Localização ativa</p>
+            <p className="text-white/70 text-xs">Permissão concedida</p>
+          </div>
+        </div>
+      </div>
+      <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+    </div>
+  );
+};
+
+const FooterSection = () => {
+  return (
+    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
+      <p>Clique em qualquer UBS para ver detalhes e traçar rotas.</p>
+      <p className="mt-1">
+        © 2025 Procurar UBS - Sistema de Localização de Unidades de Saúde
+      </p>
     </div>
   );
 };

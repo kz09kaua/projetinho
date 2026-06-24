@@ -1,11 +1,12 @@
-// FilasAtendimentoAdmin.jsx
-import React, { useState, useMemo, useCallback } from "react";
+// src/pages/admim/FilasAtendimentoAdmin.jsx
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import {
   HiUsers,
   HiClock,
   HiTrendingUp,
-  HiPrinter,
+  HiTrendingDown,
   HiSearch,
   HiUserGroup,
   HiOfficeBuilding,
@@ -13,17 +14,21 @@ import {
   HiX,
   HiEye,
   HiRefresh,
-  HiDownload,
   HiDocumentReport,
   HiChartPie,
-  HiArrowUp,
-  HiArrowDown,
   HiStar,
-  HiCheck,
   HiCheckCircle,
   HiExclamationCircle,
   HiMinusCircle,
   HiXCircle,
+  HiHome,
+  HiChevronDoubleLeft,
+  HiChevronLeft,
+  HiChevronRight,
+  HiChevronDoubleRight,
+  HiFilter,
+  HiSortAscending,
+  HiSortDescending,
 } from "react-icons/hi";
 import Swal from "sweetalert2";
 import {
@@ -38,12 +43,9 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
 
 // ============================================================
-// DADOS MOCKADOS REALISTAS
+// DADOS MOCKADOS (mantidos)
 // ============================================================
 const ubsListMock = [
   "UBS Central",
@@ -69,24 +71,46 @@ const especialidadesMock = [
 ];
 
 const nomesPacientes = [
-  "Ana Silva", "Carlos Santos", "Mariana Oliveira", "Pedro Costa",
-  "Fernanda Lima", "Rafael Alves", "Juliana Pereira", "Lucas Rodrigues",
-  "Carla Souza", "Bruno Nunes", "Patrícia Gomes", "Thiago Martins",
-  "Amanda Rocha", "Felipe Mendes", "Larissa Ferreira", "Gustavo Barbosa",
-  "Isabela Castro", "Diego Cardoso", "Camila Duarte", "André Freitas",
-  "Renata Lima", "Eduardo Silva", "Tatiane Oliveira", "Marcelo Santos",
-  "Vanessa Costa", "Gabriel Nunes", "Bianca Rocha", "Rodrigo Alves",
-  "Priscila Mendes", "Alexandre Barbosa",
+  "Ana Silva",
+  "Carlos Santos",
+  "Mariana Oliveira",
+  "Pedro Costa",
+  "Fernanda Lima",
+  "Rafael Alves",
+  "Juliana Pereira",
+  "Lucas Rodrigues",
+  "Carla Souza",
+  "Bruno Nunes",
+  "Patrícia Gomes",
+  "Thiago Martins",
+  "Amanda Rocha",
+  "Felipe Mendes",
+  "Larissa Ferreira",
+  "Gustavo Barbosa",
+  "Isabela Castro",
+  "Diego Cardoso",
+  "Camila Duarte",
+  "André Freitas",
+  "Renata Lima",
+  "Eduardo Silva",
+  "Tatiane Oliveira",
+  "Marcelo Santos",
+  "Vanessa Costa",
+  "Gabriel Nunes",
+  "Bianca Rocha",
+  "Rodrigo Alves",
+  "Priscila Mendes",
+  "Alexandre Barbosa",
 ];
 
-// Gerador de pacientes
 const gerarPacientes = (quantidade) => {
   const pacientes = [];
   const shuffled = [...nomesPacientes].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, quantidade);
   for (let i = 0; i < quantidade; i++) {
     const horario = `${String(Math.floor(Math.random() * 10) + 8).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}`;
-    const prioridade = Math.random() > 0.7 ? "Alta" : Math.random() > 0.4 ? "Média" : "Baixa";
+    const prioridade =
+      Math.random() > 0.7 ? "Alta" : Math.random() > 0.4 ? "Média" : "Baixa";
     const tempoEspera = Math.floor(Math.random() * 30) + 5;
     pacientes.push({
       id: i + 1,
@@ -99,16 +123,17 @@ const gerarPacientes = (quantidade) => {
   return pacientes;
 };
 
-// Gerar filas para todas as UBS e especialidades
 const filasMock = [];
 ubsListMock.forEach((ubs, ubsIndex) => {
-  const numEspecialidades = Math.floor(Math.random() * 3) + 2; // 2 a 4 especialidades por UBS
+  const numEspecialidades = Math.floor(Math.random() * 3) + 2;
   const shuffledEsps = [...especialidadesMock].sort(() => Math.random() - 0.5);
   const selectedEsps = shuffledEsps.slice(0, numEspecialidades);
   selectedEsps.forEach((especialidade) => {
-    const numPacientes = Math.floor(Math.random() * 16) + 5; // 5 a 20 pacientes
+    const numPacientes = Math.floor(Math.random() * 16) + 5;
     const pacientes = gerarPacientes(numPacientes);
-    const tempoMedio = Math.round(pacientes.reduce((acc, p) => acc + p.tempoEspera, 0) / pacientes.length);
+    const tempoMedio = Math.round(
+      pacientes.reduce((acc, p) => acc + p.tempoEspera, 0) / pacientes.length,
+    );
     const prioridades = pacientes.filter((p) => p.prioridade === "Alta").length;
     filasMock.push({
       id: `${ubsIndex}-${especialidade}`,
@@ -122,14 +147,141 @@ ubsListMock.forEach((ubs, ubsIndex) => {
 });
 
 // ============================================================
-// FUNÇÃO DE STATUS MELHORADA (4 NÍVEIS)
+// FUNÇÃO DE STATUS (mantida)
 // ============================================================
 const getStatusDetalhado = (pacientes) => {
   const qtd = pacientes.length;
   if (qtd > 15) return { label: "Crítico", color: "red", icon: HiXCircle };
-  if (qtd >= 11) return { label: "Atenção", color: "yellow", icon: HiExclamationCircle };
-  if (qtd >= 6) return { label: "Moderado", color: "blue", icon: HiMinusCircle };
+  if (qtd >= 11)
+    return { label: "Atenção", color: "yellow", icon: HiExclamationCircle };
+  if (qtd >= 6)
+    return { label: "Moderado", color: "blue", icon: HiMinusCircle };
   return { label: "Normal", color: "green", icon: HiCheckCircle };
+};
+
+// ============================================================
+// COMPONENTES AUXILIARES (com tradução)
+// ============================================================
+
+const Avatar = ({ nome, size = "sm" }) => {
+  const iniciais = nome
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const tamanho =
+    size === "sm"
+      ? "w-8 h-8 text-xs"
+      : size === "md"
+        ? "w-10 h-10 text-sm"
+        : "w-12 h-12 text-base";
+  return (
+    <div
+      className={`${tamanho} rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0`}
+    >
+      {iniciais}
+    </div>
+  );
+};
+
+const FilaStatusBadge = ({ status }) => {
+  const config = {
+    Normal: {
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
+      dot: "bg-emerald-500",
+      icon: HiCheckCircle,
+    },
+    Moderado: {
+      bg: "bg-blue-50",
+      text: "text-blue-700",
+      border: "border-blue-200",
+      dot: "bg-blue-500",
+      icon: HiMinusCircle,
+    },
+    Atenção: {
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+      dot: "bg-amber-500",
+      icon: HiExclamationCircle,
+    },
+    Crítico: {
+      bg: "bg-rose-50",
+      text: "text-rose-700",
+      border: "border-rose-200",
+      dot: "bg-rose-500",
+      icon: HiXCircle,
+    },
+  };
+  const { bg, text, border, dot, icon: Icon } = config[status] || config.Normal;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text} ${border}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {status}
+      <Icon size={12} className="opacity-70" />
+    </span>
+  );
+};
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  trend,
+  trendValue,
+  subtitle,
+}) => {
+  const colorMap = {
+    blue: "from-blue-600 to-blue-700",
+    green: "from-emerald-500 to-emerald-600",
+    amber: "from-amber-500 to-amber-600",
+    red: "from-rose-500 to-rose-600",
+    teal: "from-teal-500 to-teal-600",
+    indigo: "from-indigo-500 to-indigo-600",
+    gray: "from-slate-500 to-slate-600",
+  };
+
+  const gradient = colorMap[color] || colorMap.blue;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 p-4 min-w-[140px] flex-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xl font-bold text-gray-800 mt-1">{value}</p>
+          {subtitle && (
+            <p className="text-[10px] text-gray-400 truncate">{subtitle}</p>
+          )}
+        </div>
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg flex-shrink-0`}
+        >
+          <Icon size={18} />
+        </div>
+      </div>
+      {trend && (
+        <div className="flex items-center gap-1 mt-2 text-[10px]">
+          {trend === "up" ? (
+            <HiTrendingUp className="text-emerald-500" />
+          ) : (
+            <HiTrendingDown className="text-rose-500" />
+          )}
+          <span
+            className={trend === "up" ? "text-emerald-600" : "text-rose-600"}
+          >
+            {trendValue}
+          </span>
+          <span className="text-gray-400">vs. anterior</span>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ============================================================
@@ -137,13 +289,22 @@ const getStatusDetalhado = (pacientes) => {
 // ============================================================
 const FilasAtendimentoAdmin = () => {
   const { user } = useAuth();
-  if (user?.role !== "admin") {
-    return (
-      <div className="text-center text-red-500 mt-20">Acesso restrito.</div>
-    );
-  }
+  const { t } = useTranslation();
 
-  // Estado
+  if (user?.role !== "admin")
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
+          <HiXCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800">Acesso Restrito</h2>
+          <p className="text-gray-600 mt-2">
+            Você não tem permissão para acessar esta página.
+          </p>
+        </div>
+      </div>
+    );
+
+  // Estados
   const [filas, setFilas] = useState(filasMock);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroUBS, setFiltroUBS] = useState("");
@@ -152,28 +313,41 @@ const FilasAtendimentoAdmin = () => {
   const [filtroTempo, setFiltroTempo] = useState("");
   const [filtroPacientes, setFiltroPacientes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({ key: "pacientes", direction: "desc" });
-  const itemsPerPage = 5;
+  const [sortConfig, setSortConfig] = useState({
+    key: "pacientes",
+    direction: "desc",
+  });
+  const itemsPerPage = 8;
+  const [isLoading, setIsLoading] = useState(false);
 
-  // ===== Dados derivados =====
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Dados derivados
   const ubsList = useMemo(() => [...new Set(filas.map((f) => f.ubs))], [filas]);
   const especialidadeList = useMemo(
     () => [...new Set(filas.map((f) => f.especialidade))],
-    [filas]
+    [filas],
   );
 
-  // Filtragem
+  // Filtragem e ordenação
   const filteredData = useMemo(() => {
     let result = filas.filter((f) => {
       const matchSearch =
         f.ubs.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
       const matchUBS = !filtroUBS || f.ubs === filtroUBS;
-      const matchEspecialidade = !filtroEspecialidade || f.especialidade === filtroEspecialidade;
+      const matchEspecialidade =
+        !filtroEspecialidade || f.especialidade === filtroEspecialidade;
       const matchPrioridade =
         !filtroPrioridade ||
         (filtroPrioridade === "0" && f.prioridades === 0) ||
-        (filtroPrioridade === "1-2" && f.prioridades >= 1 && f.prioridades <= 2) ||
+        (filtroPrioridade === "1-2" &&
+          f.prioridades >= 1 &&
+          f.prioridades <= 2) ||
         (filtroPrioridade === "3+" && f.prioridades >= 3);
       const matchTempo =
         !filtroTempo ||
@@ -183,11 +357,20 @@ const FilasAtendimentoAdmin = () => {
       const matchPacientes =
         !filtroPacientes ||
         (filtroPacientes === "0-5" && f.pacientes.length <= 5) ||
-        (filtroPacientes === "6-10" && f.pacientes.length > 5 && f.pacientes.length <= 10) ||
+        (filtroPacientes === "6-10" &&
+          f.pacientes.length > 5 &&
+          f.pacientes.length <= 10) ||
         (filtroPacientes === "11+" && f.pacientes.length > 10);
-      return matchSearch && matchUBS && matchEspecialidade && matchPrioridade && matchTempo && matchPacientes;
+      return (
+        matchSearch &&
+        matchUBS &&
+        matchEspecialidade &&
+        matchPrioridade &&
+        matchTempo &&
+        matchPacientes
+      );
     });
-    // Ordenação
+
     if (sortConfig.key) {
       result.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -202,25 +385,68 @@ const FilasAtendimentoAdmin = () => {
       });
     }
     return result;
-  }, [filas, searchTerm, filtroUBS, filtroEspecialidade, filtroPrioridade, filtroTempo, filtroPacientes, sortConfig]);
+  }, [
+    filas,
+    searchTerm,
+    filtroUBS,
+    filtroEspecialidade,
+    filtroPrioridade,
+    filtroTempo,
+    filtroPacientes,
+    sortConfig,
+  ]);
 
   // Métricas
   const metrics = useMemo(() => {
-    const totalPacientes = filteredData.reduce((acc, f) => acc + f.pacientes.length, 0);
+    const totalPacientes = filteredData.reduce(
+      (acc, f) => acc + f.pacientes.length,
+      0,
+    );
     const tempoMedioGeral = filteredData.length
-      ? Math.round(filteredData.reduce((acc, f) => acc + f.tempoMedio, 0) / filteredData.length)
+      ? Math.round(
+          filteredData.reduce((acc, f) => acc + f.tempoMedio, 0) /
+            filteredData.length,
+        )
       : 0;
-    const totalPrioridades = filteredData.reduce((acc, f) => acc + f.prioridades, 0);
+    const totalPrioridades = filteredData.reduce(
+      (acc, f) => acc + f.prioridades,
+      0,
+    );
     const ubsMaiorFila = filteredData.length
-      ? filteredData.reduce((a, b) => (a.pacientes.length > b.pacientes.length ? a : b)).ubs
+      ? filteredData.reduce((a, b) =>
+          a.pacientes.length > b.pacientes.length ? a : b,
+        ).ubs
       : "N/A";
     const especialidadeMaisDemandada = filteredData.length
-      ? filteredData.reduce((a, b) => (a.pacientes.length > b.pacientes.length ? a : b)).especialidade
+      ? filteredData.reduce((a, b) =>
+          a.pacientes.length > b.pacientes.length ? a : b,
+        ).especialidade
       : "N/A";
-    const ocupacao = totalPacientes > 0
-      ? Math.round((filteredData.reduce((acc, f) => acc + f.pacientes.length, 0) / (filteredData.length * 10)) * 100)
-      : 0;
-    return { totalPacientes, tempoMedioGeral, totalPrioridades, ubsMaiorFila, especialidadeMaisDemandada, ocupacao };
+    const ocupacao =
+      totalPacientes > 0
+        ? Math.round(
+            (filteredData.reduce((acc, f) => acc + f.pacientes.length, 0) /
+              (filteredData.length * 10)) *
+              100,
+          )
+        : 0;
+
+    const trends = {
+      totalPacientes: { value: "+5%", type: "up" },
+      tempoMedioGeral: { value: "-2%", type: "down" },
+      totalPrioridades: { value: "+8%", type: "up" },
+      ocupacao: { value: "+3%", type: "up" },
+    };
+
+    return {
+      totalPacientes,
+      tempoMedioGeral,
+      totalPrioridades,
+      ubsMaiorFila,
+      especialidadeMaisDemandada,
+      ocupacao,
+      trends,
+    };
   }, [filteredData]);
 
   // Dados para gráficos
@@ -239,7 +465,10 @@ const FilasAtendimentoAdmin = () => {
       if (!map[f.especialidade]) map[f.especialidade] = 0;
       map[f.especialidade] += f.tempoMedio;
     });
-    return Object.keys(map).map((key) => ({ especialidade: key, tempoMedio: map[key] }));
+    return Object.keys(map).map((key) => ({
+      especialidade: key,
+      tempoMedio: map[key],
+    }));
   }, [filteredData]);
 
   const dataPrioridades = useMemo(() => {
@@ -251,40 +480,13 @@ const FilasAtendimentoAdmin = () => {
     return Object.keys(map).map((key) => ({ ubs: key, prioridades: map[key] }));
   }, [filteredData]);
 
-  // ===== Dados para gráfico de Status =====
-  const dataStatus = useMemo(() => {
-    const statusCount = {
-      Normal: 0,
-      Moderado: 0,
-      Atenção: 0,
-      Crítico: 0,
-    };
-    filteredData.forEach((f) => {
-      const status = getStatusDetalhado(f.pacientes);
-      if (status.label === "Normal") statusCount.Normal++;
-      else if (status.label === "Moderado") statusCount.Moderado++;
-      else if (status.label === "Atenção") statusCount.Atenção++;
-      else if (status.label === "Crítico") statusCount.Crítico++;
-    });
-    return Object.entries(statusCount).map(([name, value]) => ({ name, value }));
-  }, [filteredData]);
-
-  // ===== Cores para gráfico de status =====
-  const statusColors = {
-    Normal: "#10b981",
-    Moderado: "#3b82f6",
-    Atenção: "#f59e0b",
-    Crítico: "#ef4444",
-  };
-
-  // Paginação
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage, itemsPerPage]);
 
-  // ===== Handlers =====
+  // Handlers
   const handleSort = useCallback((key) => {
     setSortConfig((prev) => ({
       key,
@@ -292,7 +494,7 @@ const FilasAtendimentoAdmin = () => {
     }));
   }, []);
 
-  const handleLimparFiltros = useCallback(() => {
+  const resetFilters = useCallback(() => {
     setSearchTerm("");
     setFiltroUBS("");
     setFiltroEspecialidade("");
@@ -302,13 +504,262 @@ const FilasAtendimentoAdmin = () => {
     setCurrentPage(1);
   }, []);
 
-  // ===== Exportação APENAS CSV =====
+  // ============================================================
+  // MODAL PREMIUM (com tradução)
+  // ============================================================
+  const showPremiumModal = ({
+    title,
+    html,
+    preConfirm,
+    confirmText = "Salvar",
+    cancelText = "Cancelar",
+    icon = null,
+    showCancel = true,
+    width = 580,
+  }) => {
+    return Swal.fire({
+      title,
+      html,
+      icon,
+      showCancelButton: showCancel,
+      confirmButtonColor: "#1e293b",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: confirmText,
+      cancelButtonText: cancelText,
+      width,
+      padding: "1.8rem",
+      backdrop: "rgba(0,0,0,0.4)",
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        title: "text-2xl font-bold text-gray-800",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        cancelButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+        input:
+          "rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500",
+      },
+      preConfirm,
+    });
+  };
+
+  // ============================================================
+  // HANDLERS CRUD
+  // ============================================================
+
+  const handleAbrirFila = useCallback(
+    (fila) => {
+      const pacientesHtml = fila.pacientes
+        .map(
+          (p) => `
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.nome}</td>
+            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.horario}</td>
+            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">
+              <span style="color:${p.prioridade === "Alta" ? "#ef4444" : p.prioridade === "Média" ? "#f59e0b" : "#10b981"}; font-weight:600;">
+                ${p.prioridade}
+              </span>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.tempoEspera} min</td>
+          </tr>
+        `,
+        )
+        .join("");
+      Swal.fire({
+        title: `<h2 style="font-size:1.5rem; font-weight:700;">${fila.ubs} - ${fila.especialidade}</h2>`,
+        html: `
+        <div style="text-align:left; max-height:400px; overflow-y:auto; margin-top:10px;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th style="padding:8px; text-align:left; font-weight:600;">${t("filas.modais.paciente")}</th>
+                <th style="padding:8px; text-align:left; font-weight:600;">${t("filas.modais.chegada")}</th>
+                <th style="padding:8px; text-align:left; font-weight:600;">${t("filas.modais.prioridade")}</th>
+                <th style="padding:8px; text-align:left; font-weight:600;">${t("filas.modais.espera")}</th>
+              </tr>
+            </thead>
+            <tbody>${pacientesHtml}</tbody>
+          </table>
+        </div>
+      `,
+        confirmButtonColor: "#1e293b",
+        confirmButtonText: t("comum.fechar"),
+        width: 700,
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        },
+      });
+    },
+    [t],
+  );
+
+  const handleReordenar = useCallback(
+    (fila) => {
+      let pacientes = fila.pacientes.map((p) => ({ ...p }));
+
+      const renderPacientes = () => {
+        return pacientes
+          .map(
+            (p, idx) => `
+            <div 
+              class="paciente-item" 
+              data-idx="${idx}" 
+              style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                padding: 10px 12px; 
+                border-bottom: 1px solid #f1f5f9;
+                transition: background 0.2s;
+                ${p.prioridade === "Alta" ? "background: #fef3c7; border-left: 4px solid #f59e0b;" : ""}
+              "
+              onmouseover="this.style.background='${p.prioridade === "Alta" ? "#fde68a" : "#f8fafc"}'"
+              onmouseout="this.style.background='${p.prioridade === "Alta" ? "#fef3c7" : "transparent"}'"
+            >
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                <span style="font-weight:500;">${p.nome}</span>
+                <span style="
+                  font-size:0.7rem; 
+                  padding:2px 8px; 
+                  border-radius:20px; 
+                  background: ${p.prioridade === "Alta" ? "#fecaca" : p.prioridade === "Média" ? "#fde68a" : "#d1fae5"};
+                  color: ${p.prioridade === "Alta" ? "#991b1b" : p.prioridade === "Média" ? "#92400e" : "#065f46"};
+                  font-weight:600;
+                ">
+                  ${p.prioridade}
+                </span>
+                <span style="font-size:0.8rem; color:#6b7280;">${p.horario}</span>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-up" data-idx="${idx}" style="padding:4px 8px; background:#e2e8f0; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+                  ↑
+                </button>
+                <button class="btn-down" data-idx="${idx}" style="padding:4px 8px; background:#e2e8f0; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+                  ↓
+                </button>
+                <button class="btn-priorizar" data-idx="${idx}" style="padding:4px 8px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                  ⭐
+                </button>
+              </div>
+            </div>
+          `,
+          )
+          .join("");
+      };
+
+      const atualizarLista = () => {
+        const container = document.getElementById("swal-pacientes-list");
+        if (container) {
+          container.innerHTML = renderPacientes();
+          atribuirEventos();
+        }
+      };
+
+      const atribuirEventos = () => {
+        document.querySelectorAll(".btn-up").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const idx = parseInt(this.dataset.idx);
+            if (idx > 0) {
+              [pacientes[idx], pacientes[idx - 1]] = [
+                pacientes[idx - 1],
+                pacientes[idx],
+              ];
+              atualizarLista();
+            }
+          });
+        });
+
+        document.querySelectorAll(".btn-down").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const idx = parseInt(this.dataset.idx);
+            if (idx < pacientes.length - 1) {
+              [pacientes[idx], pacientes[idx + 1]] = [
+                pacientes[idx + 1],
+                pacientes[idx],
+              ];
+              atualizarLista();
+            }
+          });
+        });
+
+        document.querySelectorAll(".btn-priorizar").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const idx = parseInt(this.dataset.idx);
+            const paciente = pacientes.splice(idx, 1)[0];
+            paciente.prioridade = "Alta";
+            pacientes.unshift(paciente);
+            atualizarLista();
+          });
+        });
+      };
+
+      showPremiumModal({
+        title: t("filas.modais.reordenar", { ubs: fila.ubs }),
+        html: `
+        <div style="text-align:left; max-height:400px; overflow-y:auto; margin-top:10px;" id="swal-pacientes-list">
+          ${renderPacientes()}
+        </div>
+        <div style="margin-top:12px; font-size:0.8rem; color:#6b7280; text-align:center;">
+          ${t("filas.modais.instrucoes")}
+        </div>
+      `,
+        confirmText: t("comum.salvar"),
+        cancelText: t("comum.cancelar"),
+        showCancel: true,
+        width: 700,
+        preConfirm: () => {
+          setFilas((prev) =>
+            prev.map((f) =>
+              f.id === fila.id ? { ...f, pacientes: pacientes } : f,
+            ),
+          );
+          return true;
+        },
+        didOpen: () => {
+          atribuirEventos();
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            icon: "success",
+            title: t("filas.modais.sucesso"),
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+          });
+        }
+      });
+    },
+    [showPremiumModal, t],
+  );
+
   const exportarCSV = useCallback(() => {
     if (filteredData.length === 0) {
-      Swal.fire("Aviso", "Não há dados para exportar.", "warning");
+      Swal.fire({
+        icon: "warning",
+        title: t("comum.sem_dados"),
+        text: t("filas.modais.sem_dados_exportar"),
+        confirmButtonColor: "#1e293b",
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        },
+      });
       return;
     }
-    const headers = ["UBS", "Especialidade", "Pacientes", "Tempo Médio", "Prioridades"];
+
+    const headers = [
+      t("filas.tabela.ubs"),
+      t("filas.tabela.especialidade"),
+      t("filas.tabela.pacientes"),
+      t("filas.tabela.tempoMedio"),
+      t("filas.tabela.prioridades"),
+    ];
     const rows = filteredData.map((f) => [
       f.ubs,
       f.especialidade,
@@ -328,293 +779,136 @@ const FilasAtendimentoAdmin = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    Swal.fire("Sucesso", "Arquivo CSV exportado.", "success");
-  }, [filteredData]);
-
-  // ===== Modais =====
-  const handleAbrirFila = useCallback((fila) => {
-    const pacientesHtml = fila.pacientes
-      .map(
-        (p) => `
-          <tr>
-            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.nome}</td>
-            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.horario}</td>
-            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">
-              <span style="color:${p.prioridade === 'Alta' ? '#ef4444' : p.prioridade === 'Média' ? '#f59e0b' : '#10b981'}; font-weight:600;">
-                ${p.prioridade}
-              </span>
-            </td>
-            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${p.tempoEspera} min</td>
-          </tr>
-        `
-      )
-      .join("");
     Swal.fire({
-      title: `<h2 style="font-size:1.5rem; font-weight:700;">${fila.ubs} - ${fila.especialidade}</h2>`,
-      html: `
-        <div style="text-align:left; max-height:400px; overflow-y:auto; margin-top:10px;">
-          <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-            <thead>
-              <tr style="background:#f1f5f9;">
-                <th style="padding:8px; text-align:left; font-weight:600;">Paciente</th>
-                <th style="padding:8px; text-align:left; font-weight:600;">Chegada</th>
-                <th style="padding:8px; text-align:left; font-weight:600;">Prioridade</th>
-                <th style="padding:8px; text-align:left; font-weight:600;">Espera</th>
-              </tr>
-            </thead>
-            <tbody>${pacientesHtml}</tbody>
-          </table>
-        </div>
-      `,
-      confirmButtonColor: "#2563eb",
-      confirmButtonText: "Fechar",
-      width: 700,
+      icon: "success",
+      title: t("filas.modais.csv_exportado"),
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true,
     });
-  }, []);
-
-  const handleReordenar = useCallback((fila) => {
-    let pacientes = fila.pacientes.map(p => ({ ...p }));
-
-    const renderPacientes = () => {
-      return pacientes
-        .map(
-          (p, idx) => `
-            <div 
-              class="paciente-item" 
-              data-idx="${idx}" 
-              style="
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                padding: 10px 12px; 
-                border-bottom: 1px solid #f1f5f9;
-                transition: background 0.2s;
-                ${p.prioridade === 'Muito Alta' ? 'background: #fef3c7; border-left: 4px solid #f59e0b;' : ''}
-              "
-              onmouseover="this.style.background='${p.prioridade === 'Muito Alta' ? '#fde68a' : '#f8fafc'}'"
-              onmouseout="this.style.background='${p.prioridade === 'Muito Alta' ? '#fef3c7' : 'transparent'}'"
-            >
-              <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                <span style="font-weight:500;">${p.nome}</span>
-                <span style="
-                  font-size:0.7rem; 
-                  padding:2px 8px; 
-                  border-radius:20px; 
-                  background: ${p.prioridade === 'Alta' ? '#fecaca' : p.prioridade === 'Média' ? '#fde68a' : p.prioridade === 'Muito Alta' ? '#f59e0b' : '#d1fae5'};
-                  color: ${p.prioridade === 'Alta' ? '#991b1b' : p.prioridade === 'Média' ? '#92400e' : p.prioridade === 'Muito Alta' ? '#78350f' : '#065f46'};
-                  font-weight:600;
-                ">
-                  ${p.prioridade}
-                </span>
-                <span style="font-size:0.8rem; color:#6b7280;">${p.horario}</span>
-              </div>
-              <div style="display: flex; gap: 4px;">
-                <button class="btn-up" data-idx="${idx}" style="padding:4px 8px; background:#e2e8f0; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
-                  ↑
-                </button>
-                <button class="btn-down" data-idx="${idx}" style="padding:4px 8px; background:#e2e8f0; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
-                  ↓
-                </button>
-                <button class="btn-priorizar" data-idx="${idx}" style="padding:4px 8px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
-                  ⭐
-                </button>
-              </div>
-            </div>
-          `
-        )
-        .join("");
-    };
-
-    const atualizarLista = () => {
-      const container = document.getElementById("swal-pacientes-list");
-      if (container) {
-        container.innerHTML = renderPacientes();
-        atribuirEventos();
-      }
-    };
-
-    const atribuirEventos = () => {
-      document.querySelectorAll(".btn-up").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const idx = parseInt(this.dataset.idx);
-          if (idx > 0) {
-            [pacientes[idx], pacientes[idx - 1]] = [pacientes[idx - 1], pacientes[idx]];
-            atualizarLista();
-          }
-        });
-      });
-
-      document.querySelectorAll(".btn-down").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const idx = parseInt(this.dataset.idx);
-          if (idx < pacientes.length - 1) {
-            [pacientes[idx], pacientes[idx + 1]] = [pacientes[idx + 1], pacientes[idx]];
-            atualizarLista();
-          }
-        });
-      });
-
-      document.querySelectorAll(".btn-priorizar").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const idx = parseInt(this.dataset.idx);
-          const paciente = pacientes.splice(idx, 1)[0];
-          paciente.prioridade = "Muito Alta";
-          pacientes.unshift(paciente);
-          atualizarLista();
-        });
-      });
-    };
-
-    Swal.fire({
-      title: `<h2 style="font-size:1.5rem; font-weight:700;">Reordenar Fila - ${fila.ubs}</h2>`,
-      html: `
-        <div style="text-align:left; max-height:400px; overflow-y:auto; margin-top:10px;" id="swal-pacientes-list">
-          ${renderPacientes()}
-        </div>
-        <div style="margin-top:12px; font-size:0.8rem; color:#6b7280; text-align:center;">
-          Use ↑ ↓ para mover, ⭐ para priorizar (vai para o topo)
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Salvar",
-      cancelButtonText: "Cancelar",
-      width: 700,
-      didOpen: () => {
-        atribuirEventos();
-      },
-      preConfirm: () => {
-        setFilas((prev) =>
-          prev.map((f) =>
-            f.id === fila.id ? { ...f, pacientes: pacientes } : f
-          )
-        );
-        return true;
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: "success",
-          title: "Fila atualizada com sucesso!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      }
-    });
-  }, []);
+  }, [filteredData, t]);
 
   // ============================================================
   // RENDER
   // ============================================================
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <HiUserGroup className="text-blue-600" /> Monitoramento de Filas
-            </h1>
-            <p className="text-gray-500">Visão gerencial de todas as unidades de saúde</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={exportarCSV}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition"
-            >
-              <HiDocumentReport /> Relatório
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <HeaderSection
+          user={user}
+          title={t("filas.titulo")}
+          subtitle={t("filas.subtitulo")}
+          icon={HiUserGroup}
+        />
 
-        {/* Cards de métricas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        {/* Métricas */}
+        <div className="flex flex-wrap gap-4">
           <MetricCard
-            title="Total de pacientes"
+            title={t("filas.metricas.totalPacientes")}
             value={metrics.totalPacientes}
             icon={HiUsers}
             color="blue"
+            trend={metrics.trends.totalPacientes.type}
+            trendValue={metrics.trends.totalPacientes.value}
           />
           <MetricCard
-            title="Tempo médio"
+            title={t("filas.metricas.tempoMedio")}
             value={`${metrics.tempoMedioGeral} min`}
             icon={HiClock}
             color="amber"
+            trend={metrics.trends.tempoMedioGeral.type}
+            trendValue={metrics.trends.tempoMedioGeral.value}
           />
           <MetricCard
-            title="Prioridades ativas"
+            title={t("filas.metricas.prioridadesAtivas")}
             value={metrics.totalPrioridades}
-            icon={HiTrendingUp}
+            icon={HiStar}
             color="red"
+            trend={metrics.trends.totalPrioridades.type}
+            trendValue={metrics.trends.totalPrioridades.value}
           />
           <MetricCard
-            title="UBS + fila"
+            title={t("filas.metricas.ubsMaiorFila")}
             value={metrics.ubsMaiorFila}
             icon={HiOfficeBuilding}
             color="indigo"
           />
           <MetricCard
-            title="Especialidade + demandada"
+            title={t("filas.metricas.especialidadeDemandada")}
             value={metrics.especialidadeMaisDemandada}
             icon={HiAcademicCap}
             color="purple"
           />
           <MetricCard
-            title="Ocupação"
+            title={t("filas.metricas.ocupacao")}
             value={`${metrics.ocupacao}%`}
             icon={HiChartPie}
             color="teal"
+            trend={metrics.trends.ocupacao.type}
+            trendValue={metrics.trends.ocupacao.value}
           />
         </div>
 
-        {/* ===== GRÁFICOS (3 colunas) ===== */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Gráfico 1: Pacientes por UBS */}
-          <div className="bg-white rounded-2xl border shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-600 mb-2">Pacientes por UBS</h3>
+        {/* Gráficos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-lg p-4 hover:shadow-xl transition">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">
+              {t("filas.graficos.pacientesPorUBS")}
+            </h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={dataUBS}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="ubs" tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="pacientes" fill="#3b82f6" animationDuration={800} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="ubs" tick={{ fontSize: 10, fill: "#64748b" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "rgba(255,255,255,0.9)",
+                  }}
+                />
+                <Bar dataKey="pacientes" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Gráfico 2: Tempo Médio por Especialidade */}
-          <div className="bg-white rounded-2xl border shadow-sm p-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-lg p-4 hover:shadow-xl transition">
             <h3 className="text-sm font-semibold text-gray-600 mb-2 text-center">
-              Tempo Médio de Espera por Especialidade
+              {t("filas.graficos.tempoMedioPorEspecialidade")}
             </h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={dataEspecialidade} margin={{ bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="especialidade" 
-                  tick={{ fontSize: 10 }}
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="especialidade"
+                  tick={{ fontSize: 9, fill: "#64748b" }}
                   angle={-30}
                   textAnchor="end"
                   interval={0}
-                  height={50}
+                  height={40}
                 />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => `${value} min`}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
+                <Tooltip
+                  formatter={(v) => `${v} min`}
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "rgba(255,255,255,0.9)",
+                  }}
                 />
-                <Bar dataKey="tempoMedio" fill="#f59e0b" animationDuration={800} />
+                <Bar
+                  dataKey="tempoMedio"
+                  fill="#f59e0b"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Gráfico 3: Prioridades por unidade */}
-          <div className="bg-white rounded-2xl border shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-600 mb-2 text-center">Prioridades por unidade</h3>
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-lg p-4 hover:shadow-xl transition">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2 text-center">
+              {t("filas.graficos.prioridadesPorUnidade")}
+            </h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -624,229 +918,102 @@ const FilasAtendimentoAdmin = () => {
                   cx="50%"
                   cy="50%"
                   outerRadius={70}
-                  fill="#8884d8"
-                  label
-                  animationDuration={800}
+                  label={({ name, percent }) =>
+                    `${(percent * 100).toFixed(0)}%`
+                  }
+                  labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}
                 >
                   {dataPrioridades.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"][index % 5]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"][
+                          index % 5
+                        ]
+                      }
+                    />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "rgba(255,255,255,0.9)",
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Filtros e busca */}
-        <div className="bg-white rounded-2xl border shadow-sm p-4 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <HiSearch className="text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar por UBS ou especialidade..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 p-2 bg-transparent border-none focus:ring-0 outline-none text-gray-700"
-              />
-            </div>
-            <select
-              value={filtroUBS}
-              onChange={(e) => setFiltroUBS(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Todas UBS</option>
-              {ubsList.map((ubs) => (
-                <option key={ubs} value={ubs}>
-                  {ubs}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filtroEspecialidade}
-              onChange={(e) => setFiltroEspecialidade(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Especialidade</option>
-              {especialidadeList.map((esp) => (
-                <option key={esp} value={esp}>
-                  {esp}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filtroPrioridade}
-              onChange={(e) => setFiltroPrioridade(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Prioridade</option>
-              <option value="0">Nenhuma</option>
-              <option value="1-2">1-2</option>
-              <option value="3+">3 ou mais</option>
-            </select>
-            <select
-              value={filtroTempo}
-              onChange={(e) => setFiltroTempo(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tempo médio</option>
-              <option value="0-10">Até 10 min</option>
-              <option value="11-20">11-20 min</option>
-              <option value="21+">Acima de 20 min</option>
-            </select>
-            <select
-              value={filtroPacientes}
-              onChange={(e) => setFiltroPacientes(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Nº pacientes</option>
-              <option value="0-5">Até 5</option>
-              <option value="6-10">6-10</option>
-              <option value="11+">11 ou mais</option>
-            </select>
-            <button
-              onClick={handleLimparFiltros}
-              className="bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition"
-            >
-              <HiX size={16} /> Limpar
-            </button>
-          </div>
+        {/* Filtros */}
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100/80 overflow-hidden backdrop-blur-sm">
+          <FilterBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterUBS={filtroUBS}
+            setFilterUBS={setFiltroUBS}
+            filterEspecialidade={filtroEspecialidade}
+            setFilterEspecialidade={setFiltroEspecialidade}
+            filterPrioridade={filtroPrioridade}
+            setFilterPrioridade={setFiltroPrioridade}
+            filterTempo={filtroTempo}
+            setFilterTempo={setFiltroTempo}
+            filterPacientes={filtroPacientes}
+            setFilterPacientes={setFiltroPacientes}
+            resetFilters={resetFilters}
+            setCurrentPage={setCurrentPage}
+            totalResults={filteredData.length}
+            ubsList={ubsList}
+            especialidadeList={especialidadeList}
+            t={t}
+          />
         </div>
 
         {/* Tabela */}
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["ubs", "especialidade", "pacientes", "tempoMedio", "prioridades", "status", "acoes"].map((col) => (
-                    <th
-                      key={col}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
-                      onClick={() => col !== "status" && col !== "acoes" && handleSort(col)}
-                    >
-                      {col === "ubs" && "UBS"}
-                      {col === "especialidade" && "Especialidade"}
-                      {col === "pacientes" && "Pacientes"}
-                      {col === "tempoMedio" && "Tempo Médio"}
-                      {col === "prioridades" && "Prioridades"}
-                      {col === "status" && "Status"}
-                      {col === "acoes" && "Ações"}
-                      {sortConfig.key === col && col !== "status" && col !== "acoes" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "asc" ? "↑" : "↓"}
-                        </span>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {paginatedData.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                      Nenhuma fila encontrada.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedData.map((fila, idx) => {
-                    const status = getStatusDetalhado(fila.pacientes);
-                    const StatusIcon = status.icon;
-                    return (
-                      <tr
-                        key={fila.id}
-                        className={`hover:bg-blue-50 transition ${idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">
-                          {fila.ubs}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{fila.especialidade}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{fila.pacientes.length}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{fila.tempoMedio} min</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{fila.prioridades}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${
-                              status.color === "green"
-                                ? "bg-green-100 text-green-700"
-                                : status.color === "blue"
-                                ? "bg-blue-100 text-blue-700"
-                                : status.color === "yellow"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            <StatusIcon size={14} className="inline" />
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleAbrirFila(fila)}
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition"
-                              title="Abrir fila"
-                            >
-                              <HiEye size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleReordenar(fila)}
-                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition"
-                              title="Reordenar"
-                            >
-                              <HiRefresh size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginação */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-                {Math.min(currentPage * itemsPerPage, filteredData.length)} de {filteredData.length} registros
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Anterior
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 rounded-lg text-sm transition ${
-                      page === currentPage
-                        ? "bg-blue-600 text-white"
-                        : "bg-white border border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Próximo
-                </button>
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 overflow-hidden backdrop-blur-sm">
+          {isLoading ? (
+            <div className="p-8 flex justify-center">
+              <div className="animate-pulse flex space-x-4">
+                <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                </div>
               </div>
             </div>
+          ) : (
+            <FilasTable
+              data={paginatedData}
+              sortConfig={sortConfig}
+              handleSort={handleSort}
+              handleAbrirFila={handleAbrirFila}
+              handleReordenar={handleReordenar}
+              t={t}
+            />
           )}
+          {totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredData.length}
+              t={t}
+            />
+          )}
+        </div>
+
+        {/* Botão flutuante */}
+        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+          <button
+            onClick={exportarCSV}
+            className="bg-slate-700 hover:bg-slate-800 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
+            title={t("filas.modais.exportar")}
+          >
+            <HiDocumentReport size={24} />
+          </button>
         </div>
       </div>
     </div>
@@ -854,24 +1021,397 @@ const FilasAtendimentoAdmin = () => {
 };
 
 // ============================================================
-// COMPONENTE AUXILIAR: Métricas Card
+// SUBCOMPONENTES (com tradução)
 // ============================================================
-const MetricCard = ({ title, value, icon: Icon, color }) => {
-  const colorMap = {
-    blue: "bg-blue-50 text-blue-600 border-blue-200",
-    amber: "bg-amber-50 text-amber-600 border-amber-200",
-    red: "bg-red-50 text-red-600 border-red-200",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-200",
-    purple: "bg-purple-50 text-purple-600 border-purple-200",
-    teal: "bg-teal-50 text-teal-600 border-teal-200",
-  };
+
+const HeaderSection = ({ user, title, subtitle, icon: Icon }) => {
+  const { t } = useTranslation();
+  const hoje = new Date();
+  const dataFormatada = hoje.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <div className={`bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all ${colorMap[color]}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">{title}</span>
-        <Icon size={20} className="opacity-70" />
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 p-6 md:p-8 shadow-2xl">
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+      <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <HiHome className="w-4 h-4" />
+            <span>Dashboard</span>
+            <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
+            <span className="text-white font-medium">
+              {t("filas.abas.filas")}
+            </span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
+            <Icon className="w-7 h-7" />
+            {title}
+          </h1>
+          <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
+            <span>{subtitle}</span>
+            <span className="w-1 h-1 rounded-full bg-white/30"></span>
+            <span>{dataFormatada}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/10">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
+            {user?.nome?.charAt(0) || "A"}
+          </div>
+          <div className="text-white text-sm">
+            <p className="font-medium">{user?.nome || "Admin"}</p>
+            <p className="text-white/70 text-xs">Administrador</p>
+          </div>
+        </div>
       </div>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+      <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+    </div>
+  );
+};
+
+const FilterBar = ({
+  searchTerm,
+  setSearchTerm,
+  filterUBS,
+  setFilterUBS,
+  filterEspecialidade,
+  setFilterEspecialidade,
+  filterPrioridade,
+  setFilterPrioridade,
+  filterTempo,
+  setFilterTempo,
+  filterPacientes,
+  setFilterPacientes,
+  resetFilters,
+  setCurrentPage,
+  totalResults,
+  ubsList,
+  especialidadeList,
+  t,
+}) => {
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const isFilterActive =
+    searchTerm ||
+    filterUBS ||
+    filterEspecialidade ||
+    filterPrioridade ||
+    filterTempo ||
+    filterPacientes;
+
+  return (
+    <div className="p-4 md:p-5 border-b border-gray-100 bg-gray-50/50">
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t("filas.filtros.buscar")}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={filterUBS}
+            onChange={handleFilterChange(setFilterUBS)}
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          >
+            <option value="">{t("filas.filtros.ubs")}</option>
+            {ubsList.map((ubs) => (
+              <option key={ubs} value={ubs}>
+                {ubs}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterEspecialidade}
+            onChange={handleFilterChange(setFilterEspecialidade)}
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          >
+            <option value="">{t("filas.filtros.especialidade")}</option>
+            {especialidadeList.map((esp) => (
+              <option key={esp} value={esp}>
+                {esp}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterPrioridade}
+            onChange={handleFilterChange(setFilterPrioridade)}
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          >
+            <option value="">{t("filas.filtros.prioridade")}</option>
+            <option value="0">{t("filas.filtros.prioridade_nenhuma")}</option>
+            <option value="1-2">1-2</option>
+            <option value="3+">3+</option>
+          </select>
+
+          <select
+            value={filterTempo}
+            onChange={handleFilterChange(setFilterTempo)}
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          >
+            <option value="">{t("filas.filtros.tempo")}</option>
+            <option value="0-10">{t("filas.filtros.tempo_ate_10")}</option>
+            <option value="11-20">{t("filas.filtros.tempo_11_20")}</option>
+            <option value="21+">{t("filas.filtros.tempo_acima_20")}</option>
+          </select>
+
+          <select
+            value={filterPacientes}
+            onChange={handleFilterChange(setFilterPacientes)}
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+          >
+            <option value="">{t("filas.filtros.pacientes")}</option>
+            <option value="0-5">{t("filas.filtros.pacientes_ate_5")}</option>
+            <option value="6-10">{t("filas.filtros.pacientes_6_10")}</option>
+            <option value="11+">{t("filas.filtros.pacientes_11_mais")}</option>
+          </select>
+
+          {isFilterActive && (
+            <button
+              onClick={resetFilters}
+              className="px-3 py-2 rounded-xl text-sm text-blue-600 hover:bg-blue-50 transition font-medium"
+            >
+              {t("comum.limpar_filtros")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
+        <HiFilter className="w-4 h-4" />
+        <span>
+          <strong className="text-gray-700">{totalResults}</strong>{" "}
+          {totalResults === 1 ? t("comum.resultado") : t("comum.resultados")}{" "}
+          {totalResults === 1 ? t("comum.encontrado") : t("comum.encontrados")}
+        </span>
+        {isFilterActive && (
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+            {t("comum.filtros_ativos")}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const FilasTable = ({
+  data,
+  sortConfig,
+  handleSort,
+  handleAbrirFila,
+  handleReordenar,
+  t,
+}) => {
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key)
+      return <HiSortAscending className="inline ml-1 text-gray-300" />;
+    return sortConfig.direction === "asc" ? (
+      <HiSortAscending className="inline ml-1 text-blue-600" />
+    ) : (
+      <HiSortDescending className="inline ml-1 text-blue-600" />
+    );
+  };
+
+  if (data.length === 0) {
+    return (
+      <div className="p-12 text-center">
+        <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
+          <HiUserGroup className="w-12 h-12 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-700">
+          {t("comum.sem_dados")}
+        </h3>
+        <p className="text-gray-500 mt-1">{t("comum.tente_ajustar_filtros")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px]">
+        <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
+          <tr>
+            <th
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
+              onClick={() => handleSort("ubs")}
+            >
+              {t("filas.tabela.ubs")} {renderSortIcon("ubs")}
+            </th>
+            <th
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
+              onClick={() => handleSort("especialidade")}
+            >
+              {t("filas.tabela.especialidade")}{" "}
+              {renderSortIcon("especialidade")}
+            </th>
+            <th
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
+              onClick={() => handleSort("pacientes")}
+            >
+              {t("filas.tabela.pacientes")} {renderSortIcon("pacientes")}
+            </th>
+            <th
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
+              onClick={() => handleSort("tempoMedio")}
+            >
+              {t("filas.tabela.tempoMedio")} {renderSortIcon("tempoMedio")}
+            </th>
+            <th
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
+              onClick={() => handleSort("prioridades")}
+            >
+              {t("filas.tabela.prioridades")} {renderSortIcon("prioridades")}
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {t("comum.status")}
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {t("comum.acoes")}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map((fila, idx) => {
+            const status = getStatusDetalhado(fila.pacientes);
+            return (
+              <tr
+                key={fila.id}
+                className={`group hover:bg-blue-50/50 transition-colors duration-200 ${
+                  idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                }`}
+              >
+                <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-800">
+                  {fila.ubs}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                  {fila.especialidade}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">
+                  {fila.pacientes.length}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                  {fila.tempoMedio} min
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                  {fila.prioridades}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <FilaStatusBadge status={status.label} />
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => handleAbrirFila(fila)}
+                      className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
+                      title={t("filas.modais.abrirFila")}
+                    >
+                      <HiEye size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleReordenar(fila)}
+                      className="p-2 rounded-lg text-amber-600 hover:bg-amber-100 transition"
+                      title={t("filas.modais.reordenar_titulo")}
+                    >
+                      <HiRefresh size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const PaginationControls = ({
+  currentPage,
+  totalPages,
+  setCurrentPage,
+  itemsPerPage,
+  totalItems,
+  t,
+}) => {
+  const start = (currentPage - 1) * itemsPerPage + 1;
+  const end = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="px-4 py-3 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="text-sm text-gray-500">
+        {t("comum.mostrando")}{" "}
+        <strong className="text-gray-700">{start}</strong> {t("comum.a")}{" "}
+        <strong className="text-gray-700">{end}</strong> {t("comum.de")}{" "}
+        <strong className="text-gray-700">{totalItems}</strong>{" "}
+        {t("comum.registros")}
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setCurrentPage(1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronDoubleLeft size={16} />
+        </button>
+        <button
+          onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronLeft size={16} />
+        </button>
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          let page;
+          if (totalPages <= 5) page = i + 1;
+          else if (currentPage <= 3) page = i + 1;
+          else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
+          else page = currentPage - 2 + i;
+          return (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-1 rounded-lg text-sm transition ${
+                page === currentPage
+                  ? "bg-slate-700 text-white shadow-md"
+                  : "bg-white border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {page}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => setCurrentPage(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronDoubleRight size={16} />
+        </button>
+      </div>
     </div>
   );
 };

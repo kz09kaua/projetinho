@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { useAccessibility } from "../../contexts/AccessibilityContext";
+import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import {
   FaCog,
@@ -25,17 +26,97 @@ import {
   FaGlobe,
   FaBell,
   FaEye,
-  FaEyeSlash,
   FaUndo,
   FaSave,
-  FaUserCircle,
   FaRegMoon,
   FaRegSun,
+  FaHome,
 } from "react-icons/fa";
-import { HiDocumentText } from "react-icons/hi";
+import { HiChevronDoubleLeft, HiDocumentText, HiUsers } from "react-icons/hi";
 
+// ============================================================
+// COMPONENTES REUTILIZÁVEIS
+// ============================================================
+
+const MetricCard = ({ title, value, icon: Icon, color = "blue" }) => {
+  const colorMap = {
+    blue: "from-blue-600 to-blue-700",
+    green: "from-emerald-500 to-emerald-600",
+    amber: "from-amber-500 to-amber-600",
+    red: "from-rose-500 to-rose-600",
+    teal: "from-teal-500 to-teal-600",
+    indigo: "from-indigo-500 to-indigo-600",
+    gray: "from-slate-500 to-slate-600",
+  };
+  const gradient = colorMap[color] || colorMap.blue;
+  return (
+    <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-5 flex-1 min-w-[140px]">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {title}
+          </p>
+          <p className="text-2xl font-bold text-gray-800 mt-1 group-hover:scale-105 transition-transform origin-left">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg group-hover:scale-110 transition`}
+        >
+          <Icon size={20} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ConfigToggle = ({
+  label,
+  description,
+  defaultChecked = false,
+  checked,
+  onChange,
+}) => {
+  const [internalChecked, setInternalChecked] = useState(defaultChecked);
+  const isChecked = checked !== undefined ? checked : internalChecked;
+
+  const handleToggle = () => {
+    const newValue = !isChecked;
+    if (onChange) {
+      onChange(newValue);
+    } else {
+      setInternalChecked(newValue);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition">
+      <div>
+        <p className="font-medium text-gray-700">{label}</p>
+        {description && <p className="text-sm text-gray-500">{description}</p>}
+      </div>
+      <div
+        onClick={handleToggle}
+        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
+          isChecked ? "bg-blue-600" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+            isChecked ? "translate-x-6" : ""
+          }`}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
 const Configuracoes = () => {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const {
     theme,
     setTheme,
@@ -59,11 +140,11 @@ const Configuracoes = () => {
   });
 
   // Preferências gerais
-  const [idioma, setIdioma] = useState("pt-BR");
+  const [idioma, setIdioma] = useState(i18n.language || "pt");
   const [formatoData, setFormatoData] = useState("dd/MM/yyyy");
   const [fonteSistema, setFonteSistema] = useState("Inter");
 
-  // Estados para Admin
+  // Admin
   const [ubsList, setUbsList] = useState([
     { id: 1, nome: "UBS Central", endereco: "Rua Domingos Vieira, 100" },
     { id: 2, nome: "UBS Vila da Penha", endereco: "Av. JK, 500" },
@@ -102,7 +183,6 @@ const Configuracoes = () => {
     { nome: "Vermelho", valor: "#b71c1c" },
   ];
 
-  // Fontes disponíveis
   const fontesDisponiveis = [
     "Inter",
     "Roboto",
@@ -113,28 +193,96 @@ const Configuracoes = () => {
 
   // Abas
   const abasBase = [
-    { id: "geral", label: "Geral", icon: FaCog },
-    { id: "painel", label: "Painel", icon: FaTachometerAlt },
-    { id: "filas", label: "Filas", icon: FaListAlt },
-    { id: "agendamento", label: "Agendamento", icon: FaCalendarAlt },
-    { id: "historico", label: "Histórico", icon: FaHistory },
-    { id: "vacinas", label: "Vacinas", icon: FaSyringe },
-    { id: "seguranca", label: "Segurança", icon: FaUserLock },
+    { id: "geral", label: t("configuracoes.abas.geral"), icon: FaCog },
+    {
+      id: "painel",
+      label: t("configuracoes.abas.painel"),
+      icon: FaTachometerAlt,
+    },
+    { id: "filas", label: t("configuracoes.abas.filas"), icon: FaListAlt },
+    {
+      id: "agendamento",
+      label: t("configuracoes.abas.agendamento"),
+      icon: FaCalendarAlt,
+    },
+    {
+      id: "historico",
+      label: t("configuracoes.abas.historico"),
+      icon: FaHistory,
+    },
+    { id: "vacinas", label: t("configuracoes.abas.vacinas"), icon: FaSyringe },
+    {
+      id: "seguranca",
+      label: t("configuracoes.abas.seguranca"),
+      icon: FaUserLock,
+    },
   ];
   if (user?.role === "admin") {
-    abasBase.push({ id: "admin", label: "Administração", icon: FaShieldAlt });
+    abasBase.push({
+      id: "admin",
+      label: t("configuracoes.abas.admin"),
+      icon: FaShieldAlt,
+    });
   }
   const abas = abasBase;
+
+  // ============================================================
+  // MODAL PREMIUM
+  // ============================================================
+  const showPremiumModal = ({
+    title,
+    html,
+    preConfirm,
+    confirmText = "Salvar",
+    cancelText = "Cancelar",
+    icon = null,
+    showCancel = true,
+    width = 580,
+  }) => {
+    return Swal.fire({
+      title,
+      html,
+      icon,
+      showCancelButton: showCancel,
+      confirmButtonColor: "#1e293b",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: confirmText,
+      cancelButtonText: cancelText,
+      width,
+      padding: "1.8rem",
+      backdrop: "rgba(0,0,0,0.4)",
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        title: "text-2xl font-bold text-gray-800",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        cancelButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+        input:
+          "rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500",
+      },
+      preConfirm,
+    });
+  };
 
   // ============================================================
   // FUNÇÕES DE NOTIFICAÇÃO
   // ============================================================
   const handleNotifChange = (key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    const labelMap = {
+      agendamentos: t("configuracoes.notificacoes.agendamentos_label"),
+      filas: t("configuracoes.notificacoes.filas_label"),
+      vacinas: t("configuracoes.notificacoes.vacinas_label"),
+      somChamada: t("configuracoes.notificacoes.somChamada_label"),
+      lembretes: t("configuracoes.notificacoes.lembretes_label"),
+    };
     Swal.fire({
       icon: "success",
-      title: "Notificação atualizada",
-      text: `${key === "agendamentos" ? "Alertas de agendamento" : key === "filas" ? "Chamadas de fila" : key === "vacinas" ? "Vacinas" : key === "somChamada" ? "Som de chamada" : "Lembretes"} ${notifications[key] ? "desativados" : "ativados"}.`,
+      title: notifications[key]
+        ? t("configuracoes.notificacoes.desativado")
+        : t("configuracoes.notificacoes.ativado"),
+      text: `${labelMap[key]} ${notifications[key] ? t("configuracoes.notificacoes.desativados") : t("configuracoes.notificacoes.ativados")}.`,
       timer: 1500,
       showConfirmButton: false,
       toast: true,
@@ -143,41 +291,40 @@ const Configuracoes = () => {
   };
 
   // ============================================================
-  // FUNÇÕES DE ADMIN (CRUD COM MODAIS E SENHA)
+  // CRUD ADMIN (UBS)
   // ============================================================
   const handleAddUBS = () => {
-    Swal.fire({
-      title: "Adicionar Unidade de Saúde",
+    showPremiumModal({
+      title: t("configuracoes.admin.ubs.adicionar_titulo"),
       html: `
-        <input id="swal-nome" class="swal2-input" placeholder="Nome da UBS" />
-        <input id="swal-endereco" class="swal2-input" placeholder="Endereço" />
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.ubs.nome")} <span class="text-red-500">*</span></label>
+            <input id="swal-nome" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.ubs.nome_placeholder")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.ubs.endereco")} <span class="text-red-500">*</span></label>
+            <input id="swal-endereco" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.ubs.endereco_placeholder")}" />
+          </div>
+          <p class="text-xs text-gray-400">* ${t("configuracoes.admin.campos_obrigatorios")}</p>
+        </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Adicionar",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.adicionar"),
       preConfirm: () => {
-        const nome = document.getElementById("swal-nome").value;
-        const endereco = document.getElementById("swal-endereco").value;
+        const nome = document.getElementById("swal-nome").value.trim();
+        const endereco = document.getElementById("swal-endereco").value.trim();
         if (!nome || !endereco) {
-          Swal.showValidationMessage("Preencha todos os campos.");
+          Swal.showValidationMessage(t("configuracoes.admin.preencha_campos"));
           return;
         }
         return { nome, endereco };
       },
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        const nova = {
-          id: Date.now(),
-          nome: result.value.nome,
-          endereco: result.value.endereco,
-        };
-        setUbsList((prev) => [...prev, nova]);
+        setUbsList((prev) => [...prev, { id: Date.now(), ...result.value }]);
         Swal.fire({
           icon: "success",
-          title: "UBS adicionada!",
+          title: t("configuracoes.admin.ubs.adicionada"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -189,21 +336,21 @@ const Configuracoes = () => {
 
   const handleRemoveUBS = (ubs) => {
     Swal.fire({
-      title: "Exclusão segura",
+      title: t("configuracoes.admin.exclusao_segura"),
       html: `
-        <p>Digite a senha de autorização para remover <strong>${ubs.nome}</strong>:</p>
-        <input id="swal-senha" class="swal2-input" type="password" placeholder="Senha de autorização" />
+        <div class="text-left space-y-3">
+          <p class="text-gray-600">${t("configuracoes.admin.digite_senha_remover")} <strong>${ubs.nome}</strong>:</p>
+          <input id="swal-senha" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" type="password" placeholder="${t("configuracoes.admin.senha_autorizacao")}" />
+        </div>
       `,
       focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Remover",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.remover"),
+      cancelText: t("configuracoes.admin.cancelar"),
+      confirmButtonColor: "#dc2626",
       preConfirm: () => {
         const senha = document.getElementById("swal-senha").value;
         if (senha !== "Autorizado123") {
-          Swal.showValidationMessage("Senha incorreta! Acesso negado.");
+          Swal.showValidationMessage(t("configuracoes.admin.senha_incorreta"));
           return false;
         }
         return true;
@@ -213,7 +360,7 @@ const Configuracoes = () => {
         setUbsList((prev) => prev.filter((u) => u.id !== ubs.id));
         Swal.fire({
           icon: "success",
-          title: "Removida!",
+          title: t("configuracoes.admin.removida"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -223,80 +370,50 @@ const Configuracoes = () => {
     });
   };
 
+  // ============================================================
+  // CRUD USUÁRIOS
+  // ============================================================
   const handleAddUsuario = () => {
-    Swal.fire({
-      title: "Adicionar Usuário",
+    showPremiumModal({
+      title: t("configuracoes.admin.usuarios.adicionar_titulo"),
       html: `
-        <input id="swal-nome" class="swal2-input" placeholder="Nome completo" />
-        <input id="swal-email" class="swal2-input" placeholder="E-mail" />
-        <select id="swal-role" class="swal2-input">
-          <option value="admin">Administrador</option>
-          <option value="atendente">Atendente</option>
-          <option value="paciente">Paciente</option>
-        </select>
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.nome")} <span class="text-red-500">*</span></label>
+            <input id="swal-nome" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.usuarios.nome_placeholder")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.email")} <span class="text-red-500">*</span></label>
+            <input id="swal-email" type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.usuarios.email_placeholder")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.perfil")}</label>
+            <select id="swal-role" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none bg-white">
+              <option value="admin">${t("configuracoes.admin.usuarios.perfil_admin")}</option>
+              <option value="atendente">${t("configuracoes.admin.usuarios.perfil_atendente")}</option>
+              <option value="paciente">${t("configuracoes.admin.usuarios.perfil_paciente")}</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-400">* ${t("configuracoes.admin.campos_obrigatorios")}</p>
+        </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Adicionar",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.adicionar"),
       preConfirm: () => {
-        const nome = document.getElementById("swal-nome").value;
-        const email = document.getElementById("swal-email").value;
+        const nome = document.getElementById("swal-nome").value.trim();
+        const email = document.getElementById("swal-email").value.trim();
         const role = document.getElementById("swal-role").value;
         if (!nome || !email) {
-          Swal.showValidationMessage("Preencha todos os campos.");
+          Swal.showValidationMessage(t("configuracoes.admin.preencha_campos"));
           return;
         }
         return { nome, email, role };
       },
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        const novo = {
-          id: Date.now(),
-          ...result.value,
-        };
-        setUsuarios((prev) => [...prev, novo]);
+        setUsuarios((prev) => [...prev, { id: Date.now(), ...result.value }]);
         Swal.fire({
           icon: "success",
-          title: "Usuário adicionado!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      }
-    });
-  };
-
-  const handleRemoveUsuario = (usuario) => {
-    Swal.fire({
-      title: "Exclusão segura",
-      html: `
-        <p>Digite a senha de autorização para remover <strong>${usuario.nome}</strong>:</p>
-        <input id="swal-senha" class="swal2-input" type="password" placeholder="Senha de autorização" />
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Remover",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => {
-        const senha = document.getElementById("swal-senha").value;
-        if (senha !== "Autorizado123") {
-          Swal.showValidationMessage("Senha incorreta! Acesso negado.");
-          return false;
-        }
-        return true;
-      },
-    }).then((result) => {
-      if (result.isConfirmed && result.value) {
-        setUsuarios((prev) => prev.filter((u) => u.id !== usuario.id));
-        Swal.fire({
-          icon: "success",
-          title: "Removido!",
+          title: t("configuracoes.admin.usuarios.adicionado"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -307,29 +424,36 @@ const Configuracoes = () => {
   };
 
   const handleEditUsuario = (usuario) => {
-    Swal.fire({
-      title: "Editar Usuário",
+    showPremiumModal({
+      title: t("configuracoes.admin.usuarios.editar_titulo"),
       html: `
-        <input id="swal-nome" class="swal2-input" value="${usuario.nome}" placeholder="Nome completo" />
-        <input id="swal-email" class="swal2-input" value="${usuario.email}" placeholder="E-mail" />
-        <select id="swal-role" class="swal2-input">
-          <option value="admin" ${usuario.role === "admin" ? "selected" : ""}>Administrador</option>
-          <option value="atendente" ${usuario.role === "atendente" ? "selected" : ""}>Atendente</option>
-          <option value="paciente" ${usuario.role === "paciente" ? "selected" : ""}>Paciente</option>
-        </select>
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.nome")} <span class="text-red-500">*</span></label>
+            <input id="swal-nome" value="${usuario.nome}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.email")} <span class="text-red-500">*</span></label>
+            <input id="swal-email" type="email" value="${usuario.email}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.usuarios.perfil")}</label>
+            <select id="swal-role" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none bg-white">
+              <option value="admin" ${usuario.role === "admin" ? "selected" : ""}>${t("configuracoes.admin.usuarios.perfil_admin")}</option>
+              <option value="atendente" ${usuario.role === "atendente" ? "selected" : ""}>${t("configuracoes.admin.usuarios.perfil_atendente")}</option>
+              <option value="paciente" ${usuario.role === "paciente" ? "selected" : ""}>${t("configuracoes.admin.usuarios.perfil_paciente")}</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-400">* ${t("configuracoes.admin.campos_obrigatorios")}</p>
+        </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Salvar",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.salvar"),
       preConfirm: () => {
-        const nome = document.getElementById("swal-nome").value;
-        const email = document.getElementById("swal-email").value;
+        const nome = document.getElementById("swal-nome").value.trim();
+        const email = document.getElementById("swal-email").value.trim();
         const role = document.getElementById("swal-role").value;
         if (!nome || !email) {
-          Swal.showValidationMessage("Preencha todos os campos.");
+          Swal.showValidationMessage(t("configuracoes.admin.preencha_campos"));
           return;
         }
         return { nome, email, role };
@@ -343,7 +467,7 @@ const Configuracoes = () => {
         );
         Swal.fire({
           icon: "success",
-          title: "Atualizado!",
+          title: t("configuracoes.admin.atualizado"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -353,40 +477,82 @@ const Configuracoes = () => {
     });
   };
 
-  const handleAddMedico = () => {
+  const handleRemoveUsuario = (usuario) => {
     Swal.fire({
-      title: "Adicionar Médico",
+      title: t("configuracoes.admin.exclusao_segura"),
       html: `
-        <input id="swal-nome" class="swal2-input" placeholder="Nome do médico" />
-        <input id="swal-especialidade" class="swal2-input" placeholder="Especialidade" />
+        <div class="text-left space-y-3">
+          <p class="text-gray-600">${t("configuracoes.admin.digite_senha_remover")} <strong>${usuario.nome}</strong>:</p>
+          <input id="swal-senha" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" type="password" placeholder="${t("configuracoes.admin.senha_autorizacao")}" />
+        </div>
       `,
       focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Adicionar",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.remover"),
+      cancelText: t("configuracoes.admin.cancelar"),
+      confirmButtonColor: "#dc2626",
       preConfirm: () => {
-        const nome = document.getElementById("swal-nome").value;
-        const especialidade =
-          document.getElementById("swal-especialidade").value;
+        const senha = document.getElementById("swal-senha").value;
+        if (senha !== "Autorizado123") {
+          Swal.showValidationMessage(t("configuracoes.admin.senha_incorreta"));
+          return false;
+        }
+        return true;
+      },
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        setUsuarios((prev) => prev.filter((u) => u.id !== usuario.id));
+        Swal.fire({
+          icon: "success",
+          title: t("configuracoes.admin.removido"),
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+      }
+    });
+  };
+
+  // ============================================================
+  // CRUD MÉDICOS
+  // ============================================================
+  const handleAddMedico = () => {
+    showPremiumModal({
+      title: t("configuracoes.admin.medicos.adicionar_titulo"),
+      html: `
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.medicos.nome")} <span class="text-red-500">*</span></label>
+            <input id="swal-nome" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.medicos.nome_placeholder")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.admin.medicos.especialidade")} <span class="text-red-500">*</span></label>
+            <input id="swal-especialidade" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.admin.medicos.especialidade_placeholder")}" />
+          </div>
+          <p class="text-xs text-gray-400">* ${t("configuracoes.admin.campos_obrigatorios")}</p>
+        </div>
+      `,
+      confirmText: t("configuracoes.admin.adicionar"),
+      preConfirm: () => {
+        const nome = document.getElementById("swal-nome").value.trim();
+        const especialidade = document
+          .getElementById("swal-especialidade")
+          .value.trim();
         if (!nome || !especialidade) {
-          Swal.showValidationMessage("Preencha todos os campos.");
+          Swal.showValidationMessage(t("configuracoes.admin.preencha_campos"));
           return;
         }
         return { nome, especialidade };
       },
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        const novo = {
-          id: Date.now(),
-          nome: result.value.nome,
-          especialidade: result.value.especialidade,
-        };
-        setMedicosList((prev) => [...prev, novo]);
+        setMedicosList((prev) => [
+          ...prev,
+          { id: Date.now(), ...result.value },
+        ]);
         Swal.fire({
           icon: "success",
-          title: "Médico adicionado!",
+          title: t("configuracoes.admin.medicos.adicionado"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -398,21 +564,21 @@ const Configuracoes = () => {
 
   const handleRemoveMedico = (medico) => {
     Swal.fire({
-      title: "Exclusão segura",
+      title: t("configuracoes.admin.exclusao_segura"),
       html: `
-        <p>Digite a senha de autorização para remover <strong>${medico.nome}</strong>:</p>
-        <input id="swal-senha" class="swal2-input" type="password" placeholder="Senha de autorização" />
+        <div class="text-left space-y-3">
+          <p class="text-gray-600">${t("configuracoes.admin.digite_senha_remover")} <strong>${medico.nome}</strong>:</p>
+          <input id="swal-senha" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" type="password" placeholder="${t("configuracoes.admin.senha_autorizacao")}" />
+        </div>
       `,
       focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Remover",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.admin.remover"),
+      cancelText: t("configuracoes.admin.cancelar"),
+      confirmButtonColor: "#dc2626",
       preConfirm: () => {
         const senha = document.getElementById("swal-senha").value;
         if (senha !== "Autorizado123") {
-          Swal.showValidationMessage("Senha incorreta! Acesso negado.");
+          Swal.showValidationMessage(t("configuracoes.admin.senha_incorreta"));
           return false;
         }
         return true;
@@ -422,7 +588,7 @@ const Configuracoes = () => {
         setMedicosList((prev) => prev.filter((m) => m.id !== medico.id));
         Swal.fire({
           icon: "success",
-          title: "Removido!",
+          title: t("configuracoes.admin.removido"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -432,36 +598,48 @@ const Configuracoes = () => {
     });
   };
 
+  // ============================================================
+  // FUNÇÕES DE SEGURANÇA E RESTAURAÇÃO
+  // ============================================================
   const alterarSenha = () => {
-    Swal.fire({
-      title: "Alterar Senha",
+    showPremiumModal({
+      title: t("configuracoes.seguranca.alterar_senha"),
       html: `
-        <input id="senha-atual" type="password" class="swal2-input" placeholder="Senha atual" />
-        <input id="nova-senha" type="password" class="swal2-input" placeholder="Nova senha (mínimo 6 caracteres)" />
-        <input id="confirma-senha" type="password" class="swal2-input" placeholder="Confirmar nova senha" />
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.seguranca.senha_atual")}</label>
+            <input id="senha-atual" type="password" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.seguranca.senha_atual")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.seguranca.nova_senha")}</label>
+            <input id="nova-senha" type="password" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.seguranca.nova_senha")}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("configuracoes.seguranca.confirmar_senha")}</label>
+            <input id="confirma-senha" type="password" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("configuracoes.seguranca.confirmar_senha")}" />
+          </div>
+          <p class="text-xs text-gray-400">${t("configuracoes.seguranca.senha_minimo")}</p>
+        </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Alterar",
-      cancelButtonText: "Cancelar",
+      confirmText: t("configuracoes.seguranca.alterar"),
       preConfirm: () => {
         const atual = document.getElementById("senha-atual").value;
         const nova = document.getElementById("nova-senha").value;
         const confirma = document.getElementById("confirma-senha").value;
         if (!atual || !nova || !confirma) {
-          Swal.showValidationMessage("Preencha todos os campos.");
+          Swal.showValidationMessage(t("configuracoes.admin.preencha_campos"));
           return false;
         }
         if (nova.length < 6) {
           Swal.showValidationMessage(
-            "Nova senha deve ter no mínimo 6 caracteres.",
+            t("configuracoes.seguranca.senha_minimo_erro"),
           );
           return false;
         }
         if (nova !== confirma) {
-          Swal.showValidationMessage("Senhas não coincidem.");
+          Swal.showValidationMessage(
+            t("configuracoes.seguranca.senhas_nao_coincidem"),
+          );
           return false;
         }
         return true;
@@ -470,7 +648,7 @@ const Configuracoes = () => {
       if (result.isConfirmed && result.value) {
         Swal.fire({
           icon: "success",
-          title: "Senha alterada!",
+          title: t("configuracoes.seguranca.senha_alterada"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -480,24 +658,30 @@ const Configuracoes = () => {
     });
   };
 
-  // Restaurar configurações padrão
   const restaurarPadroes = () => {
     Swal.fire({
-      title: "Restaurar configurações padrão?",
-      text: "Isso irá redefinir todas as suas preferências para os valores iniciais.",
+      title: t("configuracoes.restaurar.titulo"),
+      text: t("configuracoes.restaurar.descricao"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
+      confirmButtonColor: "#dc2626",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: "Sim, restaurar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("configuracoes.restaurar.confirmar"),
+      cancelButtonText: t("configuracoes.restaurar.cancelar"),
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all",
+        cancelButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+      },
     }).then((result) => {
       if (result.isConfirmed) {
-        // Simula restauração
         setTheme("light");
         setFontSize(100);
         setPrimaryColor("#0057B8");
-        setIdioma("pt-BR");
+        setIdioma("pt");
+        i18n.changeLanguage("pt");
         setFormatoData("dd/MM/yyyy");
         setFonteSistema("Inter");
         setNotifications({
@@ -511,7 +695,7 @@ const Configuracoes = () => {
         setAltoContraste(false);
         Swal.fire({
           icon: "success",
-          title: "Restaurado!",
+          title: t("configuracoes.restaurar.restaurado"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -521,119 +705,185 @@ const Configuracoes = () => {
     });
   };
 
+  const salvarConfiguracoes = () => {
+    Swal.fire({
+      icon: "success",
+      title: t("configuracoes.salvar.salvo"),
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+  };
+
   // ============================================================
-  // COMPONENTE RENDER
+  // HEADER SECTION
   // ============================================================
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Cabeçalho com gradiente */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 mb-8 shadow-xl">
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMzAgMTBhMjAgMjAgMCAxIDAgMCA0MCAyMCAyMCAwIDAgMCAwLTQweiIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9zdmc+')] bg-repeat" />
-          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-white">
-            <div>
-              <h1 className="text-4xl font-extrabold flex items-center gap-3">
-                <FaCog className="text-3xl" />
-                Configurações
-              </h1>
-              <p className="text-blue-100 mt-1 text-lg">
-                Personalize sua experiência e gerencie o sistema
-              </p>
+  const HeaderSection = () => {
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
+    return (
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 p-6 md:p-8 shadow-2xl">
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-white/80 text-sm">
+              <FaHome className="w-4 h-4" />
+              <span>Dashboard</span>
+              <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
+              <span className="text-white font-medium">
+                {t("configuracoes.titulo")}
+              </span>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={restaurarPadroes}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-5 py-2.5 rounded-xl font-medium transition text-white border border-white/20"
-              >
-                <FaUndo /> Restaurar padrões
-              </button>
-              <button
-                onClick={() => {
-                  Swal.fire({
-                    icon: "success",
-                    title: "Configurações salvas!",
-                    toast: true,
-                    position: "top-end",
-                    showConfirmButton: false,
-                    timer: 2000,
-                  });
-                }}
-                className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-6 py-2.5 rounded-xl font-medium transition shadow-lg"
-              >
-                <FaSave /> Salvar
-              </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
+              <FaCog className="w-7 h-7" />
+              {t("configuracoes.titulo")}
+            </h1>
+            <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
+              <span>{t("configuracoes.subtitulo")}</span>
+              <span className="w-1 h-1 rounded-full bg-white/30"></span>
+              <span>{dataFormatada}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/10">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
+              {user?.nome?.charAt(0) || "A"}
+            </div>
+            <div className="text-white text-sm">
+              <p className="font-medium">{user?.nome || "Admin"}</p>
+              <p className="text-white/70 text-xs">Administrador</p>
             </div>
           </div>
         </div>
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+      </div>
+    );
+  };
 
-        {/* Navegação por abas (mais elegante) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-1.5 mb-8 flex flex-wrap gap-1">
-          {abas.map((aba) => (
-            <button
-              key={aba.id}
-              onClick={() => setAbaAtiva(aba.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                abaAtiva === aba.id
-                  ? "bg-blue-600 text-white shadow-md scale-105"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              }`}
-            >
-              <aba.icon size={18} />
-              <span className="hidden sm:inline">{aba.label}</span>
-            </button>
-          ))}
+  // ============================================================
+  // RENDER PRINCIPAL
+  // ============================================================
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <HeaderSection />
+
+        {/* Métricas */}
+        <div className="flex flex-wrap gap-4">
+          <MetricCard
+            title={t("configuracoes.metricas.unidades")}
+            value={ubsList.length}
+            icon={FaBuilding}
+            color="blue"
+          />
+          <MetricCard
+            title={t("configuracoes.metricas.usuarios")}
+            value={usuarios.length}
+            icon={HiUsers}
+            color="green"
+          />
+          <MetricCard
+            title={t("configuracoes.metricas.medicos")}
+            value={medicosList.length}
+            icon={FaStethoscope}
+            color="teal"
+          />
+          <MetricCard
+            title={t("configuracoes.metricas.tema")}
+            value={
+              theme === "light"
+                ? t("configuracoes.geral.claro")
+                : t("configuracoes.geral.escuro")
+            }
+            icon={theme === "light" ? FaRegSun : FaRegMoon}
+            color="amber"
+          />
+          <MetricCard
+            title={t("configuracoes.metricas.fonte")}
+            value={fonteSistema}
+            icon={FaFont}
+            color="indigo"
+          />
         </div>
 
-        {/* Conteúdo da aba */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
+        {/* Abas */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-xl p-1.5 overflow-x-auto">
+          <div className="flex flex-nowrap gap-1 min-w-max">
+            {abas.map((aba) => (
+              <button
+                key={aba.id}
+                onClick={() => setAbaAtiva(aba.id)}
+                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  abaAtiva === aba.id
+                    ? "bg-slate-700 text-white shadow-md scale-105"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                <aba.icon size={18} />
+                <span>{aba.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Conteúdo das abas */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-xl p-6 md:p-8 hover:shadow-2xl transition-all">
           {/* Aba Geral */}
           {abaAtiva === "geral" && (
             <div className="space-y-10">
               {/* Aparência */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <FaPalette className="text-blue-600" /> Aparência
+                  <FaPalette className="text-blue-600" />{" "}
+                  {t("configuracoes.geral.aparencia")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Tema */}
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                     <label className="block font-semibold text-gray-700 mb-3">
-                      Tema do Sistema
+                      {t("configuracoes.geral.tema")}
                     </label>
                     <div className="flex gap-3">
                       <button
                         onClick={() => setTheme("light")}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center ${
                           theme === "light"
-                            ? "bg-blue-600 text-white shadow-md"
+                            ? "bg-slate-700 text-white shadow-md"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
-                        <FaRegSun /> Claro
+                        <FaRegSun /> {t("configuracoes.geral.claro")}
                       </button>
                       <button
                         onClick={() => setTheme("dark")}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center ${
                           theme === "dark"
-                            ? "bg-blue-600 text-white shadow-md"
+                            ? "bg-slate-700 text-white shadow-md"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
-                        <FaRegMoon /> Escuro
+                        <FaRegMoon /> {t("configuracoes.geral.escuro")}
                       </button>
                     </div>
                   </div>
 
                   {/* Fonte */}
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                     <label className="block font-semibold text-gray-700 mb-3">
                       <FaFont className="inline mr-2 text-blue-600" />
-                      Fonte do Sistema
+                      {t("configuracoes.geral.fonte")}
                     </label>
                     <select
                       value={fonteSistema}
                       onChange={(e) => setFonteSistema(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                     >
                       {fontesDisponiveis.map((f) => (
                         <option key={f} value={f}>
@@ -645,11 +895,11 @@ const Configuracoes = () => {
                 </div>
 
                 {/* Tamanho da fonte */}
-                <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="mt-6 bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                   <div className="flex justify-between items-center mb-3">
                     <span className="font-semibold text-gray-700">
                       <FaFont className="inline mr-2 text-blue-600" />
-                      Tamanho da Fonte
+                      {t("configuracoes.geral.tamanhoFonte")}
                     </span>
                     <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-bold">
                       {fontSize}%
@@ -676,7 +926,7 @@ const Configuracoes = () => {
                     <span className="font-bold text-blue-700">100%</span>
                     <span>180%</span>
                   </div>
-                  <div className="mt-4 p-4 bg-gray-50 rounded-xl border text-center transition-all">
+                  <div className="mt-4 p-4 bg-gray-50/60 rounded-xl border text-center transition-all">
                     <p
                       className="text-gray-700"
                       style={{
@@ -684,16 +934,17 @@ const Configuracoes = () => {
                         fontFamily: fonteSistema,
                       }}
                     >
-                      Texto de pré-visualização com {fontSize}% de tamanho.
+                      {t("configuracoes.geral.previsualizacao_texto")}{" "}
+                      {fontSize}% {t("configuracoes.geral.de_tamanho")}
                     </p>
                   </div>
                 </div>
 
                 {/* Cor principal */}
-                <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="mt-6 bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                   <p className="font-semibold text-gray-700 mb-4">
                     <FaPalette className="inline mr-2 text-blue-600" />
-                    Cor Principal
+                    {t("configuracoes.geral.corPrincipal")}
                   </p>
                   <div className="flex gap-4 flex-wrap items-center">
                     {coresPreset.map((cor) => (
@@ -720,59 +971,138 @@ const Configuracoes = () => {
               </section>
 
               {/* Preferências Regionais */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <FaGlobe className="text-blue-600" /> Preferências Regionais
+                  <FaGlobe className="text-blue-600" />{" "}
+                  {t("configuracoes.geral.preferenciasRegionais")}
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                     <label className="block font-semibold text-gray-700 mb-2">
-                      Idioma
+                      {t("configuracoes.geral.idioma")}
                     </label>
                     <select
                       value={idioma}
-                      onChange={(e) => setIdioma(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      onChange={(e) => {
+                        const novoIdioma = e.target.value;
+                        setIdioma(novoIdioma);
+                        i18n.changeLanguage(novoIdioma);
+                        Swal.fire({
+                          icon: "success",
+                          title: t("configuracoes.idioma_alterado"),
+                          text: `${t("configuracoes.idioma_selecionado")}: ${
+                            novoIdioma === "pt"
+                              ? "Português"
+                              : novoIdioma === "en"
+                                ? "English"
+                                : "Español"
+                          }`,
+                          toast: true,
+                          position: "top-end",
+                          showConfirmButton: false,
+                          timer: 2000,
+                          timerProgressBar: true,
+                        });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                     >
-                      <option value="pt-BR">Português (Brasil)</option>
+                      <option value="pt">Português (Brasil)</option>
                       <option value="en">English</option>
                       <option value="es">Español</option>
                     </select>
+                    <div className="mt-2 text-xs text-gray-500">
+                      {t("configuracoes.geral.idioma_atual")}:{" "}
+                      {idioma === "pt"
+                        ? "Português"
+                        : idioma === "en"
+                          ? "English"
+                          : "Español"}
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+
+                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
                     <label className="block font-semibold text-gray-700 mb-2">
-                      Formato de data
+                      {t("configuracoes.geral.formatoData")}
                     </label>
                     <select
                       value={formatoData}
-                      onChange={(e) => setFormatoData(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      onChange={(e) => {
+                        setFormatoData(e.target.value);
+                        const hoje = new Date();
+                        let dataFormatada = "";
+                        switch (e.target.value) {
+                          case "dd/MM/yyyy":
+                            dataFormatada = hoje.toLocaleDateString("pt-BR");
+                            break;
+                          case "MM/dd/yyyy":
+                            dataFormatada = `${String(hoje.getMonth() + 1).padStart(2, "0")}/${String(hoje.getDate()).padStart(2, "0")}/${hoje.getFullYear()}`;
+                            break;
+                          case "yyyy-MM-dd":
+                            dataFormatada = hoje.toISOString().split("T")[0];
+                            break;
+                          default:
+                            dataFormatada = hoje.toLocaleDateString("pt-BR");
+                        }
+                        Swal.fire({
+                          icon: "success",
+                          title: t("configuracoes.formato_alterado"),
+                          text: `${t("configuracoes.exemplo")}: ${dataFormatada}`,
+                          toast: true,
+                          position: "top-end",
+                          showConfirmButton: false,
+                          timer: 2000,
+                          timerProgressBar: true,
+                        });
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                     >
                       <option value="dd/MM/yyyy">dd/MM/yyyy</option>
                       <option value="MM/dd/yyyy">MM/dd/yyyy</option>
                       <option value="yyyy-MM-dd">yyyy-MM-dd</option>
                     </select>
+                    <div className="mt-3 text-sm text-gray-500">
+                      {t("configuracoes.data_atual")}:{" "}
+                      {(() => {
+                        const hoje = new Date();
+                        switch (formatoData) {
+                          case "dd/MM/yyyy":
+                            return hoje.toLocaleDateString("pt-BR");
+                          case "MM/dd/yyyy":
+                            return `${String(hoje.getMonth() + 1).padStart(2, "0")}/${String(hoje.getDate()).padStart(2, "0")}/${hoje.getFullYear()}`;
+                          case "yyyy-MM-dd":
+                            return hoje.toISOString().split("T")[0];
+                          default:
+                            return hoje.toLocaleDateString("pt-BR");
+                        }
+                      })()}
+                    </div>
                   </div>
                 </div>
               </section>
 
               {/* Notificações */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <FaBell className="text-blue-600" /> Notificações
+                  <FaBell className="text-blue-600" />{" "}
+                  {t("configuracoes.geral.notificacoes")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {Object.entries(notifications).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 transition"
+                      className="flex items-center justify-between bg-white/80 p-4 rounded-xl shadow-sm border border-gray-100/80 hover:border-blue-200 transition"
                     >
                       <span className="font-medium text-gray-700 capitalize">
-                        {key === "agendamentos" && "Alertas de Agendamento"}
-                        {key === "filas" && "Chamadas de Fila"}
-                        {key === "vacinas" && "Vacinas Disponíveis"}
-                        {key === "somChamada" && "Som de chamada"}
-                        {key === "lembretes" && "Lembretes Gerais"}
+                        {key === "agendamentos" &&
+                          t("configuracoes.notificacoes.agendamentos_label")}
+                        {key === "filas" &&
+                          t("configuracoes.notificacoes.filas_label")}
+                        {key === "vacinas" &&
+                          t("configuracoes.notificacoes.vacinas_label")}
+                        {key === "somChamada" &&
+                          t("configuracoes.notificacoes.somChamada_label")}
+                        {key === "lembretes" &&
+                          t("configuracoes.notificacoes.lembretes_label")}
                       </span>
                       <button
                         onClick={() => handleNotifChange(key)}
@@ -792,50 +1122,55 @@ const Configuracoes = () => {
               </section>
 
               {/* Acessibilidade */}
-              <section className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-2xl p-6 shadow-lg">
+              <section className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-2xl p-6 shadow-lg">
                 <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                  <FaEye className="text-white/80" /> Acessibilidade
+                  <FaEye className="text-white/80" />{" "}
+                  {t("configuracoes.geral.acessibilidade")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="flex items-center justify-between bg-white/10 hover:bg-white/20 backdrop-blur-sm p-5 rounded-xl cursor-pointer transition text-white">
                     <div>
-                      <p className="font-medium">Modo Sênior</p>
+                      <p className="font-medium">
+                        {t("configuracoes.geral.modoSenior")}
+                      </p>
                       <p className="text-xs opacity-80">
-                        Interface simplificada e maior
+                        {t("configuracoes.geral.modoSeniorDesc")}
                       </p>
                     </div>
-                    <div
+                    <button
+                      onClick={() => setModoSenior(!modoSenior)}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
                         modoSenior ? "bg-white" : "bg-white/30"
                       }`}
                     >
                       <span
-                        onClick={() => setModoSenior(!modoSenior)}
                         className={`absolute top-1 left-1 w-4 h-4 bg-blue-600 rounded-full transition-transform ${
                           modoSenior ? "translate-x-6" : ""
                         }`}
                       />
-                    </div>
+                    </button>
                   </label>
                   <label className="flex items-center justify-between bg-white/10 hover:bg-white/20 backdrop-blur-sm p-5 rounded-xl cursor-pointer transition text-white">
                     <div>
-                      <p className="font-medium">Alto Contraste</p>
+                      <p className="font-medium">
+                        {t("configuracoes.geral.altoContraste")}
+                      </p>
                       <p className="text-xs opacity-80">
-                        Cores de alto contraste
+                        {t("configuracoes.geral.altoContrasteDesc")}
                       </p>
                     </div>
-                    <div
+                    <button
+                      onClick={() => setAltoContraste(!altoContraste)}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
                         altoContraste ? "bg-white" : "bg-white/30"
                       }`}
                     >
                       <span
-                        onClick={() => setAltoContraste(!altoContraste)}
                         className={`absolute top-1 left-1 w-4 h-4 bg-blue-600 rounded-full transition-transform ${
                           altoContraste ? "translate-x-6" : ""
                         }`}
                       />
-                    </div>
+                    </button>
                   </label>
                 </div>
               </section>
@@ -846,55 +1181,25 @@ const Configuracoes = () => {
           {abaAtiva === "painel" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaTachometerAlt className="text-blue-600" /> Configurações do
-                Painel
+                <FaTachometerAlt className="text-blue-600" />{" "}
+                {t("configuracoes.abas.painel")}
               </h2>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Visão geral ao entrar
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Exibir resumo de consultas e filas
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Notificações do painel
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Receber alertas de novas senhas
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Widget de métricas rápidas
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Exibir cards de desempenho
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
+                <ConfigToggle
+                  label={t("configuracoes.painel.visao_geral")}
+                  description={t("configuracoes.painel.visao_geral_desc")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.painel.notificacoes")}
+                  description={t("configuracoes.painel.notificacoes_desc")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.painel.widget_metricas")}
+                  description={t("configuracoes.painel.widget_metricas_desc")}
+                  defaultChecked
+                />
               </div>
             </div>
           )}
@@ -903,43 +1208,30 @@ const Configuracoes = () => {
           {abaAtiva === "filas" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaListAlt className="text-blue-600" /> Configurações de Filas
+                <FaListAlt className="text-blue-600" />{" "}
+                {t("configuracoes.abas.filas")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
                   <label className="block font-medium text-gray-700 mb-3">
-                    Tempo médio de espera para prioridade
+                    {t("configuracoes.filas.tempo_espera")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64">
-                    <option>5 minutos</option>
-                    <option>10 minutos</option>
-                    <option selected>15 minutos</option>
+                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                    <option>5 {t("configuracoes.filas.minutos")}</option>
+                    <option>10 {t("configuracoes.filas.minutos")}</option>
+                    <option selected>
+                      15 {t("configuracoes.filas.minutos")}
+                    </option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Exibir posição na fila para pacientes
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Notificar pacientes quando próximo
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
+                <ConfigToggle
+                  label={t("configuracoes.filas.exibir_posicao")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.filas.notificar_proximo")}
+                  defaultChecked
+                />
               </div>
             </div>
           )}
@@ -948,44 +1240,30 @@ const Configuracoes = () => {
           {abaAtiva === "agendamento" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaCalendarAlt className="text-blue-600" /> Configurações de
-                Agendamento
+                <FaCalendarAlt className="text-blue-600" />{" "}
+                {t("configuracoes.abas.agendamento")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
                   <label className="block font-medium text-gray-700 mb-3">
-                    Dias de antecedência máxima
+                    {t("configuracoes.agendamento.dias_antecedencia")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64">
-                    <option>30 dias</option>
-                    <option selected>60 dias</option>
-                    <option>90 dias</option>
+                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                    <option>30 {t("configuracoes.agendamento.dias")}</option>
+                    <option selected>
+                      60 {t("configuracoes.agendamento.dias")}
+                    </option>
+                    <option>90 {t("configuracoes.agendamento.dias")}</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Permitir reagendamento online
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Enviar lembrete por e-mail 24h antes
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
+                <ConfigToggle
+                  label={t("configuracoes.agendamento.reagendamento_online")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.agendamento.lembrete_email")}
+                  defaultChecked
+                />
               </div>
             </div>
           )}
@@ -994,44 +1272,20 @@ const Configuracoes = () => {
           {abaAtiva === "historico" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaHistory className="text-blue-600" /> Configurações de
-                Histórico
+                <FaHistory className="text-blue-600" />{" "}
+                {t("configuracoes.abas.historico")}
               </h2>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Compartilhar histórico com outras UBS
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Manter histórico por tempo indeterminado
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Exportar histórico em CSV
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
+                <ConfigToggle
+                  label={t("configuracoes.historico.compartilhar_ubs")}
+                />
+                <ConfigToggle
+                  label={t("configuracoes.historico.manter_indeterminado")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.historico.exportar_csv")}
+                />
               </div>
             </div>
           )}
@@ -1040,43 +1294,30 @@ const Configuracoes = () => {
           {abaAtiva === "vacinas" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaSyringe className="text-blue-600" /> Configurações de Vacinas
+                <FaSyringe className="text-blue-600" />{" "}
+                {t("configuracoes.abas.vacinas")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
                   <label className="block font-medium text-gray-700 mb-3">
-                    Lembrete de campanhas
+                    {t("configuracoes.vacinas.lembrete_campanhas")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64">
-                    <option>1 semana antes</option>
-                    <option selected>2 semanas antes</option>
-                    <option>1 mês antes</option>
+                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                    <option>1 {t("configuracoes.vacinas.semana_antes")}</option>
+                    <option selected>
+                      2 {t("configuracoes.vacinas.semanas_antes")}
+                    </option>
+                    <option>1 {t("configuracoes.vacinas.mes_antes")}</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Notificar quando estoque baixo
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      Alertar sobre vacinas vencendo
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                </div>
+                <ConfigToggle
+                  label={t("configuracoes.vacinas.notificar_estoque_baixo")}
+                  defaultChecked
+                />
+                <ConfigToggle
+                  label={t("configuracoes.vacinas.alertar_vencendo")}
+                  defaultChecked
+                />
               </div>
             </div>
           )}
@@ -1085,51 +1326,78 @@ const Configuracoes = () => {
           {abaAtiva === "seguranca" && (
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <FaUserLock className="text-blue-600" /> Segurança da Conta
+                <FaUserLock className="text-blue-600" />{" "}
+                {t("configuracoes.abas.seguranca")}
               </h2>
               <div className="space-y-6">
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50 rounded-xl border border-gray-200 gap-4 hover:border-blue-200 transition">
+                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4 hover:border-blue-200 transition">
                   <div>
-                    <p className="font-semibold text-gray-700">Alterar senha</p>
+                    <p className="font-semibold text-gray-700">
+                      {t("configuracoes.seguranca.alterar_senha")}
+                    </p>
                     <p className="text-sm text-gray-500">
-                      Mantenha sua conta protegida.
+                      {t("configuracoes.seguranca.alterar_senha_desc")}
                     </p>
                   </div>
                   <button
                     onClick={alterarSenha}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-sm"
+                    className="bg-slate-700 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-sm"
                   >
-                    Alterar
+                    {t("configuracoes.seguranca.alterar")}
                   </button>
                 </div>
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50 rounded-xl border border-gray-200 gap-4 hover:border-red-200 transition">
+                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4 hover:border-red-200 transition">
                   <div>
                     <p className="font-semibold text-gray-700">
-                      Encerrar sessão em outros dispositivos
+                      {t("configuracoes.seguranca.encerrar_sessoes")}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Revogue todos os acessos ativos.
+                      {t("configuracoes.seguranca.encerrar_sessoes_desc")}
                     </p>
                   </div>
-                  <button className="border border-red-500 text-red-500 px-6 py-2.5 rounded-xl font-medium hover:bg-red-50 transition">
-                    Encerrar
+                  <button
+                    onClick={() => {
+                      Swal.fire({
+                        icon: "success",
+                        title: t("configuracoes.seguranca.sessoes_encerradas"),
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 2000,
+                      });
+                    }}
+                    className="border border-red-500 text-red-500 px-6 py-2.5 rounded-xl font-medium hover:bg-red-50 transition"
+                  >
+                    {t("configuracoes.seguranca.encerrar")}
                   </button>
                 </div>
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50 rounded-xl border border-gray-200 gap-4">
+                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4">
                   <div>
                     <p className="font-semibold text-gray-700">
-                      Autenticação em dois fatores
+                      {t("configuracoes.seguranca.autenticacao_dois_fatores")}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Adicione uma camada extra de segurança.
+                      {t(
+                        "configuracoes.seguranca.autenticacao_dois_fatores_desc",
+                      )}
                     </p>
                   </div>
-                  <button className="bg-gray-200 text-gray-600 px-6 py-2.5 rounded-xl font-medium hover:bg-gray-300 transition">
-                    Configurar
+                  <button
+                    onClick={() => {
+                      Swal.fire({
+                        icon: "info",
+                        title: t("configuracoes.seguranca.em_breve"),
+                        text: t("configuracoes.seguranca.em_breve_texto"),
+                        confirmButtonColor: "#1e293b",
+                      });
+                    }}
+                    className="bg-gray-200 text-gray-600 px-6 py-2.5 rounded-xl font-medium hover:bg-gray-300 transition"
+                  >
+                    {t("configuracoes.seguranca.configurar")}
                   </button>
                 </div>
                 <div className="text-xs text-gray-400 mt-4">
-                  * Funcionalidades simuladas para demonstração.
+                  * {t("configuracoes.seguranca.funcionalidades_simuladas")}
                 </div>
               </div>
             </div>
@@ -1139,28 +1407,29 @@ const Configuracoes = () => {
           {abaAtiva === "admin" && user?.role === "admin" && (
             <div className="space-y-10">
               {/* Unidades */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                    <FaBuilding className="text-blue-600" /> Unidades de Saúde
+                    <FaBuilding className="text-blue-600" />{" "}
+                    {t("configuracoes.admin.ubs.titulo")}
                   </h2>
                   <button
                     onClick={handleAddUBS}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
+                    className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
                   >
-                    <FaPlus /> Adicionar
+                    <FaPlus /> {t("configuracoes.admin.adicionar")}
                   </button>
                 </div>
                 <div className="space-y-3">
                   {ubsList.length === 0 ? (
                     <p className="text-gray-500 text-center py-6">
-                      Nenhuma unidade cadastrada.
+                      {t("configuracoes.admin.ubs.nenhuma")}
                     </p>
                   ) : (
                     ubsList.map((ubs) => (
                       <div
                         key={ubs.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition"
+                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition"
                       >
                         <div>
                           <p className="font-medium text-gray-800">
@@ -1174,7 +1443,8 @@ const Configuracoes = () => {
                           onClick={() => handleRemoveUBS(ubs)}
                           className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                         >
-                          <FaTrash size={14} /> Remover
+                          <FaTrash size={14} />{" "}
+                          {t("configuracoes.admin.remover")}
                         </button>
                       </div>
                     ))
@@ -1183,28 +1453,29 @@ const Configuracoes = () => {
               </section>
 
               {/* Usuários */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                    <FaUsersCog className="text-blue-600" /> Usuários do Sistema
+                    <FaUsersCog className="text-blue-600" />{" "}
+                    {t("configuracoes.admin.usuarios.titulo")}
                   </h2>
                   <button
                     onClick={handleAddUsuario}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
+                    className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
                   >
-                    <FaPlus /> Adicionar
+                    <FaPlus /> {t("configuracoes.admin.adicionar")}
                   </button>
                 </div>
                 <div className="space-y-3">
                   {usuarios.length === 0 ? (
                     <p className="text-gray-500 text-center py-6">
-                      Nenhum usuário cadastrado.
+                      {t("configuracoes.admin.usuarios.nenhum")}
                     </p>
                   ) : (
                     usuarios.map((us) => (
                       <div
                         key={us.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition gap-2"
+                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition gap-2"
                       >
                         <div>
                           <p className="font-medium text-gray-800">{us.nome}</p>
@@ -1218,13 +1489,15 @@ const Configuracoes = () => {
                             onClick={() => handleEditUsuario(us)}
                             className="text-amber-600 hover:text-amber-800 text-sm font-medium flex items-center gap-1"
                           >
-                            <FaEdit size={14} /> Editar
+                            <FaEdit size={14} />{" "}
+                            {t("configuracoes.admin.editar")}
                           </button>
                           <button
                             onClick={() => handleRemoveUsuario(us)}
                             className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                           >
-                            <FaTrash size={14} /> Remover
+                            <FaTrash size={14} />{" "}
+                            {t("configuracoes.admin.remover")}
                           </button>
                         </div>
                       </div>
@@ -1234,28 +1507,29 @@ const Configuracoes = () => {
               </section>
 
               {/* Médicos */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                    <FaStethoscope className="text-blue-600" /> Médicos
+                    <FaStethoscope className="text-blue-600" />{" "}
+                    {t("configuracoes.admin.medicos.titulo")}
                   </h2>
                   <button
                     onClick={handleAddMedico}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
+                    className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
                   >
-                    <FaPlus /> Adicionar
+                    <FaPlus /> {t("configuracoes.admin.adicionar")}
                   </button>
                 </div>
                 <div className="space-y-3">
                   {medicosList.length === 0 ? (
                     <p className="text-gray-500 text-center py-6">
-                      Nenhum médico cadastrado.
+                      {t("configuracoes.admin.medicos.nenhum")}
                     </p>
                   ) : (
                     medicosList.map((med) => (
                       <div
                         key={med.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition"
+                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition"
                       >
                         <div>
                           <p className="font-medium text-gray-800">
@@ -1269,7 +1543,8 @@ const Configuracoes = () => {
                           onClick={() => handleRemoveMedico(med)}
                           className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                         >
-                          <FaTrash size={14} /> Remover
+                          <FaTrash size={14} />{" "}
+                          {t("configuracoes.admin.remover")}
                         </button>
                       </div>
                     ))
@@ -1278,14 +1553,15 @@ const Configuracoes = () => {
               </section>
 
               {/* Parâmetros Gerais */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <FaCog className="text-blue-600" /> Parâmetros Gerais
+                  <FaCog className="text-blue-600" />{" "}
+                  {t("configuracoes.admin.parametros.titulo")}
                 </h2>
                 <div className="space-y-5">
-                  <div className="bg-white rounded-xl p-5 border border-gray-200">
+                  <div className="bg-white/80 rounded-xl p-5 border border-gray-100/80">
                     <label className="block font-medium text-gray-700 mb-3">
-                      Tempo máximo de espera (min)
+                      {t("configuracoes.admin.parametros.tempo_maximo")}
                     </label>
                     <input
                       type="number"
@@ -1296,67 +1572,51 @@ const Configuracoes = () => {
                           tempoMaximoEspera: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-32 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-32 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                    <span className="font-medium text-gray-700">
-                      Permitir autoagendamento
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={parametroSistema.permitirAutoAgendamento}
-                      onChange={(e) =>
-                        setParametroSistema({
-                          ...parametroSistema,
-                          permitirAutoAgendamento: e.target.checked,
-                        })
-                      }
-                      className="h-5 w-5 text-blue-600 rounded"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                    <span className="font-medium text-gray-700">
-                      Habilitar fila prioritária automática
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={parametroSistema.filaPrioritariaAutomatica}
-                      onChange={(e) =>
-                        setParametroSistema({
-                          ...parametroSistema,
-                          filaPrioritariaAutomatica: e.target.checked,
-                        })
-                      }
-                      className="h-5 w-5 text-blue-600 rounded"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-200 transition">
-                    <span className="font-medium text-gray-700">
-                      Notificar gestores sobre alta demanda
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={parametroSistema.notificarAltaDemanda}
-                      onChange={(e) =>
-                        setParametroSistema({
-                          ...parametroSistema,
-                          notificarAltaDemanda: e.target.checked,
-                        })
-                      }
-                      className="h-5 w-5 text-blue-600 rounded"
-                    />
-                  </div>
+                  <ConfigToggle
+                    label={t("configuracoes.admin.parametros.autoagendamento")}
+                    checked={parametroSistema.permitirAutoAgendamento}
+                    onChange={(checked) =>
+                      setParametroSistema({
+                        ...parametroSistema,
+                        permitirAutoAgendamento: checked,
+                      })
+                    }
+                  />
+                  <ConfigToggle
+                    label={t("configuracoes.admin.parametros.fila_prioritaria")}
+                    checked={parametroSistema.filaPrioritariaAutomatica}
+                    onChange={(checked) =>
+                      setParametroSistema({
+                        ...parametroSistema,
+                        filaPrioritariaAutomatica: checked,
+                      })
+                    }
+                  />
+                  <ConfigToggle
+                    label={t(
+                      "configuracoes.admin.parametros.notificar_alta_demanda",
+                    )}
+                    checked={parametroSistema.notificarAltaDemanda}
+                    onChange={(checked) =>
+                      setParametroSistema({
+                        ...parametroSistema,
+                        notificarAltaDemanda: checked,
+                      })
+                    }
+                  />
                 </div>
               </section>
 
               {/* Logs */}
-              <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
                 <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <HiDocumentText className="text-blue-600" /> Logs de
-                  Atividades
+                  <HiDocumentText className="text-blue-600" />{" "}
+                  {t("configuracoes.admin.logs.titulo")}
                 </h2>
-                <div className="bg-white p-4 rounded-xl max-h-48 overflow-y-auto text-xs font-mono border border-gray-200">
+                <div className="bg-white/80 p-4 rounded-xl max-h-48 overflow-y-auto text-xs font-mono border border-gray-100/80">
                   <p className="text-gray-600 py-1">
                     [2024-12-06 08:32] Admin fez login
                   </p>
@@ -1374,27 +1634,79 @@ const Configuracoes = () => {
                     [2024-12-06 10:15] Configurações de vacinas atualizadas
                   </p>
                 </div>
-                <button className="mt-4 text-sm text-blue-600 hover:underline font-medium flex items-center gap-1">
-                  <FaFileDownload size={14} /> Baixar logs completos
+                <button
+                  onClick={() => {
+                    Swal.fire({
+                      icon: "info",
+                      title: t("configuracoes.admin.logs.download_titulo"),
+                      text: t("configuracoes.admin.logs.download_desc"),
+                      confirmButtonColor: "#1e293b",
+                    });
+                  }}
+                  className="mt-4 text-sm text-blue-600 hover:underline font-medium flex items-center gap-1"
+                >
+                  <FaFileDownload size={14} />{" "}
+                  {t("configuracoes.admin.logs.baixar")}
                 </button>
               </section>
 
               {/* Backup */}
-              <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+              <section className="bg-amber-50/80 backdrop-blur-sm border border-amber-200 rounded-2xl p-6">
                 <h3 className="font-bold text-amber-800 mb-4 flex items-center gap-3">
-                  <FaShieldAlt /> Backup e Restauração
+                  <FaShieldAlt /> {t("configuracoes.admin.backup.titulo")}
                 </h3>
                 <div className="flex flex-wrap gap-4">
-                  <button className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-sm">
-                    Gerar backup agora
+                  <button
+                    onClick={() => {
+                      Swal.fire({
+                        icon: "success",
+                        title: t("configuracoes.admin.backup.gerado"),
+                        text: t("configuracoes.admin.backup.gerado_texto"),
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 2000,
+                      });
+                    }}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-sm"
+                  >
+                    {t("configuracoes.admin.backup.gerar")}
                   </button>
-                  <button className="border border-amber-600 text-amber-600 px-6 py-2.5 rounded-xl font-medium hover:bg-amber-100 transition">
-                    Restaurar último backup
+                  <button
+                    onClick={() => {
+                      Swal.fire({
+                        icon: "info",
+                        title: t("configuracoes.admin.backup.restaurar_titulo"),
+                        text: t("configuracoes.admin.backup.restaurar_desc"),
+                        confirmButtonColor: "#1e293b",
+                      });
+                    }}
+                    className="border border-amber-600 text-amber-600 px-6 py-2.5 rounded-xl font-medium hover:bg-amber-100 transition"
+                  >
+                    {t("configuracoes.admin.backup.restaurar")}
                   </button>
                 </div>
               </section>
             </div>
           )}
+        </div>
+
+        {/* BOTÕES FLUTUANTES */}
+        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+          <button
+            onClick={salvarConfiguracoes}
+            className="bg-slate-700 hover:bg-slate-800 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
+            title={t("configuracoes.salvar.titulo")}
+          >
+            <FaSave size={24} />
+          </button>
+          <button
+            onClick={restaurarPadroes}
+            className="bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
+            title={t("configuracoes.restaurar.titulo")}
+          >
+            <FaUndo size={24} />
+          </button>
         </div>
       </div>
     </div>

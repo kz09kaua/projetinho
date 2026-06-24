@@ -1,5 +1,5 @@
-// src/pages/SusConectado.jsx - Versão redesenhada com paleta padronizada
-import { useState, useEffect, useMemo } from "react";
+// src/pages/admim/SusConectadoAdmin.jsx - Versão corrigida com todas as importações
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   HiCloud,
   HiRefresh,
@@ -14,8 +14,21 @@ import {
   HiX,
   HiChartPie,
   HiTrendingUp,
+  HiTrendingDown,
   HiBadgeCheck,
   HiExternalLink,
+  HiFilter,
+  HiCalendar,
+  HiUserGroup,
+  HiViewGrid,
+  HiViewList,
+  HiChevronLeft,
+  HiChevronRight,
+  HiChevronDoubleLeft,
+  HiChevronDoubleRight,
+  HiHome,
+  HiArchive,
+  HiEye,
 } from "react-icons/hi";
 import Swal from "sweetalert2";
 
@@ -29,6 +42,9 @@ const EXAMES_MOCK = [
     dataResultado: "12/03/2025",
     status: "concluido",
     resultado: "Todos os parâmetros dentro da normalidade.",
+    prioridade: "alta",
+    tipo: "sangue",
+    arquivado: false,
   },
   {
     id: 2,
@@ -38,6 +54,9 @@ const EXAMES_MOCK = [
     dataResultado: "11/03/2025",
     status: "concluido",
     resultado: "95 mg/dL (normal)",
+    prioridade: "media",
+    tipo: "sangue",
+    arquivado: false,
   },
   {
     id: 3,
@@ -47,6 +66,9 @@ const EXAMES_MOCK = [
     dataResultado: null,
     status: "pendente",
     resultado: "Aguardando resultado",
+    prioridade: "media",
+    tipo: "sangue",
+    arquivado: false,
   },
   {
     id: 4,
@@ -56,6 +78,9 @@ const EXAMES_MOCK = [
     dataResultado: null,
     status: "agendado",
     resultado: "Exame agendado para 15/04/2025",
+    prioridade: "baixa",
+    tipo: "imagem",
+    arquivado: false,
   },
   {
     id: 5,
@@ -65,45 +90,130 @@ const EXAMES_MOCK = [
     dataResultado: "03/04/2025",
     status: "concluido",
     resultado: "Normal - ritmo sinusal regular",
+    prioridade: "alta",
+    tipo: "cardiologia",
+    arquivado: false,
+  },
+  {
+    id: 6,
+    nome: "Ressonância Magnética",
+    medicoSolicitante: "Dr. Fernando Santos",
+    dataSolicitacao: "15/04/2025",
+    dataResultado: null,
+    status: "pendente",
+    resultado: "Em análise",
+    prioridade: "alta",
+    tipo: "imagem",
+    arquivado: false,
   },
 ];
 
 // ----------------------------- COMPONENTES REUTILIZÁVEIS -----------------------------
 
-// Badge de status com ícone (estilo padronizado)
+// Avatar com iniciais
+const Avatar = ({ nome, size = "sm" }) => {
+  const iniciais = nome
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const tamanho =
+    size === "sm"
+      ? "w-8 h-8 text-xs"
+      : size === "md"
+        ? "w-10 h-10 text-sm"
+        : "w-12 h-12 text-base";
+  return (
+    <div
+      className={`${tamanho} rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0`}
+    >
+      {iniciais}
+    </div>
+  );
+};
+
+// Badge de status com ícone e animação
 const StatusBadge = ({ status }) => {
   const config = {
     concluido: {
       label: "Concluído",
-      bg: "bg-green-100",
-      text: "text-green-700",
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
+      dot: "bg-emerald-500",
       icon: HiCheckCircle,
     },
     pendente: {
       label: "Pendente",
-      bg: "bg-yellow-100",
-      text: "text-yellow-700",
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+      dot: "bg-amber-500",
       icon: HiClock,
     },
     agendado: {
       label: "Agendado",
-      bg: "bg-blue-100",
-      text: "text-blue-700",
-      icon: HiBadgeCheck,
+      bg: "bg-sky-50",
+      text: "text-sky-700",
+      border: "border-sky-200",
+      dot: "bg-sky-500",
+      icon: HiCalendar,
     },
   };
-  const { label, bg, text, icon: Icon } = config[status] || config.pendente;
+  const {
+    label,
+    bg,
+    text,
+    border,
+    dot,
+    icon: Icon,
+  } = config[status] || config.pendente;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${bg} ${text}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text} ${border}`}
     >
-      <Icon size={14} /> {label}
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {label}
+      <Icon size={12} className="opacity-70" />
     </span>
   );
 };
 
-// Card de indicador (versão clean, sem gradiente pesado)
-const IndicatorCard = ({
+// Badge de prioridade
+const PriorityBadge = ({ prioridade }) => {
+  const config = {
+    alta: {
+      label: "Alta Prioridade",
+      bg: "bg-rose-50",
+      text: "text-rose-700",
+      border: "border-rose-200",
+    },
+    media: {
+      label: "Média Prioridade",
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+    },
+    baixa: {
+      label: "Baixa Prioridade",
+      bg: "bg-sky-50",
+      text: "text-sky-700",
+      border: "border-sky-200",
+    },
+  };
+  const { label, bg, text, border } = config[prioridade] || config.media;
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${bg} ${text} ${border}`}
+    >
+      {label}
+    </span>
+  );
+};
+
+// Card de indicador com design moderno
+const MetricCard = ({
   title,
   value,
   unit,
@@ -111,82 +221,132 @@ const IndicatorCard = ({
   color = "blue",
   trend,
   trendValue,
+  subtitle,
 }) => {
   const colorMap = {
-    blue: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" },
-    green: { bg: "bg-green-50", text: "text-green-600", border: "border-green-200" },
-    amber: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
-    red: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
-    purple: { bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },
+    blue: "from-blue-600 to-blue-700",
+    green: "from-emerald-500 to-emerald-600",
+    amber: "from-amber-500 to-amber-600",
+    red: "from-rose-500 to-rose-600",
+    teal: "from-teal-500 to-teal-600",
+    indigo: "from-indigo-500 to-indigo-600",
+    purple: "from-purple-500 to-purple-600",
+    gray: "from-slate-500 to-slate-600",
   };
-  const { bg, text, border } = colorMap[color] || colorMap.blue;
+
+  const gradient = colorMap[color] || colorMap.blue;
 
   return (
-    <div
-      className={`bg-white rounded-2xl border ${border} p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1`}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className={`text-3xl font-bold ${text} mt-1`}>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 p-4 min-w-[140px] flex-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xl font-bold text-gray-800 mt-1">
             {value}
-            {unit && <span className="text-lg font-normal text-gray-400 ml-1">{unit}</span>}
+            {unit && (
+              <span className="text-sm font-normal text-gray-400 ml-1">
+                {unit}
+              </span>
+            )}
           </p>
-          {trend && (
-            <p
-              className={`text-xs mt-2 flex items-center gap-1 ${
-                trend === "up" ? "text-green-600" : "text-red-500"
-              }`}
-            >
-              <HiTrendingUp className={trend === "down" ? "rotate-180" : ""} />
-              {trendValue}
-            </p>
+          {subtitle && (
+            <p className="text-[10px] text-gray-400 truncate">{subtitle}</p>
           )}
         </div>
-        <div className={`p-3 rounded-xl ${bg} ${text}`}>
-          <Icon size={24} />
+        <div
+          className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg flex-shrink-0`}
+        >
+          <Icon size={18} />
         </div>
       </div>
+      {trend && (
+        <div className="flex items-center gap-1 mt-2 text-[10px]">
+          {trend === "up" ? (
+            <HiTrendingUp className="text-emerald-500" />
+          ) : (
+            <HiTrendingDown className="text-rose-500" />
+          )}
+          <span
+            className={trend === "up" ? "text-emerald-600" : "text-rose-600"}
+          >
+            {trendValue}
+          </span>
+          <span className="text-gray-400">vs. anterior</span>
+        </div>
+      )}
     </div>
   );
 };
 
-// Card de exame com design clean e borda sutil
+// Card de exame com design moderno e interativo
 const ExamCard = ({ exame, onDetalhes }) => {
   const borderColor = {
-    concluido: "border-green-200 hover:border-green-400",
-    pendente: "border-yellow-200 hover:border-yellow-400",
-    agendado: "border-blue-200 hover:border-blue-400",
+    concluido: "border-emerald-200 hover:border-emerald-400",
+    pendente: "border-amber-200 hover:border-amber-400",
+    agendado: "border-sky-200 hover:border-sky-400",
   }[exame.status];
+
+  const isArquivado = exame.arquivado;
 
   return (
     <div
-      className={`bg-white rounded-2xl border-2 ${borderColor} p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer`}
+      className={`bg-white rounded-2xl border-2 ${borderColor} p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group ${isArquivado ? "opacity-60" : ""}`}
       onClick={() => onDetalhes(exame)}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="font-bold text-gray-800 text-lg">{exame.nome}</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            <span className="font-medium">Solicitante:</span> {exame.medicoSolicitante}
-          </p>
-          <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-400">
-            <span>📅 {exame.dataSolicitacao}</span>
-            {exame.dataResultado && <span>✅ {exame.dataResultado}</span>}
+      <div className="flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Avatar nome={exame.nome} size="sm" />
+              <h3 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors truncate">
+                {exame.nome}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+              <HiUserGroup className="text-gray-400" />
+              <span>{exame.medicoSolicitante}</span>
+            </p>
           </div>
+          <StatusBadge status={exame.status} />
         </div>
-        <StatusBadge status={exame.status} />
-      </div>
-      <div className="mt-4 flex justify-end">
-        <button
-          className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDetalhes(exame);
-          }}
-        >
 
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <PriorityBadge prioridade={exame.prioridade} />
+          <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full border border-gray-200">
+            {exame.tipo}
+          </span>
+          {isArquivado && (
+            <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full border border-gray-200">
+              <HiArchive className="inline mr-1" size={12} />
+              Arquivado
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
+          <span className="flex items-center gap-1">
+            <HiCalendar className="text-blue-400" />
+            {exame.dataSolicitacao}
+          </span>
+          {exame.dataResultado && (
+            <span className="flex items-center gap-1 text-emerald-600">
+              <HiCheckCircle className="text-emerald-400" />
+              {exame.dataResultado}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            className="text-blue-600 text-sm font-medium hover:text-blue-800 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDetalhes(exame);
+            }}
+          >
+            Ver detalhes <HiExternalLink size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -207,23 +367,55 @@ const SusConectado = () => {
   });
   const [exames, setExames] = useState(EXAMES_MOCK);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("todos");
+  const [selectedPrioridade, setSelectedPrioridade] = useState("todas");
+  const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const examesFiltrados = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) return exames;
-    return exames.filter(
-      (e) =>
-        e.nome.toLowerCase().includes(term) ||
-        e.medicoSolicitante.toLowerCase().includes(term) ||
-        e.status.toLowerCase().includes(term)
-    );
-  }, [exames, searchTerm]);
+    let filtered = exames;
 
-  const concluidos = examesFiltrados.filter((e) => e.status === "concluido").length;
-  const pendentes = examesFiltrados.filter((e) => e.status === "pendente").length;
-  const agendados = examesFiltrados.filter((e) => e.status === "agendado").length;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(
+        (e) =>
+          e.nome.toLowerCase().includes(term) ||
+          e.medicoSolicitante.toLowerCase().includes(term) ||
+          e.status.toLowerCase().includes(term),
+      );
+    }
+
+    if (selectedStatus !== "todos") {
+      filtered = filtered.filter((e) => e.status === selectedStatus);
+    }
+
+    if (selectedPrioridade !== "todas") {
+      filtered = filtered.filter((e) => e.prioridade === selectedPrioridade);
+    }
+
+    return filtered;
+  }, [exames, searchTerm, selectedStatus, selectedPrioridade]);
+
+  const stats = useMemo(() => {
+    return {
+      total: examesFiltrados.length,
+      concluidos: examesFiltrados.filter((e) => e.status === "concluido")
+        .length,
+      pendentes: examesFiltrados.filter((e) => e.status === "pendente").length,
+      agendados: examesFiltrados.filter((e) => e.status === "agendado").length,
+      arquivados: exames.filter((e) => e.arquivado).length,
+    };
+  }, [examesFiltrados, exames]);
+
+  const totalPages = Math.ceil(examesFiltrados.length / itemsPerPage);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return examesFiltrados.slice(start, start + itemsPerPage);
+  }, [examesFiltrados, currentPage, itemsPerPage]);
 
   // Simulação de API
   const fetchDados = async () => {
@@ -269,182 +461,759 @@ const SusConectado = () => {
     Swal.fire({
       title: exame.nome,
       html: `
-        <div style="text-align: left; line-height: 1.8;">
-          <p><strong>Médico solicitante:</strong> ${exame.medicoSolicitante}</p>
-          <p><strong>Data da solicitação:</strong> ${exame.dataSolicitacao}</p>
-          <p><strong>Data do resultado:</strong> ${exame.dataResultado || "Não disponível"}</p>
-          <p><strong>Status:</strong> ${
-            exame.status === "concluido"
-              ? "✅ Concluído"
-              : exame.status === "pendente"
-              ? "⏳ Pendente"
-              : "📅 Agendado"
-          }</p>
-          <p><strong>Resultado:</strong> ${exame.resultado}</p>
+        <div class="text-left space-y-3 p-1">
+          <div class="flex items-center gap-4 pb-3 border-b border-gray-100">
+            <div class="p-2.5 bg-blue-50 rounded-full"><HiDocumentText class="w-6 h-6 text-blue-600" /></div>
+            <div>
+              <p class="font-semibold text-gray-800 text-lg">${exame.nome}</p>
+              <p class="text-sm text-gray-500">ID: #${exame.id}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div><span class="text-gray-500">Médico:</span> <span class="font-medium">${exame.medicoSolicitante}</span></div>
+            <div><span class="text-gray-500">Tipo:</span> <span class="font-medium">${exame.tipo}</span></div>
+            <div><span class="text-gray-500">Data Solicitação:</span> <span class="font-medium">${exame.dataSolicitacao}</span></div>
+            <div><span class="text-gray-500">Data Resultado:</span> <span class="font-medium">${exame.dataResultado || "Não disponível"}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">Status:</span> <span class="font-medium">${exame.status === "concluido" ? "✅ Concluído" : exame.status === "pendente" ? "⏳ Pendente" : "📅 Agendado"}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">Prioridade:</span> <span class="font-medium">${exame.prioridade === "alta" ? "🔴 Alta" : exame.prioridade === "media" ? "🟡 Média" : "🟢 Baixa"}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">Resultado:</span> <span class="font-medium">${exame.resultado}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">Arquivado:</span> <span class="font-medium">${exame.arquivado ? "Sim" : "Não"}</span></div>
+          </div>
         </div>
       `,
       icon: exame.status === "concluido" ? "success" : "info",
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: "#1e293b",
       confirmButtonText: "Fechar",
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+      },
     });
   };
 
   const limparBusca = () => setSearchTerm("");
+  const limparFiltros = () => {
+    setSelectedStatus("todos");
+    setSelectedPrioridade("todas");
+    setCurrentPage(1);
+  };
+
+  const handleArquivar = (exame) => {
+    Swal.fire({
+      title: "Arquivar exame",
+      text: `Deseja arquivar o exame ${exame.nome}?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#1e293b",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: "Sim, arquivar",
+      cancelButtonText: "Cancelar",
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        cancelButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setExames((prev) =>
+          prev.map((e) => (e.id === exame.id ? { ...e, arquivado: true } : e)),
+        );
+        Swal.fire({
+          icon: "success",
+          title: "Arquivado!",
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+        });
+      }
+    });
+  };
+
+  const handleDesarquivar = (exame) => {
+    Swal.fire({
+      title: "Desarquivar exame",
+      text: `Restaurar o exame ${exame.nome}?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#1e293b",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: "Sim, desarquivar",
+      cancelButtonText: "Cancelar",
+      customClass: {
+        popup: "rounded-3xl shadow-2xl border border-gray-100",
+        confirmButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        cancelButton:
+          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setExames((prev) =>
+          prev.map((e) => (e.id === exame.id ? { ...e, arquivado: false } : e)),
+        );
+        Swal.fire({
+          icon: "success",
+          title: "Desarquivado!",
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+        });
+      }
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <HiCloud className="text-blue-500" /> SUS Conectado
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Integração nacional – dados em tempo real
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-          <button
-              onClick={sincronizar}
-              disabled={syncing}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50"
-            >
-              <HiRefresh className={`${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Sincronizando..." : "Sincronizar"}
-            </button>
-          </div>
-        </div>
+        <HeaderSection />
 
         {/* Indicadores */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <IndicatorCard
-            title="Cobertura Vacinal (BR)"
-            value={indicadores.coberturaVacinal}
-            unit="%"
-            icon={HiDatabase}
-            color="blue"
-            trend="up"
-            trendValue="+2% este mês"
-          />
-          <IndicatorCard
-            title="Média de Espera"
-            value={indicadores.mediaEspera}
-            unit="dias"
-            icon={HiClock}
-            color="amber"
-            trend="down"
-            trendValue="-5 dias"
-          />
-          <IndicatorCard
-            title="Leitos SUS Ocupados"
-            value={indicadores.leitosOcupados}
-            unit="%"
-            icon={HiUsers}
-            color="red"
-            trend="up"
-            trendValue="+3% hoje"
-          />
-          <IndicatorCard
-            title="Produção Mensal"
-            value={ubsData.producaoMensal}
-            unit=""
-            icon={HiTrendingUp}
-            color="green"
-            trend="up"
-            trendValue="+12% vs mês passado"
-          />
-        </div>
+        <MetricsGrid
+          indicadores={indicadores}
+          ubsData={ubsData}
+          stats={stats}
+        />
 
         {/* Status da UBS */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 rounded-xl">
-                <HiClipboardList className="text-blue-600 text-2xl" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Sua UBS</p>
-                <p className="font-bold text-gray-800">
-                  Código SUS: <span className="font-mono">{ubsData.codigoSUS}</span>
-                </p>
-                <p className="text-xs text-gray-400">
-                  Última sincronização: {ubsData.ultimaSincronizacao}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{ubsData.producaoMensal}</p>
-                <p className="text-xs text-gray-400">atendimentos/mês</p>
-              </div>
-              <div className="w-px h-10 bg-gray-200" />
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{indicadores.coberturaVacinal}%</p>
-                <p className="text-xs text-gray-400">cobertura nacional</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <UBSStatusCard ubsData={ubsData} indicadores={indicadores} />
 
         {/* Seção Meus Exames */}
-        <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <HiDocumentText className="text-purple-500" /> Meus Exames
             </h2>
             <p className="text-gray-500">Acompanhe seus exames solicitados</p>
           </div>
-          <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm">
+          <div className="flex items-center gap-3 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition">
             <HiChartPie className="text-gray-400" />
             <span className="text-sm font-medium">
-              <span className="text-green-600">{concluidos}</span> concluídos · 
-              <span className="text-yellow-600"> {pendentes}</span> pendentes · 
-              <span className="text-blue-600"> {agendados}</span> agendados
+              <span className="text-emerald-600">{stats.concluidos}</span>{" "}
+              concluídos ·
+              <span className="text-amber-600"> {stats.pendentes}</span>{" "}
+              pendentes ·
+              <span className="text-sky-600"> {stats.agendados}</span> agendados
             </span>
           </div>
         </div>
 
-        {/* Barra de pesquisa */}
-        <div className="mb-6">
-          <div className="relative">
-            <HiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        {/* Barra de pesquisa e filtros */}
+        <FilterBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedStatus={selectedStatus}
+          setSelectedStatus={setSelectedStatus}
+          selectedPrioridade={selectedPrioridade}
+          setSelectedPrioridade={setSelectedPrioridade}
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          limparFiltros={limparFiltros}
+          limparBusca={limparBusca}
+          setCurrentPage={setCurrentPage}
+          totalResults={examesFiltrados.length}
+        />
+
+        {/* Grid/Lista de exames */}
+        {isLoading ? (
+          <div className="p-8 flex justify-center">
+            <div className="animate-pulse flex space-x-4">
+              <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+              <div className="flex-1 space-y-4 py-1">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          </div>
+        ) : examesFiltrados.length === 0 ? (
+          <div className="bg-white rounded-2xl p-16 text-center shadow-xl border-2 border-gray-100">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <HiXCircle className="text-gray-300 text-5xl" />
+            </div>
+            <p className="text-gray-500 text-lg font-medium">
+              Nenhum exame encontrado
+            </p>
+            <p className="text-gray-400 text-sm">
+              Tente ajustar os filtros ou a busca
+            </p>
+          </div>
+        ) : viewMode === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedData.map((exame) => (
+              <ExamCard
+                key={exame.id}
+                exame={exame}
+                onDetalhes={verDetalhesExame}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <ExamsTable
+              data={paginatedData}
+              onDetalhes={verDetalhesExame}
+              onArquivar={handleArquivar}
+              onDesarquivar={handleDesarquivar}
+            />
+          </div>
+        )}
+
+        {/* Paginação */}
+        {totalPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            setCurrentPage={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={examesFiltrados.length}
+          />
+        )}
+
+        {/* Rodapé */}
+        <FooterSection />
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// SUBCOMPONENTES (com paleta padronizada)
+// ============================================================
+
+const HeaderSection = () => {
+  const hoje = new Date();
+  const dataFormatada = hoje.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 p-6 md:p-8 shadow-2xl">
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+      <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <HiHome className="w-4 h-4" />
+            <span>Dashboard</span>
+            <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
+            <span className="text-white font-medium">SUS Conectado</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
+            <HiCloud className="w-7 h-7" />
+            SUS Conectado
+          </h1>
+          <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
+            <span>Integração nacional – dados em tempo real</span>
+            <span className="w-1 h-1 rounded-full bg-white/30"></span>
+            <span>{dataFormatada}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              Swal.fire({
+                icon: "info",
+                title: "Sincronizar Dados",
+                text: "Dados nacionais e da sua UBS serão atualizados.",
+                confirmButtonColor: "#1e293b",
+                confirmButtonText: "Continuar",
+                customClass: {
+                  popup: "rounded-3xl shadow-2xl border border-gray-100",
+                  confirmButton:
+                    "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+                },
+              });
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-xl font-semibold border border-white/20 transition-all"
+          >
+            <HiRefresh />
+            Sincronizar
+          </button>
+        </div>
+      </div>
+      <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+    </div>
+  );
+};
+
+const MetricsGrid = ({ indicadores, ubsData, stats }) => {
+  const cards = [
+    {
+      title: "Cobertura Vacinal (BR)",
+      value: indicadores.coberturaVacinal,
+      unit: "%",
+      icon: HiDatabase,
+      color: "blue",
+      trend: "up",
+      trendValue: "+2%",
+      subtitle: "este mês",
+    },
+    {
+      title: "Média de Espera",
+      value: indicadores.mediaEspera,
+      unit: "dias",
+      icon: HiClock,
+      color: "amber",
+      trend: "down",
+      trendValue: "-5 dias",
+      subtitle: "redução",
+    },
+    {
+      title: "Leitos SUS Ocupados",
+      value: indicadores.leitosOcupados,
+      unit: "%",
+      icon: HiUsers,
+      color: "red",
+      trend: "up",
+      trendValue: "+3%",
+      subtitle: "hoje",
+    },
+    {
+      title: "Produção Mensal",
+      value: ubsData.producaoMensal,
+      unit: "",
+      icon: HiTrendingUp,
+      color: "green",
+      trend: "up",
+      trendValue: "+12%",
+      subtitle: "vs mês passado",
+    },
+    {
+      title: "Total Exames",
+      value: stats.total,
+      unit: "",
+      icon: HiDocumentText,
+      color: "purple",
+      trend: "up",
+      trendValue: "+8%",
+      subtitle: "no total",
+    },
+    {
+      title: "Arquivados",
+      value: stats.arquivados,
+      unit: "",
+      icon: HiArchive,
+      color: "gray",
+      trend: "up",
+      trendValue: "+2%",
+      subtitle: "arquivados",
+    },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-4">
+      {cards.map((card, idx) => (
+        <MetricCard key={idx} {...card} />
+      ))}
+    </div>
+  );
+};
+
+const UBSStatusCard = ({ ubsData, indicadores }) => {
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-emerald-50 rounded-full opacity-30 -translate-y-1/2 translate-x-1/4" />
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <HiClipboardList className="text-white text-2xl" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Sua UBS</p>
+            <p className="font-bold text-gray-800 text-lg">
+              Código SUS:{" "}
+              <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">
+                {ubsData.codigoSUS}
+              </span>
+            </p>
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <HiClock className="text-gray-400" />
+              Última sincronização: {ubsData.ultimaSincronizacao}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-6 bg-gray-50 px-6 py-3 rounded-2xl">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-emerald-600">
+              {ubsData.producaoMensal}
+            </p>
+            <p className="text-xs text-gray-400 font-medium">
+              atendimentos/mês
+            </p>
+          </div>
+          <div className="w-px h-10 bg-gray-200" />
+          <div className="text-center">
+            <p className="text-2xl font-bold text-blue-600">
+              {indicadores.coberturaVacinal}%
+            </p>
+            <p className="text-xs text-gray-400 font-medium">
+              cobertura nacional
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const FilterBar = ({
+  searchTerm,
+  setSearchTerm,
+  selectedStatus,
+  setSelectedStatus,
+  selectedPrioridade,
+  setSelectedPrioridade,
+  showFilters,
+  setShowFilters,
+  viewMode,
+  setViewMode,
+  limparFiltros,
+  limparBusca,
+  setCurrentPage,
+  totalResults,
+}) => {
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const isFilterActive =
+    selectedStatus !== "todos" || selectedPrioridade !== "todas";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="p-4 md:p-5">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar exame, médico ou status..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm transition"
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
             />
             {searchTerm && (
               <button
                 onClick={limparBusca}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                <HiX size={20} />
+                <HiX size={18} />
               </button>
             )}
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-2.5 rounded-xl border ${
+                showFilters
+                  ? "bg-blue-50 border-blue-200 text-blue-600"
+                  : "border-gray-200 bg-gray-50 text-gray-600"
+              } hover:bg-gray-100 transition flex items-center gap-1`}
+            >
+              <HiFilter size={18} />
+              <span className="hidden sm:inline text-sm">Filtros</span>
+              {isFilterActive && (
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+
+            <div className="flex gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition ${
+                  viewMode === "grid"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-400 hover:bg-gray-200"
+                }`}
+              >
+                <HiViewGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition ${
+                  viewMode === "list"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-400 hover:bg-gray-200"
+                }`}
+              >
+                <HiViewList size={18} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Grid de exames */}
-        {examesFiltrados.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-200">
-            <HiXCircle className="text-gray-300 text-5xl mx-auto mb-4" />
-            <p className="text-gray-500">Nenhum exame encontrado com esses critérios.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {examesFiltrados.map((exame) => (
-              <ExamCard key={exame.id} exame={exame} onDetalhes={verDetalhesExame} />
-            ))}
+        {/* Filtros expansíveis */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600">
+                  Status:
+                </span>
+                <select
+                  value={selectedStatus}
+                  onChange={handleFilterChange(setSelectedStatus)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="concluido">Concluído</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="agendado">Agendado</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600">
+                  Prioridade:
+                </span>
+                <select
+                  value={selectedPrioridade}
+                  onChange={handleFilterChange(setSelectedPrioridade)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </div>
+              {isFilterActive && (
+                <button
+                  onClick={limparFiltros}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="mt-10 text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-          Dados simulados para demonstração. Em produção, integre com a API oficial do DataSUS.
+        <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
+          <HiFilter className="w-4 h-4" />
+          <span>
+            <strong className="text-gray-700">{totalResults}</strong> resultado
+            {totalResults !== 1 && "s"} encontrado{totalResults !== 1 && "s"}
+          </span>
+          {isFilterActive && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+              filtros ativos
+            </span>
+          )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
+  if (data.length === 0) {
+    return (
+      <div className="p-12 text-center">
+        <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
+          <HiDocumentText className="w-12 h-12 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-700">
+          Nenhum exame encontrado
+        </h3>
+        <p className="text-gray-500 mt-1">
+          Tente ajustar os filtros ou realizar uma nova busca.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px]">
+        <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Exame
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
+              Médico
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+              Tipo
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Data
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Ações
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map((exame) => {
+            const isArquivado = exame.arquivado;
+            return (
+              <tr
+                key={exame.id}
+                className={`group hover:bg-blue-50/50 transition-colors duration-200 ${isArquivado ? "opacity-60" : ""}`}
+              >
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <Avatar nome={exame.nome} size="sm" />
+                    <div>
+                      <span className="font-medium text-gray-800 truncate max-w-[150px] block">
+                        {exame.nome}
+                      </span>
+                      <PriorityBadge prioridade={exame.prioridade} />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-700 hidden md:table-cell truncate max-w-[120px]">
+                  {exame.medicoSolicitante}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-500 hidden sm:table-cell">
+                  {exame.tipo}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                  {exame.dataSolicitacao}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <StatusBadge status={exame.status} />
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => onDetalhes(exame)}
+                      className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
+                      title="Visualizar"
+                    >
+                      <HiEye size={16} />
+                    </button>
+                    {!isArquivado ? (
+                      <button
+                        onClick={() => onArquivar(exame)}
+                        className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                        title="Arquivar"
+                      >
+                        <HiArchive size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onDesarquivar(exame)}
+                        className="p-2 rounded-lg text-green-600 hover:bg-green-100 transition"
+                        title="Desarquivar"
+                      >
+                        <HiRefresh size={16} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const PaginationControls = ({
+  currentPage,
+  totalPages,
+  setCurrentPage,
+  itemsPerPage,
+  totalItems,
+}) => {
+  const start = (currentPage - 1) * itemsPerPage + 1;
+  const end = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="text-sm text-gray-500">
+        Mostrando <strong className="text-gray-700">{start}</strong> a{" "}
+        <strong className="text-gray-700">{end}</strong> de{" "}
+        <strong className="text-gray-700">{totalItems}</strong> registros
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setCurrentPage(1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronDoubleLeft size={16} />
+        </button>
+        <button
+          onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronLeft size={16} />
+        </button>
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          let page;
+          if (totalPages <= 5) page = i + 1;
+          else if (currentPage <= 3) page = i + 1;
+          else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
+          else page = currentPage - 2 + i;
+          return (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-1 rounded-lg text-sm transition ${
+                page === currentPage
+                  ? "bg-slate-700 text-white shadow-md"
+                  : "bg-white border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {page}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => setCurrentPage(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          <HiChevronDoubleRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const FooterSection = () => {
+  return (
+    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
+      <p>
+        Dados simulados para demonstração. Em produção, integre com a API
+        oficial do DataSUS.
+      </p>
+      <p className="mt-1">
+        © 2025 SUS Conectado - Todos os direitos reservados
+      </p>
     </div>
   );
 };

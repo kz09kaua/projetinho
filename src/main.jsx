@@ -1,13 +1,14 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import { AuthProvider } from './contexts/AuthContext'
-import { AccessibilityProvider } from './contexts/AccessibilityContext'
-import './index.css'
-import 'leaflet/dist/leaflet.css'   // ← ADICIONE ESTA LINHA
-import 'leaflet/dist/leaflet.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { AuthProvider } from "./contexts/AuthContext";
+import { AccessibilityProvider } from "./contexts/AccessibilityContext";
+import "./index.css";
+import "leaflet/dist/leaflet.css"; // ← ADICIONE ESTA LINHA
+import "./i18n";
+import "leaflet/dist/leaflet.css";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <AuthProvider>
       <AccessibilityProvider>
@@ -15,4 +16,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       </AccessibilityProvider>
     </AuthProvider>
   </React.StrictMode>,
-)
+);

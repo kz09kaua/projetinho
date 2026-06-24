@@ -1,0 +1,446 @@
+{
+  "comum": {
+    "salvar": "Guardar",
+    "cancelar": "Cancelar",
+    "excluir": "Eliminar",
+    "editar": "Editar",
+    "visualizar": "Ver",
+    "arquivar": "Archivar",
+    "desarquivar": "Desarchivar",
+    "status": "Estado",
+    "acoes": "Acciones",
+    "buscar": "Buscar...",
+    "limpar_filtros": "Limpiar filtros",
+    "filtros_ativos": "filtros activos",
+    "resultado": "resultado",
+    "resultados": "resultados",
+    "encontrado": "encontrado",
+    "encontrados": "encontrados",
+    "mostrando": "Mostrando",
+    "a": "a",
+    "de": "de",
+    "registros": "registros",
+    "anterior": "Anterior",
+    "proximo": "Siguiente",
+    "sem_dados": "No se encontraron datos.",
+    "tente_ajustar_filtros": "Intenta ajustar los filtros."
+  },
+  "configuracoes": {
+    "titulo": "Configuraciones del Sistema",
+    "subtitulo": "Personaliza y gestiona todas las configuraciones",
+    "abas": {
+      "geral": "General",
+      "painel": "Panel",
+      "filas": "Colas",
+      "agendamento": "Citas",
+      "historico": "Historial",
+      "vacinas": "Vacunas",
+      "seguranca": "Seguridad",
+      "admin": "Administración"
+    },
+    "metricas": {
+      "unidades": "Unidades",
+      "usuarios": "Usuarios",
+      "medicos": "Médicos",
+      "tema": "Tema actual",
+      "fonte": "Fuente"
+    },
+    "geral": {
+      "aparencia": "Apariencia",
+      "tema": "Tema del Sistema",
+      "claro": "Claro",
+      "escuro": "Oscuro",
+      "fonte": "Fuente del Sistema",
+      "tamanhoFonte": "Tamaño de Fuente",
+      "corPrincipal": "Color Principal",
+      "preferenciasRegionais": "Preferencias Regionales",
+      "idioma": "Idioma",
+      "idioma_atual": "Idioma actual",
+      "formatoData": "Formato de fecha",
+      "notificacoes": "Notificaciones",
+      "acessibilidade": "Accesibilidad",
+      "modoSenior": "Modo Sénior",
+      "modoSeniorDesc": "Interfaz simplificada y más grande",
+      "altoContraste": "Alto Contraste",
+      "altoContrasteDesc": "Colores de alto contraste",
+      "previsualizacao_texto": "Texto de previsualización con",
+      "de_tamanho": "% de tamaño."
+    },
+    "notificacoes": {
+      "agendamentos_label": "Alertas de Citas",
+      "filas_label": "Llamadas de Cola",
+      "vacinas_label": "Vacunas Disponibles",
+      "somChamada_label": "Sonido de llamada",
+      "lembretes_label": "Recordatorios Generales",
+      "ativado": "Activado",
+      "desativado": "Desactivado",
+      "ativados": "activados",
+      "desativados": "desactivados"
+    },
+    "idioma_alterado": "¡Idioma cambiado!",
+    "idioma_selecionado": "Idioma seleccionado",
+    "formato_alterado": "¡Formato cambiado!",
+    "exemplo": "Ejemplo",
+    "data_atual": "Fecha actual",
+    "painel": {
+      "visao_geral": "Vista general al entrar",
+      "visao_geral_desc": "Mostrar resumen de citas y colas",
+      "notificacoes": "Notificaciones del panel",
+      "notificacoes_desc": "Recibir alertas de nuevas contraseñas",
+      "widget_metricas": "Widget de métricas rápidas",
+      "widget_metricas_desc": "Mostrar tarjetas de rendimiento"
+    },
+    "filas": {
+      "tempo_espera": "Tiempo medio de espera para prioridad",
+      "minutos": "minutos",
+      "exibir_posicao": "Mostrar posición en cola a pacientes",
+      "notificar_proximo": "Notificar a pacientes cuando próximo"
+    },
+    "agendamento": {
+      "dias_antecedencia": "Días de antelación máxima",
+      "dias": "días",
+      "reagendamento_online": "Permitir reagendamiento online",
+      "lembrete_email": "Enviar recordatorio por email 24h antes"
+    },
+    "historico": {
+      "compartilhar_ubs": "Compartir historial con otras UBS",
+      "manter_indeterminado": "Mantener historial indefinidamente",
+      "exportar_csv": "Exportar historial a CSV"
+    },
+    "vacinas": {
+      "lembrete_campanhas": "Recordatorio de campañas",
+      "semana_antes": "semana antes",
+      "semanas_antes": "semanas antes",
+      "mes_antes": "mes antes",
+      "notificar_estoque_baixo": "Notificar cuando stock bajo",
+      "alertar_vencendo": "Alertar sobre vacunas por vencer"
+    },
+    "seguranca": {
+      "alterar_senha": "Cambiar Contraseña",
+      "alterar_senha_desc": "Mantén tu cuenta protegida.",
+      "senha_atual": "Contraseña actual",
+      "nova_senha": "Nueva contraseña",
+      "confirmar_senha": "Confirmar nueva contraseña",
+      "senha_minimo": "La contraseña debe tener al menos 6 caracteres.",
+      "senha_minimo_erro": "Nueva contraseña debe tener al menos 6 caracteres.",
+      "senhas_nao_coincidem": "Las contraseñas no coinciden.",
+      "senha_alterada": "¡Contraseña cambiada!",
+      "encerrar_sessoes": "Cerrar sesión en otros dispositivos",
+      "encerrar_sessoes_desc": "Revoca todos los accesos activos.",
+      "sessoes_encerradas": "¡Sesiones cerradas!",
+      "encerrar": "Cerrar",
+      "autenticacao_dois_fatores": "Autenticación en dos factores",
+      "autenticacao_dois_fatores_desc": "Añade una capa extra de seguridad.",
+      "em_breve": "¡Próximamente!",
+      "em_breve_texto": "Funcionalidad en desarrollo.",
+      "configurar": "Configurar",
+      "funcionalidades_simuladas": "* Funcionalidades simuladas para demostración."
+    },
+    "admin": {
+      "exclusao_segura": "Eliminación segura",
+      "digite_senha_remover": "Ingresa la contraseña de autorización para eliminar",
+      "senha_autorizacao": "Contraseña de autorización",
+      "senha_incorreta": "¡Contraseña incorrecta! Acceso denegado.",
+      "campos_obrigatorios": "Campos obligatorios",
+      "preencha_campos": "Completa todos los campos.",
+      "adicionar": "Añadir",
+      "remover": "Eliminar",
+      "removida": "¡Eliminada!",
+      "removido": "¡Eliminado!",
+      "editar": "Editar",
+      "salvar": "Guardar",
+      "atualizado": "¡Actualizado!",
+      "cancelar": "Cancelar",
+      "ubs": {
+        "titulo": "Unidades de Salud",
+        "adicionar_titulo": "Añadir Unidad de Salud",
+        "nome": "Nombre de la UBS",
+        "nome_placeholder": "Ej: UBS Jardim",
+        "endereco": "Dirección",
+        "endereco_placeholder": "Calle, número, barrio",
+        "adicionada": "¡UBS añadida!",
+        "nenhuma": "Ninguna unidad registrada."
+      },
+      "usuarios": {
+        "titulo": "Usuarios del Sistema",
+        "adicionar_titulo": "Añadir Usuario",
+        "nome": "Nombre completo",
+        "nome_placeholder": "Nombre completo",
+        "email": "Correo electrónico",
+        "email_placeholder": "email@dominio.com",
+        "perfil": "Perfil",
+        "perfil_admin": "Administrador",
+        "perfil_atendente": "Atendente",
+        "perfil_paciente": "Paciente",
+        "adicionado": "¡Usuario añadido!",
+        "editar_titulo": "Editar Usuario",
+        "nenhum": "Ningún usuario registrado."
+      },
+      "medicos": {
+        "titulo": "Médicos",
+        "adicionar_titulo": "Añadir Médico",
+        "nome": "Nombre del médico",
+        "nome_placeholder": "Dr. Ejemplo",
+        "especialidade": "Especialidad",
+        "especialidade_placeholder": "Cardiología",
+        "adicionado": "¡Médico añadido!",
+        "nenhum": "Ningún médico registrado."
+      },
+      "parametros": {
+        "titulo": "Parámetros Generales",
+        "tempo_maximo": "Tiempo máximo de espera (min)",
+        "autoagendamiento": "Permitir autoagendamiento",
+        "fila_prioritaria": "Habilitar cola prioritaria automática",
+        "notificar_alta_demanda": "Notificar a gestores sobre alta demanda"
+      },
+      "logs": {
+        "titulo": "Registros de Actividades",
+        "download_titulo": "Descargar logs",
+        "download_desc": "Funcionalidad en desarrollo.",
+        "baixar": "Descargar logs completos"
+      },
+      "backup": {
+        "titulo": "Copia de Seguridad y Restauración",
+        "gerar": "Generar copia ahora",
+        "gerado": "¡Copia generada!",
+        "gerado_texto": "Archivo de copia creado con éxito.",
+        "restaurar": "Restaurar última copia",
+        "restaurar_titulo": "Restaurar copia",
+        "restaurar_desc": "Funcionalidad en desarrollo."
+      }
+    },
+    "restaurar": {
+      "titulo": "¿Restaurar configuraciones predeterminadas?",
+      "descricao": "Esto redefinirá todas tus preferencias a los valores iniciales.",
+      "confirmar": "Sí, restaurar",
+      "cancelar": "Cancelar",
+      "restaurado": "¡Restaurado!"
+    },
+    "salvar": {
+      "titulo": "Guardar configuraciones",
+      "salvo": "¡Configuraciones guardadas!"
+    }
+  },
+  "dashboard": {
+    "titulo": "Panel de Administrador",
+    "subtitulo": "Vista gerencial completa de la red de salud.",
+    "abas": {
+      "administrativo": "Administrativo"
+    },
+    "metricas": {
+      "aguardando": "Esperando ahora",
+      "mediaEspera": "Espera media",
+      "medicosAtivos": "Médicos activos",
+      "satisfacao": "Satisfacción general",
+      "fila": "Cola",
+      "capacidade": "Capacidad",
+      "excelente": "Excelente"
+    },
+    "grafico": {
+      "titulo": "Flujo de atención hoy"
+    },
+    "resumo": {
+      "titulo": "Resumen de la red",
+      "totalUBS": "Total de UBS",
+      "usuarios": "Usuarios registrados",
+      "consultas": "Consultas este mes",
+      "cancelamento": "Tasa de cancelación"
+    },
+    "filaAtendimento": {
+      "titulo": "Cola de Atención",
+      "verTodas": "Ver todas",
+      "chamar": "Llamar",
+      "prioridade": "Prioridad",
+      "chamando": "Llamando..."
+    },
+    "ubs": {
+      "titulo": "Unidades de Salud",
+      "gerenciar": "Gestionar",
+      "adicionar": "Añadir UBS",
+      "pacientes": "pacientes",
+      "medicos": "médicos",
+      "verFila": "Ver cola"
+    },
+    "acessoRapido": {
+      "agendamentos": "Citas",
+      "gerenciarFilas": "Gestionar Colas",
+      "estoqueVacinas": "Stock de Vacunas",
+      "configuracoes": "Configuraciones"
+    },
+    "atividades": {
+      "titulo": "Actividades recientes"
+    },
+    "alertas": {
+      "titulo": "Alertas"
+    },
+    "modais": {
+      "chamarTitulo": "¿Llamar a {{nome}}?",
+      "chamarTexto": "Contraseña {{senha}} - {{prioridade}}",
+      "chamarConfirmar": "Sí, llamar ahora",
+      "chamarCancelar": "Cancelar",
+      "chamarSucesso": "¡Paciente llamado!",
+      "chamarMensagem": "{{nome}} ha sido notificado.",
+      "adicionarUBSTitulo": "Añadir nueva UBS",
+      "adicionarUBSNome": "Nombre de la UBS",
+      "adicionarUBSPacientes": "Nº de pacientes",
+      "adicionarUBSMedicos": "Nº de médicos",
+      "adicionarUBSSucesso": "¡UBS añadida!",
+      "erro": "Error",
+      "erroRelatorio": "No se pudo generar el informe. Verifique la dependencia @react-pdf/renderer."
+    }
+  },
+  "agendamento": {
+    "titulo": "Gestión de Citas",
+    "subtitulo": "Control total sobre consultas y horarios.",
+    "novo": "Nueva Cita",
+    "relatorio": "Informe",
+    "buscar": "Buscar por paciente, médico o especialidad...",
+    "filtros": {
+      "status": "Estado: Todos",
+      "medico": "Médico: Todos",
+      "data": "Fecha",
+      "arquivados": "Archivados"
+    },
+    "tabela": {
+      "paciente": "Paciente",
+      "medico": "Médico",
+      "especialidade": "Especialidad",
+      "data": "Fecha",
+      "horario": "Hora",
+      "status": "Estado",
+      "acoes": "Acciones"
+    },
+    "status": {
+      "confirmado": "Confirmado",
+      "pendente": "Pendiente",
+      "cancelado": "Cancelado",
+      "concluido": "Concluido"
+    },
+    "modais": {
+      "novo": "Nueva Cita",
+      "editar": "Editar Cita",
+      "visualizar": "Consulta de {{paciente}}",
+      "arquivar": "Archivar cita",
+      "desarquivar": "Desarchivar cita",
+      "excluir": "Eliminación segura",
+      "senha": "Contraseña de autorización",
+      "senha_incorreta": "¡Contraseña incorrecta! Acceso denegado.",
+      "campos_obrigatorios": "Completa todos los campos obligatorios.",
+      "data_passado": "La fecha/hora no puede ser en el pasado."
+    }
+  },
+  "filas": {
+    "titulo": "Monitoreo de Colas",
+    "subtitulo": "Vista gerencial de todas las unidades de salud",
+    "metricas": {
+      "totalPacientes": "Total de pacientes",
+      "tempoMedio": "Tiempo medio",
+      "prioridadesAtivas": "Prioridades activas",
+      "ubsMaiorFila": "UBS + cola",
+      "especialidadeDemandada": "Especialidad más demandada",
+      "ocupacao": "Ocupación"
+    },
+    "graficos": {
+      "pacientesPorUBS": "Pacientes por UBS",
+      "tempoMedioPorEspecialidade": "Tiempo Medio por Especialidad",
+      "prioridadesPorUnidade": "Prioridades por Unidad"
+    },
+    "filtros": {
+      "buscar": "Buscar por UBS o especialidad...",
+      "ubs": "Todas UBS",
+      "especialidade": "Especialidad",
+      "prioridade": "Prioridad",
+      "tempo": "Tiempo medio",
+      "pacientes": "Nº de pacientes"
+    },
+    "tabela": {
+      "ubs": "UBS",
+      "especialidade": "Especialidad",
+      "pacientes": "Pacientes",
+      "tempoMedio": "Tiempo Medio",
+      "prioridades": "Prioridades",
+      "status": "Estado",
+      "acoes": "Acciones"
+    },
+    "status": {
+      "normal": "Normal",
+      "moderado": "Moderado",
+      "atencao": "Atención",
+      "critico": "Crítico"
+    },
+    "modais": {
+      "abrirFila": "Abrir cola",
+      "reordenar": "Reordenar Cola - {{ubs}}",
+      "instrucoes": "Use ↑ ↓ para mover, ⭐ para priorizar (va al tope)",
+      "salvar": "Guardar",
+      "cancelar": "Cancelar",
+      "sucesso": "¡Cola actualizada!",
+      "exportar": "Informe CSV"
+    }
+  },
+  "historico": {
+    "titulo": "Historial Médico",
+    "subtitulo": "Control total sobre todos los registros médicos",
+    "metricas": {
+      "total": "Total",
+      "ativos": "Activos",
+      "arquivados": "Archivados",
+      "especialidades": "Especialidades",
+      "ubs": "UBS"
+    },
+    "filtros": {
+      "buscar": "Buscar por paciente, médico, especialidad, diagnóstico o UBS...",
+      "status": "Estado: Todos",
+      "ativos": "Activos",
+      "arquivados": "Archivados"
+    },
+    "tabela": {
+      "paciente": "Paciente",
+      "data": "Fecha",
+      "medico_esp": "Médico / Esp.",
+      "ubs": "UBS",
+      "diagnostico": "Diagnóstico",
+      "status": "Estado",
+      "acoes": "Acciones"
+    },
+    "modais": {
+      "visualizar": "Consulta de {{paciente}}",
+      "editar": "Editar Diagnóstico",
+      "novo_diagnostico": "Nuevo Diagnóstico",
+      "arquivar": "Archivar registro",
+      "desarquivar": "Desarchivar registro",
+      "excluir": "Eliminación segura",
+      "senha": "Contraseña de autorización",
+      "senha_incorreta": "¡Contraseña incorrecta! Acceso denegado.",
+      "sucesso_editar": "¡Actualizado!",
+      "sucesso_arquivar": "¡Archivado!",
+      "sucesso_desarquivar": "¡Desarchivado!",
+      "sucesso_excluir": "¡Eliminado!"
+    }
+  },
+  "vacinas": {
+    "titulo": "Gestión de Vacunas",
+    "subtitulo": "Control de inventario y campañas de vacunación.",
+    "metricas": {
+      "total": "Total de dosis",
+      "disponiveis": "Disponibles",
+      "aplicadas": "Aplicadas",
+      "vencidas": "Vencidas"
+    },
+    "estoque": "Inventario",
+    "campanhas": "Campañas",
+    "adicionar": "Añadir Lote",
+    "buscar": "Buscar por vacuna o lote..."
+  },
+  "login": {
+    "titulo": "Bienvenido de nuevo",
+    "subtitulo": "Inicia sesión para acceder al sistema",
+    "email": "Correo electrónico",
+    "senha": "Contraseña",
+    "entrar": "Iniciar sesión",
+    "esqueceu_senha": "¿Olvidaste tu contraseña?",
+    "cadastrar": "Crear cuenta",
+    "erro": "Error al iniciar sesión",
+    "erro_mensagem": "Correo o contraseña incorrectos."
+  }
+}

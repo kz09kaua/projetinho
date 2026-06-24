@@ -1,0 +1,446 @@
+{
+  "comum": {
+    "salvar": "Save",
+    "cancelar": "Cancel",
+    "excluir": "Delete",
+    "editar": "Edit",
+    "visualizar": "View",
+    "arquivar": "Archive",
+    "desarquivar": "Unarchive",
+    "status": "Status",
+    "acoes": "Actions",
+    "buscar": "Search...",
+    "limpar_filtros": "Clear filters",
+    "filtros_ativos": "active filters",
+    "resultado": "result",
+    "resultados": "results",
+    "encontrado": "found",
+    "encontrados": "found",
+    "mostrando": "Showing",
+    "a": "to",
+    "de": "of",
+    "registros": "records",
+    "anterior": "Previous",
+    "proximo": "Next",
+    "sem_dados": "No data found.",
+    "tente_ajustar_filtros": "Try adjusting your filters."
+  },
+  "configuracoes": {
+    "titulo": "System Settings",
+    "subtitulo": "Personalize and manage all settings",
+    "abas": {
+      "geral": "General",
+      "painel": "Dashboard",
+      "filas": "Queues",
+      "agendamento": "Appointments",
+      "historico": "History",
+      "vacinas": "Vaccines",
+      "seguranca": "Security",
+      "admin": "Administration"
+    },
+    "metricas": {
+      "unidades": "Units",
+      "usuarios": "Users",
+      "medicos": "Doctors",
+      "tema": "Current theme",
+      "fonte": "Font"
+    },
+    "geral": {
+      "aparencia": "Appearance",
+      "tema": "System Theme",
+      "claro": "Light",
+      "escuro": "Dark",
+      "fonte": "System Font",
+      "tamanhoFonte": "Font Size",
+      "corPrincipal": "Primary Color",
+      "preferenciasRegionais": "Regional Preferences",
+      "idioma": "Language",
+      "idioma_atual": "Current language",
+      "formatoData": "Date Format",
+      "notificacoes": "Notifications",
+      "acessibilidade": "Accessibility",
+      "modoSenior": "Senior Mode",
+      "modoSeniorDesc": "Simplified and larger interface",
+      "altoContraste": "High Contrast",
+      "altoContrasteDesc": "High contrast colors",
+      "previsualizacao_texto": "Preview text with",
+      "de_tamanho": "% size."
+    },
+    "notificacoes": {
+      "agendamentos_label": "Appointment Alerts",
+      "filas_label": "Queue Calls",
+      "vacinas_label": "Available Vaccines",
+      "somChamada_label": "Call sound",
+      "lembretes_label": "General Reminders",
+      "ativado": "Enabled",
+      "desativado": "Disabled",
+      "ativados": "enabled",
+      "desativados": "disabled"
+    },
+    "idioma_alterado": "Language changed!",
+    "idioma_selecionado": "Selected language",
+    "formato_alterado": "Format changed!",
+    "exemplo": "Example",
+    "data_atual": "Current date",
+    "painel": {
+      "visao_geral": "Dashboard overview on entry",
+      "visao_geral_desc": "Show summary of appointments and queues",
+      "notificacoes": "Dashboard notifications",
+      "notificacoes_desc": "Receive alerts for new passwords",
+      "widget_metricas": "Quick metrics widget",
+      "widget_metricas_desc": "Show performance cards"
+    },
+    "filas": {
+      "tempo_espera": "Average wait time for priority",
+      "minutos": "minutes",
+      "exibir_posicao": "Show position in queue to patients",
+      "notificar_proximo": "Notify patients when next"
+    },
+    "agendamento": {
+      "dias_antecedencia": "Maximum advance days",
+      "dias": "days",
+      "reagendamento_online": "Allow online rescheduling",
+      "lembrete_email": "Send email reminder 24h before"
+    },
+    "historico": {
+      "compartilhar_ubs": "Share history with other UBS",
+      "manter_indeterminado": "Keep history indefinitely",
+      "exportar_csv": "Export history to CSV"
+    },
+    "vacinas": {
+      "lembrete_campanhas": "Campaign reminder",
+      "semana_antes": "week before",
+      "semanas_antes": "weeks before",
+      "mes_antes": "month before",
+      "notificar_estoque_baixo": "Notify when stock is low",
+      "alertar_vencendo": "Alert about expiring vaccines"
+    },
+    "seguranca": {
+      "alterar_senha": "Change Password",
+      "alterar_senha_desc": "Keep your account secure.",
+      "senha_atual": "Current password",
+      "nova_senha": "New password",
+      "confirmar_senha": "Confirm new password",
+      "senha_minimo": "Password must be at least 6 characters.",
+      "senha_minimo_erro": "New password must be at least 6 characters.",
+      "senhas_nao_coincidem": "Passwords do not match.",
+      "senha_alterada": "Password changed!",
+      "encerrar_sessoes": "End sessions on other devices",
+      "encerrar_sessoes_desc": "Revoke all active sessions.",
+      "sessoes_encerradas": "Sessions ended!",
+      "encerrar": "End",
+      "autenticacao_dois_fatores": "Two-factor authentication",
+      "autenticacao_dois_fatores_desc": "Add an extra layer of security.",
+      "em_breve": "Coming soon!",
+      "em_breve_texto": "Feature in development.",
+      "configurar": "Set up",
+      "funcionalidades_simuladas": "* Simulated features for demonstration."
+    },
+    "admin": {
+      "exclusao_segura": "Secure deletion",
+      "digite_senha_remover": "Enter authorization password to remove",
+      "senha_autorizacao": "Authorization password",
+      "senha_incorreta": "Incorrect password! Access denied.",
+      "campos_obrigatorios": "Required fields",
+      "preencha_campos": "Please fill all fields.",
+      "adicionar": "Add",
+      "remover": "Remove",
+      "removida": "Removed!",
+      "removido": "Removed!",
+      "editar": "Edit",
+      "salvar": "Save",
+      "atualizado": "Updated!",
+      "cancelar": "Cancel",
+      "ubs": {
+        "titulo": "Health Units",
+        "adicionar_titulo": "Add Health Unit",
+        "nome": "UBS name",
+        "nome_placeholder": "Ex: UBS Jardim",
+        "endereco": "Address",
+        "endereco_placeholder": "Street, number, neighborhood",
+        "adicionada": "UBS added!",
+        "nenhuma": "No units registered."
+      },
+      "usuarios": {
+        "titulo": "System Users",
+        "adicionar_titulo": "Add User",
+        "nome": "Full name",
+        "nome_placeholder": "Full name",
+        "email": "E-mail",
+        "email_placeholder": "email@domain.com",
+        "perfil": "Profile",
+        "perfil_admin": "Administrator",
+        "perfil_atendente": "Attendant",
+        "perfil_paciente": "Patient",
+        "adicionado": "User added!",
+        "editar_titulo": "Edit User",
+        "nenhum": "No users registered."
+      },
+      "medicos": {
+        "titulo": "Doctors",
+        "adicionar_titulo": "Add Doctor",
+        "nome": "Doctor's name",
+        "nome_placeholder": "Dr. Example",
+        "especialidade": "Specialty",
+        "especialidade_placeholder": "Cardiology",
+        "adicionado": "Doctor added!",
+        "nenhum": "No doctors registered."
+      },
+      "parametros": {
+        "titulo": "General Parameters",
+        "tempo_maximo": "Maximum wait time (min)",
+        "autoagendamento": "Allow self-scheduling",
+        "fila_prioritaria": "Enable automatic priority queue",
+        "notificar_alta_demanda": "Notify managers about high demand"
+      },
+      "logs": {
+        "titulo": "Activity Logs",
+        "download_titulo": "Download logs",
+        "download_desc": "Feature in development.",
+        "baixar": "Download full logs"
+      },
+      "backup": {
+        "titulo": "Backup and Restore",
+        "gerar": "Generate backup now",
+        "gerado": "Backup generated!",
+        "gerado_texto": "Backup file created successfully.",
+        "restaurar": "Restore latest backup",
+        "restaurar_titulo": "Restore backup",
+        "restaurar_desc": "Feature in development."
+      }
+    },
+    "restaurar": {
+      "titulo": "Restore default settings?",
+      "descricao": "This will reset all preferences to initial values.",
+      "confirmar": "Yes, restore",
+      "cancelar": "Cancel",
+      "restaurado": "Restored!"
+    },
+    "salvar": {
+      "titulo": "Save settings",
+      "salvo": "Settings saved!"
+    }
+  },
+  "dashboard": {
+    "titulo": "Admin Dashboard",
+    "subtitulo": "Complete management view of the health network.",
+    "abas": {
+      "administrativo": "Administrative"
+    },
+    "metricas": {
+      "aguardando": "Waiting now",
+      "mediaEspera": "Average wait",
+      "medicosAtivos": "Active doctors",
+      "satisfacao": "Overall satisfaction",
+      "fila": "Queue",
+      "capacidade": "Capacity",
+      "excelente": "Excellent"
+    },
+    "grafico": {
+      "titulo": "Today's service flow"
+    },
+    "resumo": {
+      "titulo": "Network summary",
+      "totalUBS": "Total UBS",
+      "usuarios": "Registered users",
+      "consultas": "Appointments this month",
+      "cancelamento": "Cancellation rate"
+    },
+    "filaAtendimento": {
+      "titulo": "Service Queue",
+      "verTodas": "View all",
+      "chamar": "Call",
+      "prioridade": "Priority",
+      "chamando": "Calling..."
+    },
+    "ubs": {
+      "titulo": "Health Units",
+      "gerenciar": "Manage",
+      "adicionar": "Add UBS",
+      "pacientes": "patients",
+      "medicos": "doctors",
+      "verFila": "View queue"
+    },
+    "acessoRapido": {
+      "agendamentos": "Appointments",
+      "gerenciarFilas": "Manage Queues",
+      "estoqueVacinas": "Vaccine Stock",
+      "configuracoes": "Settings"
+    },
+    "atividades": {
+      "titulo": "Recent activities"
+    },
+    "alertas": {
+      "titulo": "Alerts"
+    },
+    "modais": {
+      "chamarTitulo": "Call {{nome}}?",
+      "chamarTexto": "Password {{senha}} - {{prioridade}}",
+      "chamarConfirmar": "Yes, call now",
+      "chamarCancelar": "Cancel",
+      "chamarSucesso": "Patient called!",
+      "chamarMensagem": "{{nome}} has been notified.",
+      "adicionarUBSTitulo": "Add new UBS",
+      "adicionarUBSNome": "UBS name",
+      "adicionarUBSPacientes": "Number of patients",
+      "adicionarUBSMedicos": "Number of doctors",
+      "adicionarUBSSucesso": "UBS added!",
+      "erro": "Error",
+      "erroRelatorio": "Unable to generate report. Please check @react-pdf/renderer dependency."
+    }
+  },
+  "agendamento": {
+    "titulo": "Appointment Management",
+    "subtitulo": "Complete control over appointments and schedules.",
+    "novo": "New Appointment",
+    "relatorio": "Report",
+    "buscar": "Search by patient, doctor or specialty...",
+    "filtros": {
+      "status": "Status: All",
+      "medico": "Doctor: All",
+      "data": "Date",
+      "arquivados": "Archived"
+    },
+    "tabela": {
+      "paciente": "Patient",
+      "medico": "Doctor",
+      "especialidade": "Specialty",
+      "data": "Date",
+      "horario": "Time",
+      "status": "Status",
+      "acoes": "Actions"
+    },
+    "status": {
+      "confirmado": "Confirmed",
+      "pendente": "Pending",
+      "cancelado": "Cancelled",
+      "concluido": "Completed"
+    },
+    "modais": {
+      "novo": "New Appointment",
+      "editar": "Edit Appointment",
+      "visualizar": "Appointment of {{paciente}}",
+      "arquivar": "Archive appointment",
+      "desarquivar": "Unarchive appointment",
+      "excluir": "Secure deletion",
+      "senha": "Authorization password",
+      "senha_incorreta": "Incorrect password! Access denied.",
+      "campos_obrigatorios": "Please fill all required fields.",
+      "data_passado": "Date/time cannot be in the past."
+    }
+  },
+  "filas": {
+    "titulo": "Queue Monitoring",
+    "subtitulo": "Management view of all health units",
+    "metricas": {
+      "totalPacientes": "Total patients",
+      "tempoMedio": "Average time",
+      "prioridadesAtivas": "Active priorities",
+      "ubsMaiorFila": "UBS + queue",
+      "especialidadeDemandada": "Most demanded specialty",
+      "ocupacao": "Occupancy"
+    },
+    "graficos": {
+      "pacientesPorUBS": "Patients by UBS",
+      "tempoMedioPorEspecialidade": "Average Time by Specialty",
+      "prioridadesPorUnidade": "Priorities by Unit"
+    },
+    "filtros": {
+      "buscar": "Search by UBS or specialty...",
+      "ubs": "All UBS",
+      "especialidade": "Specialty",
+      "prioridade": "Priority",
+      "tempo": "Average time",
+      "pacientes": "Number of patients"
+    },
+    "tabela": {
+      "ubs": "UBS",
+      "especialidade": "Specialty",
+      "pacientes": "Patients",
+      "tempoMedio": "Average Time",
+      "prioridades": "Priorities",
+      "status": "Status",
+      "acoes": "Actions"
+    },
+    "status": {
+      "normal": "Normal",
+      "moderado": "Moderate",
+      "atencao": "Attention",
+      "critico": "Critical"
+    },
+    "modais": {
+      "abrirFila": "Open queue",
+      "reordenar": "Reorder Queue - {{ubs}}",
+      "instrucoes": "Use ↑ ↓ to move, ⭐ to prioritize (goes to top)",
+      "salvar": "Save",
+      "cancelar": "Cancel",
+      "sucesso": "Queue updated!",
+      "exportar": "CSV Report"
+    }
+  },
+  "historico": {
+    "titulo": "Medical History",
+    "subtitulo": "Complete control over all medical records",
+    "metricas": {
+      "total": "Total",
+      "ativos": "Active",
+      "arquivados": "Archived",
+      "especialidades": "Specialties",
+      "ubs": "UBS"
+    },
+    "filtros": {
+      "buscar": "Search by patient, doctor, specialty, diagnosis or UBS...",
+      "status": "Status: All",
+      "ativos": "Active",
+      "arquivados": "Archived"
+    },
+    "tabela": {
+      "paciente": "Patient",
+      "data": "Date",
+      "medico_esp": "Doctor / Specialty",
+      "ubs": "UBS",
+      "diagnostico": "Diagnosis",
+      "status": "Status",
+      "acoes": "Actions"
+    },
+    "modais": {
+      "visualizar": "Appointment of {{paciente}}",
+      "editar": "Edit Diagnosis",
+      "novo_diagnostico": "New Diagnosis",
+      "arquivar": "Archive record",
+      "desarquivar": "Unarchive record",
+      "excluir": "Secure deletion",
+      "senha": "Authorization password",
+      "senha_incorreta": "Incorrect password! Access denied.",
+      "sucesso_editar": "Updated!",
+      "sucesso_arquivar": "Archived!",
+      "sucesso_desarquivar": "Unarchived!",
+      "sucesso_excluir": "Deleted!"
+    }
+  },
+  "vacinas": {
+    "titulo": "Vaccine Management",
+    "subtitulo": "Inventory and vaccination campaign control.",
+    "metricas": {
+      "total": "Total doses",
+      "disponiveis": "Available",
+      "aplicadas": "Applied",
+      "vencidas": "Expired"
+    },
+    "estoque": "Inventory",
+    "campanhas": "Campaigns",
+    "adicionar": "Add Batch",
+    "buscar": "Search by vaccine or batch..."
+  },
+  "login": {
+    "titulo": "Welcome back",
+    "subtitulo": "Login to access the system",
+    "email": "E-mail",
+    "senha": "Password",
+    "entrar": "Sign in",
+    "esqueceu_senha": "Forgot password?",
+    "cadastrar": "Create account",
+    "erro": "Login error",
+    "erro_mensagem": "Incorrect email or password."
+  }
+}
