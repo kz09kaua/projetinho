@@ -1,14 +1,11 @@
-// src/pages/Vacinação.jsx
+// src/pages/Vacinacao.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  HiCheckCircle,
-  HiClock,
   HiLocationMarker,
   HiBell,
   HiQrcode,
   HiExclamation,
-  HiSelector,
   HiEye,
 } from "react-icons/hi";
 import { FaSyringe } from "react-icons/fa";
@@ -19,8 +16,17 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const MySwal = withReactContent(Swal);
 
+// Lista de UBS fixa como fallback
+const UBS_FALLBACK = [
+  { id: 0, nome: "UBS Santa Cecília - Central", distance: 1.2 },
+  { id: 1, nome: "UBS Vila Mariana", distance: 2.5 },
+  { id: 2, nome: "UBS Lapa", distance: 3.0 },
+  { id: 3, nome: "UBS Pinheiros", distance: 4.1 },
+];
+
 const Vacinacao = () => {
-  const { user } = useAuth();
+  const auth = useAuth ? useAuth() : { user: null };
+  const user = auth?.user;
 
   const [historico] = useState([
     {
@@ -65,100 +71,27 @@ const Vacinacao = () => {
   const [ubsEscolhida, setUbsEscolhida] = useState("");
   const [carregandoUbs, setCarregandoUbs] = useState(false);
   const [notificacaoPermitida, setNotificacaoPermitida] = useState(false);
+  const [erroLocalizacao, setErroLocalizacao] = useState(false);
 
+  // Verifica permissão de notificação já concedida
   useEffect(() => {
-    if ("Notification" in window) {
-      if (Notification.permission === "granted") {
-        setNotificacaoPermitida(true);
-      }
+    if ("Notification" in window && Notification.permission === "granted") {
+      setNotificacaoPermitida(true);
     }
   }, []);
 
+  // Carregar UBS escolhida do localStorage
   useEffect(() => {
     const saved = localStorage.getItem("ubsVacinaPendente");
     if (saved) setUbsEscolhida(saved);
   }, []);
 
+  // Persistir escolha
   useEffect(() => {
-    if (ubsEscolhida) {
-      localStorage.setItem("ubsVacinaPendente", ubsEscolhida);
-    }
+    if (ubsEscolhida) localStorage.setItem("ubsVacinaPendente", ubsEscolhida);
   }, [ubsEscolhida]);
 
-  const pedirPermissaoNotificacao = async () => {
-    if ("Notification" in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        setNotificacaoPermitida(true);
-        Swal.fire({
-          icon: "success",
-          title: "Permissão concedida",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-        return true;
-      } else {
-        Swal.fire({
-          icon: "warning",
-          title: "Permissão negada",
-          text: "Altere nas configurações do navegador se desejar.",
-          confirmButtonColor: "#2563eb",
-        });
-        return false;
-      }
-    }
-    return false;
-  };
-
-  const enviarNotificacaoLocal = async () => {
-    if (!ubsEscolhida) {
-      Swal.fire("Atenção", "Selecione uma UBS.", "warning");
-      return;
-    }
-
-    Swal.fire({
-      icon: "info",
-      title: "Lembrete ativado",
-      html: `
-        <div style="text-align:left">
-          <p><strong>Vacina:</strong> ${vacinaPendente?.vacina}</p>
-          <p><strong>UBS:</strong> ${ubsEscolhida}</p>
-          <p><strong>Paciente:</strong> ${user?.name || "Maria Silva"}</p>
-        </div>
-      `,
-      confirmButtonText: "Ok",
-      confirmButtonColor: "#2563eb",
-    });
-
-    if (notificacaoPermitida) {
-      try {
-        const notification = new Notification("Lembrete de Vacinação", {
-          body: `${vacinaPendente?.vacina} pendente. Compareça à ${ubsEscolhida}.`,
-          icon: "/vite.svg",
-        });
-        setTimeout(() => notification.close(), 10000);
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      const result = await Swal.fire({
-        title: "Receber notificações?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Ativar",
-        cancelButtonText: "Agora não",
-      });
-      if (result.isConfirmed) {
-        await pedirPermissaoNotificacao();
-        if (notificacaoPermitida) {
-          enviarNotificacaoLocal();
-        }
-      }
-    }
-  };
-
+  // Função para distância (Haversine)
   const haversineDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -171,8 +104,10 @@ const Vacinacao = () => {
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
+  // Buscar UBS reais via Overpass
   const buscarUbsProximas = async (lat, lng) => {
     setCarregandoUbs(true);
+    setErroLocalizacao(false);
     const query = `
       [out:json];
       (
@@ -188,6 +123,7 @@ const Vacinacao = () => {
       const response = await fetch(
         `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
       );
+      if (!response.ok) throw new Error("API indisponível");
       const data = await response.json();
       const elementos = data.elements || [];
       const ubs = elementos
@@ -202,6 +138,7 @@ const Vacinacao = () => {
           };
         })
         .filter(Boolean);
+      // Remover duplicatas por nome
       const nomes = new Set();
       const unicas = ubs.filter((u) => {
         if (nomes.has(u.nome)) return false;
@@ -209,30 +146,65 @@ const Vacinacao = () => {
         return true;
       });
       unicas.sort((a, b) => a.distance - b.distance);
-      setUbsProximas(unicas);
-      if (unicas.length > 0 && !ubsEscolhida) {
-        setUbsEscolhida(unicas[0].nome);
+      if (unicas.length > 0) {
+        setUbsProximas(unicas);
+        if (!ubsEscolhida) setUbsEscolhida(unicas[0].nome);
+      } else {
+        throw new Error("Nenhuma UBS encontrada na região");
       }
     } catch (error) {
-      console.error(error);
-      Swal.fire("Erro", "Não foi possível buscar UBS próximas.", "error");
+      console.error("Erro ao buscar UBS:", error);
+      // Usa fallback
+      setUbsProximas(UBS_FALLBACK);
+      if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
+      Swal.fire({
+        icon: "warning",
+        title: "UBS offline?",
+        text: "Não foi possível buscar UBS online. Exibindo unidades padrão.",
+        timer: 3000,
+        showConfirmButton: true,
+        confirmButtonColor: "#2563eb",
+      });
     } finally {
       setCarregandoUbs(false);
     }
   };
 
+  // Obter localização e acionar busca
   const obterLocalizacaoEBuscarUBS = () => {
     if (!navigator.geolocation) {
-      Swal.fire("Erro", "Seu navegador não suporta geolocalização.", "error");
+      // Sem API de geolocalização: usa fallback direto
+      setUbsProximas(UBS_FALLBACK);
+      if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
+      setCarregandoUbs(false);
+      Swal.fire({
+        icon: "info",
+        title: "Geolocalização não suportada",
+        text: "Exibindo unidades padrão.",
+        confirmButtonColor: "#2563eb",
+      });
       return;
     }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         buscarUbsProximas(position.coords.latitude, position.coords.longitude);
       },
-      () => {
-        Swal.fire("Erro", "Não foi possível obter sua localização.", "error");
+      (error) => {
+        console.error("Erro de geolocalização:", error);
+        // Se negado ou erro, usa fallback
+        setUbsProximas(UBS_FALLBACK);
+        if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
+        setCarregandoUbs(false);
+        setErroLocalizacao(true);
+        Swal.fire({
+          icon: "warning",
+          title: "Localização não disponível",
+          text: "Permita o acesso à localização ou selecione uma UBS da lista padrão.",
+          confirmButtonColor: "#2563eb",
+        });
       },
+      { enableHighAccuracy: false, timeout: 10000 },
     );
   };
 
@@ -240,21 +212,84 @@ const Vacinacao = () => {
     obterLocalizacaoEBuscarUBS();
   }, []);
 
+  // Notificações
+  const pedirPermissaoNotificacao = async () => {
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setNotificacaoPermitida(true);
+        return true;
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "Permissão negada",
+          text: "Para receber lembretes, permita notificações nas configurações do navegador.",
+          confirmButtonColor: "#2563eb",
+        });
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const enviarNotificacaoLocal = async () => {
+    if (!ubsEscolhida) {
+      Swal.fire("Atenção", "Selecione uma UBS.", "warning");
+      return;
+    }
+
+    // Mostra resumo
+    Swal.fire({
+      icon: "info",
+      title: "Lembrete ativado",
+      html: `
+        <div style="text-align:left">
+          <p><strong>Vacina:</strong> ${vacinaPendente?.vacina || "Não especificada"}</p>
+          <p><strong>UBS:</strong> ${ubsEscolhida}</p>
+          <p><strong>Paciente:</strong> ${user?.name || "Maria Silva"}</p>
+        </div>
+      `,
+      confirmButtonText: "Ok",
+      confirmButtonColor: "#2563eb",
+    });
+
+    // Tenta enviar notificação nativa
+    if (notificacaoPermitida) {
+      try {
+        const notification = new Notification("Lembrete de Vacinação", {
+          body: `${vacinaPendente?.vacina || "Vacina"} pendente. Compareça à ${ubsEscolhida}.`,
+          icon: "/vite.svg",
+        });
+        setTimeout(() => notification.close(), 10000);
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // Se não permitida, oferece ativar
+      const result = await Swal.fire({
+        title: "Deseja ativar notificações?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Ativar",
+        cancelButtonText: "Agora não",
+      });
+      if (result.isConfirmed) {
+        const permitiu = await pedirPermissaoNotificacao();
+        if (permitiu) {
+          // Tenta novamente
+          enviarNotificacaoLocal();
+        }
+      }
+    }
+  };
+
+  // QR Code
   const gerarDadosRelatorio = () => {
     const textoAplicadas = aplicadas
       .map((v) => `- ${v.vacina} (${v.data})`)
       .join("\n");
     const textoPendentes = pendentes.map((v) => `- ${v.vacina}`).join("\n");
-    return `
-RELATÓRIO DE VACINAÇÃO
-Paciente: ${user?.name || "Maria Silva"}
-
-TOMADAS:
-${textoAplicadas}
-
-PENDENTES:
-${textoPendentes}
-`;
+    return `RELATÓRIO DE VACINAÇÃO\nPaciente: ${user?.name || "Maria Silva"}\n\nTOMADAS:\n${textoAplicadas}\n\nPENDENTES:\n${textoPendentes}`;
   };
 
   const handleExibirCarteira = () => {
@@ -379,14 +414,19 @@ ${textoPendentes}
             </div>
             <button
               onClick={enviarNotificacaoLocal}
-              className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition"
+              disabled={carregandoUbs || !ubsEscolhida}
+              className={`w-full mt-3 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
+                carregandoUbs || !ubsEscolhida
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
             >
               <HiBell /> Ativar Notificação
             </button>
           </div>
         </div>
 
-        {/* Histórico de aplicações - agora em tabela */}
+        {/* Histórico de aplicações */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800">

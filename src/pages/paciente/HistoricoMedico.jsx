@@ -1,5 +1,6 @@
 // src/pages/HistoricoMedico.jsx
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   HiCalendar,
   HiClipboardList,
@@ -42,41 +43,44 @@ const HistoricoMedico = () => {
     },
   ]);
 
+  const gerarConteudoRelatorio = () => {
+    let conteudo = "RELATÓRIO DE HISTÓRICO MÉDICO\n\n";
+    conteudo += "Paciente: Maria Silva\n";
+    conteudo +=
+      "Data de emissão: " + new Date().toLocaleDateString("pt-BR") + "\n\n";
+    conteudo += "CONSULTAS:\n";
+    conteudo += "----------------------------------------\n";
+    historico.forEach((h, i) => {
+      conteudo += `${i + 1}. Data: ${h.data}\n`;
+      conteudo += `   Médico: ${h.medico}\n`;
+      conteudo += `   Especialidade: ${h.especialidade}\n`;
+      conteudo += `   UBS: ${h.ubs}\n`;
+      conteudo += `   Diagnóstico: ${h.diagnostico}\n\n`;
+    });
+    return conteudo;
+  };
+
   const handleBaixarRelatorio = () => {
+    const conteudo = gerarConteudoRelatorio();
+    const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `historico_medico_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     Swal.fire({
       icon: "success",
       title: "Relatório baixado!",
-      text: "O arquivo PDF foi gerado com sucesso.",
+      text: "O arquivo foi salvo em seu dispositivo.",
       toast: true,
       position: "top-end",
       showConfirmButton: false,
       timer: 2500,
       timerProgressBar: true,
-    });
-  };
-
-  const handleAgendarVacina = () => {
-    Swal.fire({
-      title: "Agendar Vacina",
-      text: "Deseja agendar a vacina de reforço?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Agendar",
-      cancelButtonText: "Cancelar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: "success",
-          title: "Agendado!",
-          text: "Você será notificado sobre a data.",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      }
     });
   };
 
@@ -126,12 +130,12 @@ const HistoricoMedico = () => {
               <p className="font-bold text-gray-800">
                 Vacina de reforço disponível
               </p>
-              <button
-                onClick={handleAgendarVacina}
+              <Link
+                to="/vacinas"
                 className="text-blue-700 text-sm font-medium hover:underline mt-1 flex items-center gap-1"
               >
                 Agendar <HiCalendar size={14} />
-              </button>
+              </Link>
             </div>
             <FaSyringe size={32} className="text-blue-200" />
           </div>
@@ -197,7 +201,7 @@ const HistoricoMedico = () => {
           onClick={handleBaixarRelatorio}
           className="mt-6 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition"
         >
-          <HiDownload /> Baixar Relatório Completo (PDF)
+          <HiDownload /> Baixar Relatório (TXT)
         </button>
       </div>
     </div>

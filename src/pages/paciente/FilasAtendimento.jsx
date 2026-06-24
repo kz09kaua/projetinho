@@ -37,7 +37,7 @@ const FilasAtendimento = () => {
     },
   ]);
 
-  const [suaFila] = useState({
+  const [suaFila, setSuaFila] = useState({
     senha: "A-142",
     posicao: 4,
     tempo: "12 min",
@@ -56,6 +56,13 @@ const FilasAtendimento = () => {
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (result.isConfirmed) {
+        // Atualiza a fila do paciente com os dados da fila escolhida
+        setSuaFila({
+          senha: fila.senha,
+          posicao: Math.floor(Math.random() * 5) + 1, // simula posição
+          tempo: fila.tempo,
+          especialidade: fila.especialidade,
+        });
         Swal.fire({
           icon: "success",
           title: "Fila atualizada!",
@@ -82,6 +89,7 @@ const FilasAtendimento = () => {
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (result.isConfirmed) {
+        setSuaFila(null); // remove fila atual
         Swal.fire({
           icon: "info",
           title: "Fila cancelada",
@@ -124,66 +132,77 @@ const FilasAtendimento = () => {
         </div>
 
         {/* Sua fila atual */}
-        <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 mb-8 text-white shadow-lg">
-          <div className="grid md:grid-cols-2 gap-6 items-center">
-            <div>
-              <span className="bg-green-500 px-4 py-1.5 rounded-full text-xs font-bold inline-block">
-                Atendimento Ativo
-              </span>
-              <h2 className="text-2xl font-bold mt-3">
-                Sua Fila Atual: {suaFila.especialidade}
-              </h2>
-              <p className="opacity-80">
-                Unidade Básica Central • Consultório 04
-              </p>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => {
-                    Swal.fire({
-                      title: "Detalhes da sua fila",
-                      html: `
-                        <div style="text-align:left; line-height:1.8;">
-                          <p><strong>Senha:</strong> ${suaFila.senha}</p>
-                          <p><strong>Posição:</strong> ${suaFila.posicao}º</p>
-                          <p><strong>Tempo estimado:</strong> ${suaFila.tempo}</p>
-                          <p><strong>Especialidade:</strong> ${suaFila.especialidade}</p>
-                        </div>
-                      `,
-                      icon: "info",
-                      confirmButtonColor: "#2563eb",
-                      confirmButtonText: "Fechar",
-                    });
-                  }}
-                  className="bg-white text-blue-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-md"
-                >
-                  Ver Detalhes
-                </button>
-                <button
-                  onClick={handleSairFila}
-                  className="border border-white hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition"
-                >
-                  Sair da Fila
-                </button>
-              </div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl text-center">
-              <p className="text-sm opacity-80">SUA SENHA</p>
-              <p className="text-5xl font-black">{suaFila.senha}</p>
-              <div className="mt-3">
-                <div className="flex justify-between text-sm">
-                  <span>Progresso</span>
-                  <span>82%</span>
-                </div>
-                <div className="h-2 bg-white/30 rounded-full mt-1">
-                  <div className="h-full w-[82%] bg-green-400 rounded-full" />
-                </div>
-                <p className="text-sm mt-2">
-                  Faltam {suaFila.posicao} pessoas na sua frente
+        {suaFila ? (
+          <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 mb-8 text-white shadow-lg">
+            <div className="grid md:grid-cols-2 gap-6 items-center">
+              <div>
+                <span className="bg-green-500 px-4 py-1.5 rounded-full text-xs font-bold inline-block">
+                  Atendimento Ativo
+                </span>
+                <h2 className="text-2xl font-bold mt-3">
+                  Sua Fila Atual: {suaFila.especialidade}
+                </h2>
+                <p className="opacity-80">
+                  Unidade Básica Central • Consultório 04
                 </p>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => {
+                      Swal.fire({
+                        title: "Detalhes da sua fila",
+                        html: `
+                          <div style="text-align:left; line-height:1.8;">
+                            <p><strong>Senha:</strong> ${suaFila.senha}</p>
+                            <p><strong>Posição:</strong> ${suaFila.posicao}º</p>
+                            <p><strong>Tempo estimado:</strong> ${suaFila.tempo}</p>
+                            <p><strong>Especialidade:</strong> ${suaFila.especialidade}</p>
+                          </div>
+                        `,
+                        icon: "info",
+                        confirmButtonColor: "#2563eb",
+                        confirmButtonText: "Fechar",
+                      });
+                    }}
+                    className="bg-white text-blue-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-md"
+                  >
+                    Ver Detalhes
+                  </button>
+                  <button
+                    onClick={handleSairFila}
+                    className="border border-white hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition"
+                  >
+                    Sair da Fila
+                  </button>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl text-center">
+                <p className="text-sm opacity-80">SUA SENHA</p>
+                <p className="text-5xl font-black">{suaFila.senha}</p>
+                <div className="mt-3">
+                  <div className="flex justify-between text-sm">
+                    <span>Progresso</span>
+                    <span>82%</span>
+                  </div>
+                  <div className="h-2 bg-white/30 rounded-full mt-1">
+                    <div className="h-full w-[82%] bg-green-400 rounded-full" />
+                  </div>
+                  <p className="text-sm mt-2">
+                    Faltam {suaFila.posicao} pessoas na sua frente
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 text-center">
+            <p className="text-gray-500">
+              Você não está em nenhuma fila no momento.
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              Escolha uma das filas abaixo para entrar.
+            </p>
+          </div>
+        )}
 
         {/* Outras filas */}
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">

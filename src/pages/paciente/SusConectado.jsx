@@ -8,8 +8,6 @@ import {
   HiUsers,
   HiClipboardList,
   HiDocumentText,
-  HiCheckCircle,
-  HiXCircle,
   HiSearch,
   HiX,
   HiEye,
@@ -245,7 +243,7 @@ const SusConectado = () => {
           />
         </div>
 
-        {/* Seção Meus Exames - Agora em tabela */}
+        {/* Seção Meus Exames */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -377,9 +375,6 @@ const SusConectado = () => {
   );
 };
 
-// ============================================================
-// COMPONENTES AUXILIARES
-// ============================================================
 const MetricCard = ({ title, value, icon: Icon, color }) => {
   const colorMap = {
     blue: "bg-blue-50 text-blue-600 border-blue-200",

@@ -1,22 +1,23 @@
-// src/pages/DashboardPaciente.jsx
+// src/pages/paciente/DashboardPaciente.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   HiCalendar,
   HiClipboardList,
-  HiHeart,
   HiQrcode,
   HiClock,
   HiUser,
-  HiCheckCircle,
   HiExclamationCircle,
   HiArrowRight,
-  HiEye,
 } from "react-icons/hi";
 import { FaSyringe, FaFlask } from "react-icons/fa";
 import Swal from "sweetalert2";
+import { useAuth } from "../../contexts/AuthContext";
 
 const DashboardPaciente = () => {
+  const { user } = useAuth ? useAuth() : { user: null };
+  const nomePaciente = user?.name || "Maria Silva";
+
   const [fila, setFila] = useState({
     senha: "A-142",
     posicao: 4,
@@ -102,7 +103,7 @@ const DashboardPaciente = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <HiUser className="text-blue-600" /> Olá, Maria Silva
+              <HiUser className="text-blue-600" /> Olá, {nomePaciente}
             </h1>
             <p className="text-gray-500">
               Sua consulta está confirmada para hoje.
@@ -247,7 +248,7 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/vacinas"
+            to="/vacinação" // ← corrigido para coincidir com a rota real
             className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
           >
             <div className="w-12 h-12 rounded-2xl bg-green-100 group-hover:bg-green-200 transition flex items-center justify-center mb-3">
@@ -258,7 +259,7 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/historico"
+            to="/historico-medico" // ← corrigido para coincidir com a rota real
             className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
           >
             <div className="w-12 h-12 rounded-2xl bg-amber-100 group-hover:bg-amber-200 transition flex items-center justify-center mb-3">
@@ -269,7 +270,7 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/sus-conectado"
+            to="/sus-conectado" // ← já estava correto
             className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
           >
             <div className="w-12 h-12 rounded-2xl bg-purple-100 group-hover:bg-purple-200 transition flex items-center justify-center mb-3">

@@ -1,26 +1,23 @@
 // src/pages/GerenciarFilas.jsx
 import { useState } from "react";
 import Swal from "sweetalert2";
+import { HiUserGroup, HiSearch, HiPlus, HiX } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
 
 const GerenciarFilas = () => {
   const { user } = useAuth();
 
-  // Verifica se o usuário é atendente (se não for, exibe acesso negado)
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-error">Acesso negado</h1>
-          <p className="text-on-surface-variant">
-            Esta área é restrita a atendentes.
-          </p>
+          <h1 className="text-2xl font-bold text-red-600">Acesso negado</h1>
+          <p className="text-gray-500">Esta área é restrita a atendentes.</p>
         </div>
       </div>
     );
   }
 
-  // Estrutura das filas (igual antes)
   const [filas, setFilas] = useState([
     {
       id: 1,
@@ -54,7 +51,7 @@ const GerenciarFilas = () => {
   ]);
 
   const [searchTerms, setSearchTerms] = useState({ 0: "", 1: "", 2: "" });
-  const [logRemocoes, setLogRemocoes] = useState([]); // opcional: armazenar justificativas
+  const [logRemocoes, setLogRemocoes] = useState([]);
 
   const handleSearchChange = (idx, value) => {
     setSearchTerms((prev) => ({ ...prev, [idx]: value }));
@@ -68,139 +65,100 @@ const GerenciarFilas = () => {
     );
   };
 
-  // Chamar o próximo da fila (primeiro)
-  const chamarProximo = (especialidadeIndex) => {
-    const fila = filas[especialidadeIndex];
+  const chamarProximo = (idx) => {
+    const fila = filas[idx];
     if (fila.pacientes.length === 0) {
       Swal.fire("Fila vazia", "Não há pacientes na fila.", "info");
       return;
     }
     const paciente = fila.pacientes[0];
     Swal.fire({
-      title: "Chamar paciente",
-      html: `
-        <div class="text-left">
-          <p><strong>Nome:</strong> ${paciente.nome}</p>
-          <p><strong>CPF:</strong> ${paciente.cpf}</p>
-          <p><strong>Data de Nasc.:</strong> ${paciente.dataNasc}</p>
-        </div>
-      `,
+      title: "Chamar próximo",
+      html: `<strong>${paciente.nome}</strong><br>CPF: ${paciente.cpf}`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Sim, chamar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: "Chamar",
     }).then((result) => {
       if (result.isConfirmed) {
         const novasFilas = [...filas];
-        novasFilas[especialidadeIndex].pacientes.shift();
+        novasFilas[idx].pacientes.shift();
         setFilas(novasFilas);
         Swal.fire("Chamado!", `${paciente.nome} foi chamado(a).`, "success");
       }
     });
   };
 
-  // Chamar um paciente específico (fora de ordem)
-  const chamarEspecifico = (especialidadeIndex, pacienteIndex, paciente) => {
+  const chamarEspecifico = (idx, pacienteIndex, paciente) => {
     Swal.fire({
-      title: "Chamar paciente fora de ordem?",
-      html: `
-        <div class="text-left">
-          <p><strong>Nome:</strong> ${paciente.nome}</p>
-          <p><strong>CPF:</strong> ${paciente.cpf}</p>
-          <p><strong>Posição na fila:</strong> ${pacienteIndex + 1}º</p>
-          <label class="block mt-3 font-medium">Justificativa (opcional):</label>
-          <input id="justificativa" class="swal2-input" placeholder="Ex: urgência, idoso, etc.">
-        </div>
-      `,
+      title: "Chamar fora de ordem?",
+      html: `<strong>${paciente.nome}</strong> (posição ${pacienteIndex + 1})`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sim, chamar agora",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => {
-        const justificativa =
-          document.getElementById("justificativa").value || "Não informada";
-        return { justificativa };
-      },
+      input: "text",
+      inputPlaceholder: "Justificativa (opcional)",
     }).then((result) => {
       if (result.isConfirmed) {
+        const justificativa = result.value || "Não informada";
         const novasFilas = [...filas];
-        // Remove o paciente da posição atual
-        novasFilas[especialidadeIndex].pacientes.splice(pacienteIndex, 1);
+        novasFilas[idx].pacientes.splice(pacienteIndex, 1);
         setFilas(novasFilas);
-        Swal.fire({
-          title: "Paciente chamado!",
-          html: `${paciente.nome} foi chamado(a) para atendimento.<br><small>Justificativa: ${result.value.justificativa}</small>`,
-          icon: "success",
-        });
-        // Opcional: salvar log
+        Swal.fire(
+          "Chamado!",
+          `${paciente.nome} chamado(a). Justificativa: ${justificativa}`,
+          "success",
+        );
         setLogRemocoes((prev) => [
           ...prev,
           {
             data: new Date().toLocaleString(),
             acao: "CHAMADA_ESPECIFICA",
             paciente: paciente.nome,
-            especialidade: filas[especialidadeIndex].especialidade,
-            justificativa: result.value.justificativa,
+            especialidade: filas[idx].especialidade,
+            justificativa,
           },
         ]);
       }
     });
   };
 
-  // Remover paciente da fila (com justificativa obrigatória)
-  const removerPaciente = (especialidadeIndex, pacienteIndex, paciente) => {
+  const removerPaciente = (idx, pacienteIndex, paciente) => {
     Swal.fire({
-      title: "Remover paciente da fila",
-      html: `
-        <div class="text-left">
-          <p><strong>Nome:</strong> ${paciente.nome}</p>
-          <p><strong>CPF:</strong> ${paciente.cpf}</p>
-          <label class="block mt-3 font-medium">Justificativa (obrigatória):</label>
-          <input id="justificativa" class="swal2-input" placeholder="Ex: desistiu, ausente, etc." required>
-        </div>
-      `,
+      title: "Remover paciente",
+      html: `<strong>${paciente.nome}</strong><br>Justificativa (obrigatória):`,
       icon: "error",
       showCancelButton: true,
       confirmButtonText: "Remover",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => {
-        const justificativa = document.getElementById("justificativa").value;
-        if (!justificativa) {
-          Swal.showValidationMessage("A justificativa é obrigatória");
-          return false;
-        }
-        return { justificativa };
+      input: "text",
+      inputPlaceholder: "Ex: desistiu, ausente...",
+      inputValidator: (value) => {
+        if (!value) return "A justificativa é obrigatória!";
       },
     }).then((result) => {
       if (result.isConfirmed) {
         const novasFilas = [...filas];
-        const removido = novasFilas[especialidadeIndex].pacientes.splice(
-          pacienteIndex,
-          1,
-        )[0];
+        const removido = novasFilas[idx].pacientes.splice(pacienteIndex, 1)[0];
         setFilas(novasFilas);
-        Swal.fire({
-          title: "Paciente removido!",
-          html: `${removido.nome} foi removido da fila.<br><small>Justificativa: ${result.value.justificativa}</small>`,
-          icon: "info",
-        });
-        // Salvar log
+        Swal.fire(
+          "Removido!",
+          `${removido.nome} removido. Justificativa: ${result.value}`,
+          "info",
+        );
         setLogRemocoes((prev) => [
           ...prev,
           {
             data: new Date().toLocaleString(),
             acao: "REMOCAO",
             paciente: removido.nome,
-            especialidade: filas[especialidadeIndex].especialidade,
-            justificativa: result.value.justificativa,
+            especialidade: filas[idx].especialidade,
+            justificativa: result.value,
           },
         ]);
       }
     });
   };
 
-  // Adicionar paciente (já existente)
-  const adicionarPaciente = async (especialidadeIndex) => {
+  const adicionarPaciente = async (idx) => {
     const { value: formValues } = await Swal.fire({
       title: "Adicionar paciente",
       html: `
@@ -211,7 +169,6 @@ const GerenciarFilas = () => {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "Adicionar",
-      cancelButtonText: "Cancelar",
       preConfirm: () => {
         const nome = document.getElementById("nome").value;
         const cpf = document.getElementById("cpf").value;
@@ -222,109 +179,107 @@ const GerenciarFilas = () => {
         }
         const cpfLimpo = cpf.replace(/\D/g, "");
         if (cpfLimpo.length !== 11) {
-          Swal.showValidationMessage("CPF inválido (deve ter 11 dígitos)");
+          Swal.showValidationMessage("CPF inválido (11 dígitos)");
           return false;
         }
         return { nome, cpf, dataNasc };
       },
     });
     if (formValues) {
-      const cpfExiste = filas[especialidadeIndex].pacientes.some(
+      const cpfExiste = filas[idx].pacientes.some(
         (p) => p.cpf === formValues.cpf,
       );
       if (cpfExiste) {
-        Swal.fire(
-          "Erro",
-          "Este CPF já está na fila desta especialidade.",
-          "error",
-        );
+        Swal.fire("Erro", "CPF já está na fila.", "error");
         return;
       }
       const novasFilas = [...filas];
-      novasFilas[especialidadeIndex].pacientes.push({
-        nome: formValues.nome,
-        cpf: formValues.cpf,
-        dataNasc: formValues.dataNasc,
-      });
+      novasFilas[idx].pacientes.push(formValues);
       setFilas(novasFilas);
       Swal.fire(
         "Adicionado!",
-        `${formValues.nome} foi adicionado à fila.`,
+        `${formValues.nome} adicionado à fila.`,
         "success",
       );
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-black text-on-surface mb-2">
-        Gerenciar Filas de Atendimento
-      </h1>
-      <p className="text-on-surface-variant mb-8">
-        Chame o próximo paciente, adicione manualmente ou pesquise por nome/CPF.
-      </p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <HiUserGroup className="text-blue-600" /> Gerenciar Filas
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Chame o próximo paciente, adicione manualmente ou pesquise por
+            nome/CPF.
+          </p>
+        </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {filas.map((fila, idx) => {
-          const pacientesFiltrados = filtrarPacientes(
-            fila.pacientes,
-            searchTerms[idx],
-          );
-          return (
-            <div
-              key={fila.id}
-              className="bg-surface rounded-2xl border p-6 shadow-sm flex flex-col"
-            >
-              <h2 className="text-xl font-black mb-4">{fila.especialidade}</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {filas.map((fila, idx) => {
+            const pacientesFiltrados = filtrarPacientes(
+              fila.pacientes,
+              searchTerms[idx],
+            );
+            return (
+              <div
+                key={fila.id}
+                className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col hover:shadow-md transition"
+              >
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                  {fila.especialidade}
+                </h2>
 
-              {/* Barra de pesquisa */}
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="🔍 Pesquisar por nome ou CPF..."
-                  value={searchTerms[idx]}
-                  onChange={(e) => handleSearchChange(idx, e.target.value)}
-                  className="w-full p-2 border rounded-lg bg-surface-container-lowest text-on-surface"
-                />
-              </div>
+                <div className="relative mb-4">
+                  <HiSearch className="absolute left-3 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    value={searchTerms[idx]}
+                    onChange={(e) => handleSearchChange(idx, e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              <div className="mb-4 flex-1">
-                <p className="font-bold">
-                  Pacientes na fila ({pacientesFiltrados.length})
-                </p>
-                {pacientesFiltrados.length === 0 ? (
-                  <p className="text-gray-500">Nenhum paciente encontrado</p>
-                ) : (
-                  <ul className="mt-2 space-y-2 max-h-96 overflow-y-auto">
-                    {pacientesFiltrados.map((p, i) => {
-                      // Índice original do paciente na lista completa (para remoção)
-                      const originalIndex = fila.pacientes.findIndex(
-                        (pac) => pac.cpf === p.cpf,
-                      );
-                      return (
-                        <li
-                          key={i}
-                          className="text-sm p-3 bg-surface-container-high rounded-lg"
-                        >
-                          <div className="flex justify-between items-start">
+                <div className="flex-1 mb-4">
+                  <p className="font-semibold text-gray-800 mb-2">
+                    Pacientes ({pacientesFiltrados.length})
+                  </p>
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {pacientesFiltrados.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        Nenhum paciente encontrado.
+                      </p>
+                    ) : (
+                      pacientesFiltrados.map((p, i) => {
+                        const originalIndex = fila.pacientes.findIndex(
+                          (pac) => pac.cpf === p.cpf,
+                        );
+                        return (
+                          <div
+                            key={i}
+                            className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition flex justify-between items-start"
+                          >
                             <div>
-                              <div className="font-medium text-on-surface">
+                              <p className="font-medium text-gray-800">
                                 {p.nome}
-                              </div>
-                              <div className="text-xs text-on-surface-variant">
+                              </p>
+                              <p className="text-xs text-gray-500">
                                 CPF: {p.cpf}
-                              </div>
-                              <div className="text-xs text-on-surface-variant">
+                              </p>
+                              <p className="text-xs text-gray-500">
                                 Nasc: {p.dataNasc}
-                              </div>
+                              </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
                               <button
                                 onClick={() =>
                                   chamarEspecifico(idx, originalIndex, p)
                                 }
-                                className="text-primary text-xs font-bold hover:underline"
-                                title="Chamar fora de ordem"
+                                className="text-blue-600 text-xs font-semibold hover:underline"
                               >
                                 Atender
                               </button>
@@ -332,67 +287,64 @@ const GerenciarFilas = () => {
                                 onClick={() =>
                                   removerPaciente(idx, originalIndex, p)
                                 }
-                                className="text-error text-xs font-bold hover:underline"
-                                title="Remover da fila"
+                                className="text-red-600 text-xs font-semibold hover:underline"
                               >
-                                Remover
+                                <HiX size={14} />
                               </button>
                             </div>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
 
-              <div className="flex gap-3 mt-2">
-                <button
-                  onClick={() => chamarProximo(idx)}
-                  className="flex-1 bg-primary text-on-primary py-2 rounded-xl font-bold hover:opacity-90 transition"
-                >
-                  Chamar próximo
-                </button>
-                <button
-                  onClick={() => adicionarPaciente(idx)}
-                  className="flex-1 bg-secondary text-white py-2 rounded-xl font-bold hover:opacity-90 transition"
-                >
-                  Adicionar
-                </button>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => chamarProximo(idx)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition"
+                  >
+                    Próximo
+                  </button>
+                  <button
+                    onClick={() => adicionarPaciente(idx)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-semibold transition flex items-center justify-center gap-1"
+                  >
+                    <HiPlus size={16} /> Adicionar
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* Botão para ver log (opcional) */}
-      <div className="mt-8 text-center">
-        <button
-          onClick={() => {
-            if (logRemocoes.length === 0) {
-              Swal.fire(
-                "Nenhum registro",
-                "Nenhuma ação registrada ainda.",
-                "info",
-              );
-            } else {
-              const logText = logRemocoes
-                .map(
-                  (l) =>
-                    `${l.data} - ${l.acao} - ${l.paciente} (${l.especialidade}) - Just.: ${l.justificativa}`,
-                )
-                .join("\n");
-              Swal.fire({
-                title: "Histórico de Ações",
-                html: `<pre class="text-left text-xs max-h-96 overflow-auto">${logText}</pre>`,
-                confirmButtonText: "Fechar",
-              });
-            }
-          }}
-          className="text-sm text-primary underline"
-        >
-          Ver histórico de ações
-        </button>
+        <div className="text-center">
+          <button
+            onClick={() => {
+              if (logRemocoes.length === 0) {
+                Swal.fire(
+                  "Nenhum registro",
+                  "Nenhuma ação registrada.",
+                  "info",
+                );
+              } else {
+                const logText = logRemocoes
+                  .map(
+                    (l) =>
+                      `${l.data} - ${l.acao} - ${l.paciente} (${l.especialidade}) - Just.: ${l.justificativa}`,
+                  )
+                  .join("\n");
+                Swal.fire({
+                  title: "Histórico de Ações",
+                  html: `<pre class="text-left text-xs max-h-96 overflow-auto">${logText}</pre>`,
+                });
+              }
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Ver histórico de ações
+          </button>
+        </div>
       </div>
     </div>
   );

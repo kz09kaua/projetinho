@@ -1,3 +1,4 @@
+// src/pages/SusConectadoAtendente.jsx
 import { useState, useEffect } from "react";
 import {
   HiCloud,
@@ -6,10 +7,10 @@ import {
   HiClock,
   HiUsers,
   HiClipboardList,
-  HiTrendingUp,
   HiCalendar,
   HiLocationMarker,
   HiDocumentText,
+  HiTrendingUp,
 } from "react-icons/hi";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -38,27 +39,22 @@ const SusConectadoAtendente = () => {
   });
 
   const [syncing, setSyncing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const fetchDados = async () => {
-    setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        const novosIndicadores = {
+        setIndicadores({
           coberturaVacinal: Math.floor(70 + Math.random() * 20),
           mediaEspera: Math.floor(30 + Math.random() * 30),
           leitosOcupados: Math.floor(70 + Math.random() * 25),
-        };
-        const novaProducao = Math.floor(900 + Math.random() * 200);
-        const now = new Date();
-        const hora = now.getHours().toString().padStart(2, "0");
-        const minuto = now.getMinutes().toString().padStart(2, "0");
-
-        setIndicadores(novosIndicadores);
+        });
         setUbsData((prev) => ({
           ...prev,
-          producaoMensal: novaProducao,
-          ultimaSincronizacao: `Hoje, ${hora}:${minuto}`,
+          producaoMensal: Math.floor(900 + Math.random() * 200),
+          ultimaSincronizacao: `Hoje, ${new Date().getHours().toString().padStart(2, "0")}:${new Date()
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}`,
         }));
         setResumoFilas({
           clinicaGeral: Math.floor(Math.random() * 15) + 5,
@@ -91,244 +87,177 @@ const SusConectadoAtendente = () => {
     fetchDados();
   }, []);
 
-  // Verificação extra de segurança (só atendente acessa)
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-error">Acesso negado</h1>
-          <p className="text-on-surface-variant">
-            Esta área é restrita a atendentes.
-          </p>
+          <h1 className="text-2xl font-bold text-red-600">Acesso negado</h1>
+          <p className="text-gray-500">Esta área é restrita a atendentes.</p>
         </div>
       </div>
     );
   }
 
+  const quickLinks = [
+    { to: "/gerenciar-filas", icon: HiClipboardList, title: "Gerenciar Filas", desc: "Acompanhe e chame pacientes" },
+    { to: "/agendamento", icon: HiCalendar, title: "Agendamentos", desc: "Gerencie consultas e horários" },
+    { to: "/estoque-vacinas", icon: HiTrendingUp, title: "Estoque de Vacinas", desc: "Controle de lotes e validades" },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-on-surface">
-            🌐 SUS Conectado - Painel do Atendente
-          </h1>
-          <p className="text-on-surface-variant">
-            Monitoramento de indicadores nacionais e da sua unidade.
-          </p>
-        </div>
-        <button
-          onClick={sincronizar}
-          disabled={syncing}
-          className="flex items-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
-        >
-          <HiRefresh className={`${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando..." : "Sincronizar agora"}
-        </button>
-      </div>
-
-      {/* Status da conexão */}
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 mb-8 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-800/50 flex items-center justify-center">
-          <HiCloud className="text-green-700 dark:text-green-400 text-2xl" />
-        </div>
-        <div>
-          <p className="font-bold text-green-800 dark:text-green-300">
-            ✅ Conexão com o DataSUS estabelecida
-          </p>
-          <p className="text-sm text-green-700 dark:text-green-400">
-            Última sincronização: {ubsData.ultimaSincronizacao}
-          </p>
-        </div>
-      </div>
-
-      {/* Grid de cards principais */}
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
-        {/* Indicadores Nacionais */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <HiDatabase className="text-blue-700 dark:text-blue-400 text-xl" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              Indicadores Nacionais
-            </h3>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <HiCloud className="text-blue-600" /> SUS Conectado
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Monitoramento de indicadores nacionais e da sua unidade.
+            </p>
           </div>
-          <div className="space-y-5">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-600 dark:text-gray-300">
-                  Cobertura vacinal (BR)
-                </span>
-                <span className="font-bold text-blue-700 dark:text-blue-400">
-                  {indicadores.coberturaVacinal}%
-                </span>
+          <button
+            onClick={sincronizar}
+            disabled={syncing}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50"
+          >
+            <HiRefresh className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Sincronizando..." : "Sincronizar"}
+          </button>
+        </div>
+
+        <div className="bg-white border rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+            <HiCloud className="text-white text-xl" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-800">Conexão com o DataSUS estabelecida</p>
+            <p className="text-sm text-gray-500">Última sincronização: {ubsData.ultimaSincronizacao}</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl shadow-sm border p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <HiDatabase size={22} />
               </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                  style={{ width: `${indicadores.coberturaVacinal}%` }}
-                />
+              <h3 className="text-xl font-bold text-gray-800">Indicadores Nacionais</h3>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-600">Cobertura vacinal (BR)</span>
+                  <span className="font-bold text-gray-800">{indicadores.coberturaVacinal}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                    style={{ width: `${indicadores.coberturaVacinal}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span className="text-gray-600">Média de espera por especialista</span>
+                <span className="font-bold text-gray-800">{indicadores.mediaEspera} dias</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span className="text-gray-600">Leitos SUS ocupados</span>
+                <span className="font-bold text-gray-800">{indicadores.leitosOcupados}%</span>
               </div>
             </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Média de espera por especialista
-              </span>
-              <span className="font-bold text-amber-600 dark:text-amber-400">
-                {indicadores.mediaEspera} dias
-              </span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <HiUsers size={22} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">Resumo da Unidade</h3>
             </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Leitos SUS ocupados
-              </span>
-              <span className="font-bold text-red-600 dark:text-red-400">
-                {indicadores.leitosOcupados}%
-              </span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span className="text-gray-600">Código SUS</span>
+                <span className="font-mono font-bold text-gray-800">{ubsData.codigoSUS}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span className="text-gray-600">Produção mensal</span>
+                <span className="font-bold text-gray-800">{ubsData.producaoMensal} atendimentos</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span className="text-gray-600">Pacientes na fila hoje</span>
+                <span className="font-bold text-gray-800">{resumoFilas.totalPacientes}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                {[
+                  { label: "Clínica", value: resumoFilas.clinicaGeral, color: "from-blue-400 to-blue-500" },
+                  { label: "Pediatria", value: resumoFilas.pediatria, color: "from-green-400 to-green-500" },
+                  { label: "Vacinação", value: resumoFilas.vacinacao, color: "from-purple-400 to-purple-500" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="bg-gray-50 p-3 rounded-xl text-center border hover:shadow-sm transition"
+                  >
+                    <p className="text-xs text-gray-500">{item.label}</p>
+                    <p className="font-bold text-lg text-gray-800">{item.value}</p>
+                    <div className={`w-full h-1 mt-1 rounded-full bg-gradient-to-r ${item.color}`} />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Dados da UBS + resumo de filas */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <HiUsers className="text-green-700 dark:text-green-400 text-xl" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              Resumo da Unidade
-            </h3>
-          </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {quickLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="bg-white rounded-2xl p-5 border hover:shadow-md transition flex items-center gap-4 group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <link.icon className="text-white text-2xl" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-800">{link.title}</p>
+                <p className="text-sm text-gray-500">{link.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <HiDocumentText className="text-gray-400" />
+            Registros de Sincronização
+          </h3>
           <div className="space-y-3">
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Código SUS
-              </span>
-              <span className="font-mono font-bold">{ubsData.codigoSUS}</span>
-            </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Produção mensal
-              </span>
-              <span className="font-bold text-green-700 dark:text-green-400">
-                {ubsData.producaoMensal} atendimentos
-              </span>
-            </div>
-            <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2">
-              <span className="text-gray-600 dark:text-gray-300">
-                Pacientes na fila hoje
-              </span>
-              <span className="font-bold text-blue-700 dark:text-blue-400">
-                {resumoFilas.totalPacientes}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 pt-2">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-center">
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  Clínica
-                </p>
-                <p className="font-bold text-lg">{resumoFilas.clinicaGeral}</p>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <HiClock className="text-gray-400" />
+                <div>
+                  <p className="font-medium text-gray-800">Sincronização completa</p>
+                  <p className="text-xs text-gray-500">DataSUS + UBS Central</p>
+                </div>
               </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded-lg text-center">
-                <p className="text-xs text-purple-600 dark:text-purple-400">
-                  Pediatria
-                </p>
-                <p className="font-bold text-lg">{resumoFilas.pediatria}</p>
+              <span className="text-sm text-gray-500">{ubsData.ultimaSincronizacao}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <HiLocationMarker className="text-gray-400" />
+                <div>
+                  <p className="font-medium text-gray-800">Atualização de estoque</p>
+                  <p className="text-xs text-gray-500">Envio para base nacional</p>
+                </div>
               </div>
-              <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg text-center">
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Vacinação
-                </p>
-                <p className="font-bold text-lg">{resumoFilas.vacinacao}</p>
-              </div>
+              <span className="text-sm text-gray-500">Hoje, 07:45</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Ações rápidas */}
-      <div className="grid md:grid-cols-3 gap-5 mb-10">
-        <Link
-          to="/gerenciar-filas"
-          className="bg-white dark:bg-gray-800 rounded-2xl p-5 border dark:border-gray-700 hover:shadow-md transition flex items-center gap-4"
-        >
-          <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <HiClipboardList className="text-amber-700 dark:text-amber-400 text-2xl" />
-          </div>
-          <div>
-            <p className="font-bold">Gerenciar Filas</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Acompanhe e chame pacientes
-            </p>
-          </div>
-        </Link>
-        <Link
-          to="/agendamento"
-          className="bg-white dark:bg-gray-800 rounded-2xl p-5 border dark:border-gray-700 hover:shadow-md transition flex items-center gap-4"
-        >
-          <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <HiCalendar className="text-blue-700 dark:text-blue-400 text-2xl" />
-          </div>
-          <div>
-            <p className="font-bold">Agendamentos</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Gerencie consultas e horários
-            </p>
-          </div>
-        </Link>
-        <Link
-          to="/estoque-vacinas"
-          className="bg-white dark:bg-gray-800 rounded-2xl p-5 border dark:border-gray-700 hover:shadow-md transition flex items-center gap-4"
-        >
-          <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <HiTrendingUp className="text-green-700 dark:text-green-400 text-2xl" />
-          </div>
-          <div>
-            <p className="font-bold">Estoque de Vacinas</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Controle de lotes e validades
-            </p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Histórico de sincronizações */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <HiDocumentText className="text-gray-500" />
-          Registros de Sincronização
-        </h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="flex items-center gap-3">
-              <HiClock className="text-gray-400" />
-              <div>
-                <p className="font-medium">Sincronização completa</p>
-                <p className="text-xs text-gray-500">DataSUS + UBS Central</p>
-              </div>
-            </div>
-            <span className="text-sm text-gray-500">
-              {ubsData.ultimaSincronizacao}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="flex items-center gap-3">
-              <HiLocationMarker className="text-gray-400" />
-              <div>
-                <p className="font-medium">Atualização de estoque</p>
-                <p className="text-xs text-gray-500">
-                  Envio para base nacional
-                </p>
-              </div>
-            </div>
-            <span className="text-sm text-gray-500">Hoje, 07:45</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500 border-t dark:border-gray-700 pt-6">
-        Dados simulados para demonstração. Em produção, integre com a API
-        oficial do DataSUS.
+        <p className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
+          Dados simulados para demonstração. Em produção, integre com a API oficial do DataSUS.
+        </p>
       </div>
     </div>
   );
