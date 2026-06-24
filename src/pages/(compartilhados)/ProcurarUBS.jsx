@@ -1,5 +1,6 @@
-// src/pages/ProcurarUBS.jsx - Versão padronizada com design consistente
+// src/pages/ProcurarUBS.jsx - Versão com i18n e padronização completa
 import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -124,7 +125,7 @@ const ubsList = [
 ];
 
 // ============================================================
-// COMPONENTES REUTILIZÁVEIS (padronizados)
+// COMPONENTES REUTILIZÁVEIS (padronizados com i18n)
 // ============================================================
 
 const Avatar = ({ nome, size = "sm" }) => {
@@ -243,6 +244,8 @@ const formatarDistancia = (dist) => {
 // COMPONENTE PRINCIPAL
 // ============================================================
 const ProcurarUBS = () => {
+  const { t } = useTranslation();
+
   // ===== ESTADOS =====
   const [userLocation, setUserLocation] = useState(null);
   const [searchResult, setSearchResult] = useState(null);
@@ -349,8 +352,8 @@ const ProcurarUBS = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - padronizado */}
-        <HeaderSection />
+        {/* Header - padronizado com i18n */}
+        <HeaderSection t={t} />
 
         {/* Seção Principal: Mapa + Sidebar */}
         <div className="flex flex-col lg:flex-row gap-6 items-stretch">
@@ -374,7 +377,7 @@ const ProcurarUBS = () => {
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Pesquisar UBS, bairro ou endereço..."
+                      placeholder={t("procurar_ubs.pesquisar")}
                       className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
                     />
                   </div>
@@ -408,9 +411,11 @@ const ProcurarUBS = () => {
               {/* Lista de UBS */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-gray-700">Todas as UBS</h3>
+                  <h3 className="font-bold text-gray-700">
+                    {t("procurar_ubs.todas_ubs")}
+                  </h3>
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                    {ubsComDistancia.length} unidades
+                    {ubsComDistancia.length} {t("procurar_ubs.unidades")}
                   </span>
                 </div>
 
@@ -440,7 +445,8 @@ const ProcurarUBS = () => {
                         </p>
                         {ubs.distancia !== null && (
                           <p className="text-xs text-blue-600 mt-1 font-medium">
-                            {formatarDistancia(ubs.distancia)} de distância
+                            {formatarDistancia(ubs.distancia)}{" "}
+                            {t("procurar_ubs.de_distancia")}
                           </p>
                         )}
                       </div>
@@ -451,7 +457,7 @@ const ProcurarUBS = () => {
                             handleVerNoMapa(ubs);
                           }}
                           className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                          title="Ver no mapa"
+                          title={t("comum.visualizar")}
                         >
                           <HiEye size={16} />
                         </button>
@@ -461,7 +467,7 @@ const ProcurarUBS = () => {
                             handleRotas(ubs);
                           }}
                           className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
-                          title="Rotas"
+                          title={t("procurar_ubs.rotas")}
                         >
                           <HiLocationMarker size={16} />
                         </button>
@@ -476,7 +482,7 @@ const ProcurarUBS = () => {
                 <div className="p-4 border-t border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                   <div className="flex items-center gap-2 text-blue-700 font-medium mb-1">
                     <HiBadgeCheck size={18} />
-                    <span>UBS mais próxima</span>
+                    <span>{t("procurar_ubs.ubs_mais_proxima")}</span>
                   </div>
                   <p className="font-bold text-gray-800">
                     {ubsMaisProxima.nome}
@@ -516,7 +522,7 @@ const ProcurarUBS = () => {
                   <button
                     onClick={handleCentralizar}
                     className="bg-white p-2.5 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition"
-                    title="Centralizar na sua localização"
+                    title={t("procurar_ubs.centralizar")}
                   >
                     <HiLocationMarker size={20} className="text-blue-600" />
                   </button>
@@ -560,9 +566,11 @@ const ProcurarUBS = () => {
                     <Popup>
                       <div className="text-center">
                         <strong className="text-gray-800">
-                          📍 Sua localização
+                          📍 {t("procurar_ubs.sua_localizacao")}
                         </strong>
-                        <p className="text-sm text-gray-600">Você está aqui</p>
+                        <p className="text-sm text-gray-600">
+                          {t("procurar_ubs.voce_esta_aqui")}
+                        </p>
                       </div>
                     </Popup>
                   </Marker>
@@ -603,7 +611,8 @@ const ProcurarUBS = () => {
                           onClick={() => handleRotas(ubs)}
                           className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center justify-center gap-2"
                         >
-                          <HiLocationMarker size={16} /> Rotas
+                          <HiLocationMarker size={16} />{" "}
+                          {t("procurar_ubs.rotas")}
                         </button>
                       </div>
                     </Popup>
@@ -618,7 +627,9 @@ const ProcurarUBS = () => {
                   >
                     <Popup>
                       <div className="text-center">
-                        <strong className="text-gray-800">🔍 Resultado</strong>
+                        <strong className="text-gray-800">
+                          🔍 {t("procurar_ubs.resultado")}
+                        </strong>
                         <p className="text-sm text-gray-600">
                           {searchResult.address}
                         </p>
@@ -638,14 +649,15 @@ const ProcurarUBS = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-800">
-                      {searchResult.name || "Localização"}
+                      {searchResult.name || t("procurar_ubs.localizacao")}
                     </h4>
                     <p className="text-sm text-gray-600">
                       {searchResult.address}
                     </p>
                     {ubsMaisProxima && (
                       <p className="text-sm text-blue-600 font-medium">
-                        UBS mais próxima: {ubsMaisProxima.nome} (
+                        {t("procurar_ubs.ubs_mais_proxima")}:{" "}
+                        {ubsMaisProxima.nome} (
                         {formatarDistancia(ubsMaisProxima.distancia)})
                       </p>
                     )}
@@ -658,7 +670,7 @@ const ProcurarUBS = () => {
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-md"
                 >
                   <HiLocationMarker size={18} />
-                  Abrir rotas
+                  {t("procurar_ubs.abrir_rotas")}
                 </a>
               </div>
             )}
@@ -666,17 +678,17 @@ const ProcurarUBS = () => {
         </div>
 
         {/* Rodapé */}
-        <FooterSection />
+        <FooterSection t={t} />
       </div>
     </div>
   );
 };
 
 // ============================================================
-// SUBCOMPONENTES
+// SUBCOMPONENTES (com i18n)
 // ============================================================
 
-const HeaderSection = () => {
+const HeaderSection = ({ t }) => {
   const hoje = new Date();
   const dataFormatada = hoje.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -694,14 +706,16 @@ const HeaderSection = () => {
             <HiHome className="w-4 h-4" />
             <span>Dashboard</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
-            <span className="text-white font-medium">Procurar UBS</span>
+            <span className="text-white font-medium">
+              {t("procurar_ubs.titulo")}
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
             <HiLocationMarker className="w-7 h-7" />
-            Encontrar UBS
+            {t("procurar_ubs.titulo")}
           </h1>
           <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
-            <span>Encontre rapidamente a unidade de saúde mais próxima</span>
+            <span>{t("procurar_ubs.subtitulo")}</span>
             <span className="w-1 h-1 rounded-full bg-white/30"></span>
             <span>{dataFormatada}</span>
           </p>
@@ -711,8 +725,10 @@ const HeaderSection = () => {
             <HiUser className="w-4 h-4" />
           </div>
           <div className="text-white text-sm">
-            <p className="font-medium">Localização ativa</p>
-            <p className="text-white/70 text-xs">Permissão concedida</p>
+            <p className="font-medium">{t("procurar_ubs.localizacao_ativa")}</p>
+            <p className="text-white/70 text-xs">
+              {t("procurar_ubs.permissao_concedida")}
+            </p>
           </div>
         </div>
       </div>
@@ -722,13 +738,11 @@ const HeaderSection = () => {
   );
 };
 
-const FooterSection = () => {
+const FooterSection = ({ t }) => {
   return (
     <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>Clique em qualquer UBS para ver detalhes e traçar rotas.</p>
-      <p className="mt-1">
-        © 2025 Procurar UBS - Sistema de Localização de Unidades de Saúde
-      </p>
+      <p>{t("procurar_ubs.footer.clique_ubs")}</p>
+      <p className="mt-1">{t("procurar_ubs.footer.copyright")}</p>
     </div>
   );
 };

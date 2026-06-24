@@ -1,4 +1,4 @@
-// src/pages/admim/HistoricoMedicoAdmin.jsx - Versão padronizada com filtros, design consistente e i18n
+// src/pages/admim/HistoricoMedicoAdmin.jsx - Versão padronizada com i18n e ícones limpos
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -18,22 +18,17 @@ import {
   HiChevronDoubleRight,
   HiHome,
   HiDocumentText,
-  HiUsers,
   HiCheckCircle,
   HiTrendingUp,
   HiTrendingDown,
   HiChartPie,
   HiAnnotation,
-  HiCalendar,
-  HiUser,
-  HiOfficeBuilding,
-  HiAcademicCap,
 } from "react-icons/hi";
 import { FaStethoscope } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 // ============================================================
-// DADOS MOCK - 50 REGISTROS COMPLETOS (mantidos)
+// DADOS MOCK - 50 REGISTROS COMPLETOS
 // ============================================================
 const generateRegistros = () => {
   const pacientes = [

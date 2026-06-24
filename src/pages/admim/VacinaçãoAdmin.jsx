@@ -1,6 +1,7 @@
-// src/pages/admim/VacinacaoAdmin.jsx - Versão padronizada com design moderno
+// src/pages/admim/VacinacaoAdmin.jsx - Versão com i18n e padronização completa
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import {
   HiSearch,
   HiX,
@@ -270,7 +271,7 @@ const generateEstoque = () => {
 };
 
 // ============================================================
-// COMPONENTES REUTILIZÁVEIS
+// COMPONENTES REUTILIZÁVEIS (com i18n)
 // ============================================================
 
 const Avatar = ({ nome, size = "sm" }) => {
@@ -295,10 +296,10 @@ const Avatar = ({ nome, size = "sm" }) => {
   );
 };
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, t }) => {
   const config = {
     disponivel: {
-      label: "Disponível",
+      label: t("vacinas.status.disponivel"),
       bg: "bg-emerald-50",
       text: "text-emerald-700",
       border: "border-emerald-200",
@@ -306,7 +307,7 @@ const StatusBadge = ({ status }) => {
       icon: HiCheckCircle,
     },
     critico: {
-      label: "Crítico",
+      label: t("vacinas.status.critico"),
       bg: "bg-amber-50",
       text: "text-amber-700",
       border: "border-amber-200",
@@ -314,7 +315,7 @@ const StatusBadge = ({ status }) => {
       icon: HiExclamationCircle,
     },
     esgotado: {
-      label: "Esgotado",
+      label: t("vacinas.status.esgotado"),
       bg: "bg-rose-50",
       text: "text-rose-700",
       border: "border-rose-200",
@@ -403,15 +404,18 @@ const MetricCard = ({
 // ============================================================
 const VacinacaoAdmin = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   if (user?.role !== "admin") {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
           <HiX className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800">Acesso Restrito</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {t("comum.acesso_restrito")}
+          </h2>
           <p className="text-gray-600 mt-2">
-            Você não tem permissão para acessar esta página.
+            {t("comum.acesso_restrito_texto")}
           </p>
         </div>
       </div>
@@ -531,14 +535,14 @@ const VacinacaoAdmin = () => {
   }, []);
 
   // ============================================================
-  // MODAL PREMIUM
+  // MODAL PREMIUM (com i18n)
   // ============================================================
   const showPremiumModal = ({
     title,
     html,
     preConfirm,
-    confirmText = "Salvar",
-    cancelText = "Cancelar",
+    confirmText = t("comum.salvar"),
+    cancelText = t("comum.cancelar"),
     icon = null,
     showCancel = true,
     width = 580,
@@ -570,25 +574,34 @@ const VacinacaoAdmin = () => {
   };
 
   // ============================================================
-  // HANDLERS CRUD
+  // HANDLERS CRUD (com i18n)
   // ============================================================
 
-  const visualizarRegistro = useCallback((registro) => {
-    const statusMap = {
-      disponivel: {
-        label: "Disponível",
-        color: "text-emerald-600",
-        bg: "#dcfce7",
-      },
-      critico: { label: "Crítico", color: "text-amber-600", bg: "#fef3c7" },
-      esgotado: { label: "Esgotado", color: "text-rose-500", bg: "#fee2e2" },
-    };
-    const { label, color, bg } =
-      statusMap[registro.status] || statusMap.esgotado;
+  const visualizarRegistro = useCallback(
+    (registro) => {
+      const statusMap = {
+        disponivel: {
+          label: t("vacinas.status.disponivel"),
+          color: "text-emerald-600",
+          bg: "#dcfce7",
+        },
+        critico: {
+          label: t("vacinas.status.critico"),
+          color: "text-amber-600",
+          bg: "#fef3c7",
+        },
+        esgotado: {
+          label: t("vacinas.status.esgotado"),
+          color: "text-rose-500",
+          bg: "#fee2e2",
+        },
+      };
+      const { label, color, bg } =
+        statusMap[registro.status] || statusMap.esgotado;
 
-    Swal.fire({
-      title: `<span style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">💉 ${registro.vacina}</span>`,
-      html: `
+      Swal.fire({
+        title: `<span style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">💉 ${registro.vacina}</span>`,
+        html: `
         <div class="text-left space-y-3 p-1">
           <div class="flex items-center gap-4 pb-3 border-b border-gray-100">
             <div class="p-2.5 bg-blue-50 rounded-full"><FaSyringe class="w-6 h-6 text-blue-600" /></div>
@@ -598,25 +611,27 @@ const VacinacaoAdmin = () => {
             </div>
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div><span class="text-gray-500">UBS:</span> <span class="font-medium">${registro.ubs}</span></div>
-            <div><span class="text-gray-500">Quantidade:</span> <span class="font-medium">${registro.quantidade} doses</span></div>
-            <div><span class="text-gray-500">Lote:</span> <span class="font-medium font-mono">${registro.lote}</span></div>
-            <div><span class="text-gray-500">Validade:</span> <span class="font-medium">${registro.validade}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">Status:</span> <span class="font-medium" style="color: ${color}; background: ${bg}; padding: 0.2rem 0.8rem; border-radius: 9999px;">${label}</span></div>
-            ${registro.arquivado ? `<div class="col-span-2"><span class="text-gray-500">Status:</span> <span class="font-medium">📦 Arquivado</span></div>` : ""}
+            <div><span class="text-gray-500">${t("vacinas.ubs")}:</span> <span class="font-medium">${registro.ubs}</span></div>
+            <div><span class="text-gray-500">${t("vacinas.quantidade")}:</span> <span class="font-medium">${registro.quantidade} ${t("vacinas.doses")}</span></div>
+            <div><span class="text-gray-500">${t("vacinas.lote")}:</span> <span class="font-medium font-mono">${registro.lote}</span></div>
+            <div><span class="text-gray-500">${t("vacinas.validade")}:</span> <span class="font-medium">${registro.validade}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium" style="color: ${color}; background: ${bg}; padding: 0.2rem 0.8rem; border-radius: 9999px;">${label}</span></div>
+            ${registro.arquivado ? `<div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium">📦 ${t("comum.arquivado")}</span></div>` : ""}
           </div>
         </div>
       `,
-      icon: "info",
-      confirmButtonColor: "#1e293b",
-      confirmButtonText: "Fechar",
-      customClass: {
-        popup: "rounded-3xl shadow-2xl border border-gray-100",
-        confirmButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
-      },
-    });
-  }, []);
+        icon: "info",
+        confirmButtonColor: "#1e293b",
+        confirmButtonText: t("comum.fechar"),
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        },
+      });
+    },
+    [t],
+  );
 
   const novoLote = useCallback(() => {
     const ubsOptions = ubsList
@@ -625,37 +640,37 @@ const VacinacaoAdmin = () => {
       .join("");
 
     showPremiumModal({
-      title: "Adicionar Novo Lote",
+      title: t("vacinas.modais.novo_lote_titulo"),
       html: `
         <div class="text-left space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Vacina <span class="text-red-500">*</span></label>
-            <input id="swal-vacina" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="Nome da vacina" />
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.vacina")} <span class="text-red-500">*</span></label>
+            <input id="swal-vacina" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("vacinas.modais.nome_vacina")}" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">UBS <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.ubs")} <span class="text-red-500">*</span></label>
             <select id="swal-ubs" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none bg-white">
               ${ubsOptions}
             </select>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Quantidade <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.quantidade")} <span class="text-red-500">*</span></label>
               <input id="swal-quantidade" type="number" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="0" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Lote <span class="text-red-500">*</span></label>
-              <input id="swal-lote" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="Código do lote" />
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.lote")} <span class="text-red-500">*</span></label>
+              <input id="swal-lote" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="${t("vacinas.modais.codigo_lote")}" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Validade <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.validade")} <span class="text-red-500">*</span></label>
             <input id="swal-validade" type="date" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
           </div>
         </div>
       `,
-      confirmText: "Adicionar",
-      cancelText: "Cancelar",
+      confirmText: t("comum.adicionar"),
+      cancelText: t("comum.cancelar"),
       preConfirm: () => {
         const vacina = document.getElementById("swal-vacina").value.trim();
         const ubs = document.getElementById("swal-ubs").value;
@@ -668,7 +683,7 @@ const VacinacaoAdmin = () => {
         const validade = document.getElementById("swal-validade").value;
 
         if (!vacina || !ubs || !lote || !validade) {
-          Swal.showValidationMessage("Preencha todos os campos obrigatórios.");
+          Swal.showValidationMessage(t("vacinas.modais.campos_obrigatorios"));
           return;
         }
 
@@ -698,7 +713,7 @@ const VacinacaoAdmin = () => {
         ]);
         Swal.fire({
           icon: "success",
-          title: "Lote adicionado!",
+          title: t("vacinas.modais.lote_adicionado"),
           toast: true,
           position: "top-end",
           showConfirmButton: false,
@@ -707,40 +722,40 @@ const VacinacaoAdmin = () => {
         });
       }
     });
-  }, [estoque, ubsList, showPremiumModal]);
+  }, [estoque, ubsList, showPremiumModal, t]);
 
   const editarRegistro = useCallback(
     (registro) => {
       showPremiumModal({
-        title: "Editar Lote",
+        title: t("vacinas.modais.editar_lote_titulo"),
         html: `
         <div class="text-left space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Vacina</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.vacina")}</label>
             <input id="swal-vacina" value="${registro.vacina}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-gray-50" disabled />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">UBS</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.ubs")}</label>
             <input id="swal-ubs" value="${registro.ubs}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-gray-50" disabled />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Quantidade <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.quantidade")} <span class="text-red-500">*</span></label>
               <input id="swal-quantidade" type="number" value="${registro.quantidade}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Lote <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.lote")} <span class="text-red-500">*</span></label>
               <input id="swal-lote" value="${registro.lote}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Validade <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("vacinas.validade")} <span class="text-red-500">*</span></label>
             <input id="swal-validade" type="date" value="${registro.validade}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
           </div>
         </div>
       `,
-        confirmText: "Salvar",
-        cancelText: "Cancelar",
+        confirmText: t("comum.salvar"),
+        cancelText: t("comum.cancelar"),
         preConfirm: () => {
           const quantidade =
             parseInt(document.getElementById("swal-quantidade").value) || 0;
@@ -751,9 +766,7 @@ const VacinacaoAdmin = () => {
           const validade = document.getElementById("swal-validade").value;
 
           if (!lote || !validade) {
-            Swal.showValidationMessage(
-              "Preencha todos os campos obrigatórios.",
-            );
+            Swal.showValidationMessage(t("vacinas.modais.campos_obrigatorios"));
             return;
           }
 
@@ -775,7 +788,7 @@ const VacinacaoAdmin = () => {
           );
           Swal.fire({
             icon: "success",
-            title: "Atualizado!",
+            title: t("vacinas.modais.atualizado"),
             toast: true,
             position: "top-end",
             showConfirmButton: false,
@@ -785,70 +798,81 @@ const VacinacaoAdmin = () => {
         }
       });
     },
-    [showPremiumModal],
+    [showPremiumModal, t],
   );
 
-  const arquivarRegistro = useCallback((registro) => {
-    Swal.fire({
-      title: "Arquivar lote",
-      text: `Deseja arquivar o lote ${registro.lote} da vacina ${registro.vacina}?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#1e293b",
-      cancelButtonColor: "#94a3b8",
-      confirmButtonText: "Sim, arquivar",
-      cancelButtonText: "Cancelar",
-      customClass: {
-        popup: "rounded-3xl shadow-2xl border border-gray-100",
-        confirmButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
-        cancelButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEstoque((prev) =>
-          prev.map((e) =>
-            e.id === registro.id ? { ...e, arquivado: true } : e,
-          ),
-        );
-        Swal.fire({
-          icon: "success",
-          title: "Arquivado!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2500,
-          timerProgressBar: true,
-        });
-      }
-    });
-  }, []);
+  const arquivarRegistro = useCallback(
+    (registro) => {
+      Swal.fire({
+        title: t("vacinas.modais.arquivar_titulo"),
+        text: t("vacinas.modais.arquivar_texto", {
+          lote: registro.lote,
+          vacina: registro.vacina,
+        }),
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#1e293b",
+        cancelButtonColor: "#94a3b8",
+        confirmButtonText: t("comum.sim_arquivar"),
+        cancelButtonText: t("comum.cancelar"),
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+          cancelButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setEstoque((prev) =>
+            prev.map((e) =>
+              e.id === registro.id ? { ...e, arquivado: true } : e,
+            ),
+          );
+          Swal.fire({
+            icon: "success",
+            title: t("vacinas.modais.arquivado_sucesso"),
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+          });
+        }
+      });
+    },
+    [t],
+  );
 
-  const desarquivarRegistro = useCallback((registro) => {
-    setEstoque((prev) =>
-      prev.map((e) => (e.id === registro.id ? { ...e, arquivado: false } : e)),
-    );
-    Swal.fire({
-      icon: "success",
-      title: "Desarquivado!",
-      toast: true,
-      position: "top-end",
-      showConfirmButton: false,
-      timer: 2500,
-      timerProgressBar: true,
-    });
-  }, []);
+  const desarquivarRegistro = useCallback(
+    (registro) => {
+      setEstoque((prev) =>
+        prev.map((e) =>
+          e.id === registro.id ? { ...e, arquivado: false } : e,
+        ),
+      );
+      Swal.fire({
+        icon: "success",
+        title: t("vacinas.modais.desarquivado_sucesso"),
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+      });
+    },
+    [t],
+  );
 
   // ============================================================
-  // EXPORTAÇÃO PDF
+  // EXPORTAÇÃO PDF (com i18n)
   // ============================================================
   const exportarRelatorio = useCallback(() => {
     if (filteredData.length === 0) {
       Swal.fire({
         icon: "warning",
-        title: "Nenhum dado",
-        text: "Não há registros para gerar relatório.",
+        title: t("vacinas.modais.sem_dados"),
+        text: t("vacinas.modais.sem_dados_texto"),
         confirmButtonColor: "#1e293b",
         customClass: {
           popup: "rounded-3xl shadow-2xl border border-gray-100",
@@ -865,7 +889,7 @@ const VacinacaoAdmin = () => {
 
       doc.setFontSize(20);
       doc.setTextColor("#1e293b");
-      doc.text("Relatório de Estoque - Vacinas", pageWidth / 2, 20, {
+      doc.text(t("vacinas.pdf.titulo"), pageWidth / 2, 20, {
         align: "center",
       });
 
@@ -878,19 +902,28 @@ const VacinacaoAdmin = () => {
         hour: "2-digit",
         minute: "2-digit",
       });
-      doc.text(`Gerado em: ${dataStr}`, pageWidth - 20, 28, { align: "right" });
-      doc.text(`Total de registros: ${filteredData.length}`, 20, 28);
+      doc.text(
+        `${t("vacinas.pdf.gerado_em")}: ${dataStr}`,
+        pageWidth - 20,
+        28,
+        { align: "right" },
+      );
+      doc.text(
+        `${t("vacinas.pdf.total_registros")}: ${filteredData.length}`,
+        20,
+        28,
+      );
 
       doc.setDrawColor("#cbd5e1");
       doc.line(20, 32, pageWidth - 20, 32);
 
       const headers = [
-        "Vacina",
-        "UBS",
-        "Quantidade",
-        "Lote",
-        "Validade",
-        "Status",
+        t("vacinas.vacina"),
+        t("vacinas.ubs"),
+        t("vacinas.quantidade"),
+        t("vacinas.lote"),
+        t("vacinas.validade"),
+        t("comum.status"),
       ];
       const rows = filteredData.map((e) => [
         e.vacina,
@@ -899,10 +932,10 @@ const VacinacaoAdmin = () => {
         e.lote,
         e.validade,
         e.status === "disponivel"
-          ? "Disponível"
+          ? t("vacinas.status.disponivel")
           : e.status === "critico"
-            ? "Crítico"
-            : "Esgotado",
+            ? t("vacinas.status.critico")
+            : t("vacinas.status.esgotado"),
       ]);
 
       doc.autoTable({
@@ -940,13 +973,13 @@ const VacinacaoAdmin = () => {
           doc.setFontSize(8);
           doc.setTextColor("#94a3b8");
           doc.text(
-            `Página ${currentPage} de ${pageCount}`,
+            `${t("vacinas.pdf.pagina")} ${currentPage} ${t("vacinas.pdf.de")} ${pageCount}`,
             pageWidth / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: "center" },
           );
           doc.text(
-            "Minha UBS - Sistema de Gestão",
+            t("vacinas.pdf.rodape"),
             pageWidth - 20,
             doc.internal.pageSize.getHeight() - 10,
             { align: "right" },
@@ -960,7 +993,7 @@ const VacinacaoAdmin = () => {
 
       Swal.fire({
         icon: "success",
-        title: "PDF gerado!",
+        title: t("vacinas.modais.pdf_gerado"),
         toast: true,
         position: "top-end",
         showConfirmButton: false,
@@ -970,8 +1003,8 @@ const VacinacaoAdmin = () => {
     } catch (error) {
       Swal.fire({
         icon: "error",
-        title: "Erro ao gerar PDF",
-        text: "Verifique se as bibliotecas jspdf e jspdf-autotable estão instaladas.",
+        title: t("vacinas.modais.erro_pdf"),
+        text: t("vacinas.modais.erro_pdf_texto"),
         confirmButtonColor: "#1e293b",
         customClass: {
           popup: "rounded-3xl shadow-2xl border border-gray-100",
@@ -980,7 +1013,7 @@ const VacinacaoAdmin = () => {
         },
       });
     }
-  }, [filteredData]);
+  }, [filteredData, t]);
 
   // ============================================================
   // RENDER
@@ -988,51 +1021,52 @@ const VacinacaoAdmin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - padronizado */}
+        {/* Header - padronizado com i18n */}
         <HeaderSection
           user={user}
-          title="Gestão de Vacinas"
-          subtitle="Controle de estoque em toda a rede"
+          title={t("vacinas.titulo")}
+          subtitle={t("vacinas.subtitulo")}
           icon={FaSyringe}
+          t={t}
         />
 
         {/* Métricas - 4 cards */}
         <div className="flex flex-wrap gap-4">
           <MetricCard
-            title="Total de Lotes"
+            title={t("vacinas.metricas.total_lotes")}
             value={metrics.total}
             icon={HiClipboardList}
             color="blue"
             trend="up"
             trendValue="+5%"
-            subtitle="lotes"
+            subtitle={t("vacinas.metricas.lotes")}
           />
           <MetricCard
-            title="Doses Disponíveis"
+            title={t("vacinas.metricas.doses_disponiveis")}
             value={metrics.totalDoses}
             icon={HiCheckCircle}
             color="green"
             trend="up"
             trendValue="+12%"
-            subtitle="doses"
+            subtitle={t("vacinas.metricas.doses")}
           />
           <MetricCard
-            title="Críticos"
+            title={t("vacinas.metricas.criticos")}
             value={metrics.criticos}
             icon={HiExclamationCircle}
             color="amber"
             trend="down"
             trendValue="-8%"
-            subtitle="em atenção"
+            subtitle={t("vacinas.metricas.em_atencao")}
           />
           <MetricCard
-            title="Esgotados"
+            title={t("vacinas.metricas.esgotados")}
             value={metrics.esgotados}
             icon={HiXCircle}
             color="red"
             trend="up"
             trendValue="+3%"
-            subtitle="necessitam reposição"
+            subtitle={t("vacinas.metricas.reposicao")}
           />
         </div>
 
@@ -1049,6 +1083,7 @@ const VacinacaoAdmin = () => {
             resetFilters={resetFilters}
             setCurrentPage={setCurrentPage}
             totalResults={filteredData.length}
+            t={t}
           />
         </div>
 
@@ -1074,6 +1109,7 @@ const VacinacaoAdmin = () => {
               onEditar={editarRegistro}
               onArquivar={arquivarRegistro}
               onDesarquivar={desarquivarRegistro}
+              t={t}
             />
           )}
           {totalPages > 1 && (
@@ -1083,6 +1119,7 @@ const VacinacaoAdmin = () => {
               setCurrentPage={setCurrentPage}
               itemsPerPage={itemsPerPage}
               totalItems={filteredData.length}
+              t={t}
             />
           )}
         </div>
@@ -1092,31 +1129,31 @@ const VacinacaoAdmin = () => {
           <button
             onClick={novoLote}
             className="bg-slate-700 hover:bg-slate-800 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
-            title="Novo Lote"
+            title={t("vacinas.novo_lote")}
           >
             <HiPlus size={24} />
           </button>
           <button
             onClick={exportarRelatorio}
             className="bg-teal-600 hover:bg-teal-700 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
-            title="Exportar PDF"
+            title={t("vacinas.exportar_pdf")}
           >
             <HiDocumentReport size={24} />
           </button>
         </div>
 
         {/* Rodapé */}
-        <FooterSection />
+        <FooterSection t={t} />
       </div>
     </div>
   );
 };
 
 // ============================================================
-// SUBCOMPONENTES
+// SUBCOMPONENTES (com i18n)
 // ============================================================
 
-const HeaderSection = ({ user, title, subtitle, icon: Icon }) => {
+const HeaderSection = ({ user, title, subtitle, icon: Icon, t }) => {
   const hoje = new Date();
   const dataFormatada = hoje.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -1134,7 +1171,9 @@ const HeaderSection = ({ user, title, subtitle, icon: Icon }) => {
             <HiHome className="w-4 h-4" />
             <span>Dashboard</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
-            <span className="text-white font-medium">Vacinas</span>
+            <span className="text-white font-medium">
+              {t("vacinas.abas.vacinas")}
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
             <Icon className="w-7 h-7" />
@@ -1173,6 +1212,7 @@ const FilterBar = ({
   resetFilters,
   setCurrentPage,
   totalResults,
+  t,
 }) => {
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
@@ -1188,7 +1228,7 @@ const FilterBar = ({
           <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por vacina, UBS ou lote..."
+            placeholder={t("vacinas.filtros.buscar")}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -1204,10 +1244,10 @@ const FilterBar = ({
             onChange={handleFilterChange(setFilterStatus)}
             className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
           >
-            <option value="todos">Todos os Status</option>
-            <option value="disponivel">Disponíveis</option>
-            <option value="critico">Críticos</option>
-            <option value="esgotado">Esgotados</option>
+            <option value="todos">{t("vacinas.filtros.todos_status")}</option>
+            <option value="disponivel">{t("vacinas.status.disponivel")}</option>
+            <option value="critico">{t("vacinas.status.critico")}</option>
+            <option value="esgotado">{t("vacinas.status.esgotado")}</option>
           </select>
 
           <select
@@ -1217,7 +1257,7 @@ const FilterBar = ({
           >
             {ubsList.map((ubs) => (
               <option key={ubs} value={ubs}>
-                {ubs === "todas" ? "Todas as UBS" : ubs}
+                {ubs === "todas" ? t("vacinas.filtros.todas_ubs") : ubs}
               </option>
             ))}
           </select>
@@ -1227,7 +1267,7 @@ const FilterBar = ({
               onClick={resetFilters}
               className="px-3 py-2 rounded-xl text-sm text-blue-600 hover:bg-blue-50 transition font-medium"
             >
-              Limpar filtros
+              {t("comum.limpar_filtros")}
             </button>
           )}
         </div>
@@ -1236,12 +1276,13 @@ const FilterBar = ({
       <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
         <HiFilter className="w-4 h-4" />
         <span>
-          <strong className="text-gray-700">{totalResults}</strong> registro
-          {totalResults !== 1 && "s"} encontrado{totalResults !== 1 && "s"}
+          <strong className="text-gray-700">{totalResults}</strong>{" "}
+          {totalResults === 1 ? t("comum.registro") : t("comum.registros")}{" "}
+          {totalResults === 1 ? t("comum.encontrado") : t("comum.encontrados")}
         </span>
         {isFilterActive && (
           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-            filtros ativos
+            {t("comum.filtros_ativos")}
           </span>
         )}
       </div>
@@ -1257,6 +1298,7 @@ const VacinacaoTable = ({
   onEditar,
   onArquivar,
   onDesarquivar,
+  t,
 }) => {
   const renderSortIcon = (key) => {
     if (sortConfig.key !== key)
@@ -1277,11 +1319,9 @@ const VacinacaoTable = ({
           <FaSyringe className="w-12 h-12 text-gray-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-700">
-          Nenhum lote encontrado
+          {t("vacinas.sem_dados")}
         </h3>
-        <p className="text-gray-500 mt-1">
-          Tente ajustar os filtros ou adicione um novo lote.
-        </p>
+        <p className="text-gray-500 mt-1">{t("vacinas.sem_dados_texto")}</p>
       </div>
     );
   }
@@ -1295,31 +1335,31 @@ const VacinacaoTable = ({
               className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
               onClick={() => handleSort("vacina")}
             >
-              Vacina {renderSortIcon("vacina")}
+              {t("vacinas.vacina")} {renderSortIcon("vacina")}
             </th>
             <th
               className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
               onClick={() => handleSort("ubs")}
             >
-              UBS {renderSortIcon("ubs")}
+              {t("vacinas.ubs")} {renderSortIcon("ubs")}
             </th>
             <th
               className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition"
               onClick={() => handleSort("quantidade")}
             >
-              Quantidade {renderSortIcon("quantidade")}
+              {t("vacinas.quantidade")} {renderSortIcon("quantidade")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Lote
+              {t("vacinas.lote")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Validade
+              {t("vacinas.validade")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Status
+              {t("comum.status")}
             </th>
             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Ações
+              {t("comum.acoes")}
             </th>
           </tr>
         </thead>
@@ -1362,7 +1402,7 @@ const VacinacaoTable = ({
                   {registro.validade}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <StatusBadge status={registro.status} />
+                  <StatusBadge status={registro.status} t={t} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-1">
@@ -1372,7 +1412,7 @@ const VacinacaoTable = ({
                         onVisualizar(registro);
                       }}
                       className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
-                      title="Visualizar"
+                      title={t("comum.visualizar")}
                     >
                       <HiEye size={16} />
                     </button>
@@ -1384,7 +1424,7 @@ const VacinacaoTable = ({
                             onEditar(registro);
                           }}
                           className="p-2 rounded-lg text-amber-600 hover:bg-amber-100 transition"
-                          title="Editar"
+                          title={t("comum.editar")}
                         >
                           <HiPencil size={16} />
                         </button>
@@ -1394,7 +1434,7 @@ const VacinacaoTable = ({
                             onArquivar(registro);
                           }}
                           className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-                          title="Arquivar"
+                          title={t("comum.arquivar")}
                         >
                           <HiArchive size={16} />
                         </button>
@@ -1406,7 +1446,7 @@ const VacinacaoTable = ({
                           onDesarquivar(registro);
                         }}
                         className="p-2 rounded-lg text-green-600 hover:bg-green-100 transition"
-                        title="Desarquivar"
+                        title={t("comum.desarquivar")}
                       >
                         <HiRefresh size={16} />
                       </button>
@@ -1428,6 +1468,7 @@ const PaginationControls = ({
   setCurrentPage,
   itemsPerPage,
   totalItems,
+  t,
 }) => {
   const start = (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, totalItems);
@@ -1435,9 +1476,11 @@ const PaginationControls = ({
   return (
     <div className="px-4 py-3 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div className="text-sm text-gray-500">
-        Mostrando <strong className="text-gray-700">{start}</strong> a{" "}
-        <strong className="text-gray-700">{end}</strong> de{" "}
-        <strong className="text-gray-700">{totalItems}</strong> registros
+        {t("comum.mostrando")}{" "}
+        <strong className="text-gray-700">{start}</strong> {t("comum.a")}{" "}
+        <strong className="text-gray-700">{end}</strong> {t("comum.de")}{" "}
+        <strong className="text-gray-700">{totalItems}</strong>{" "}
+        {t("comum.registros")}
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -1493,13 +1536,11 @@ const PaginationControls = ({
   );
 };
 
-const FooterSection = () => {
+const FooterSection = ({ t }) => {
   return (
     <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>Clique em qualquer linha para ver detalhes completos.</p>
-      <p className="mt-1">
-        © 2025 Gestão de Vacinas - Sistema de Gestão de Saúde
-      </p>
+      <p>{t("vacinas.footer.clique_linha")}</p>
+      <p className="mt-1">{t("vacinas.footer.copyright")}</p>
     </div>
   );
 };

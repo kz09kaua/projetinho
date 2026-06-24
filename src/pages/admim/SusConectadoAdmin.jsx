@@ -1,5 +1,6 @@
-// src/pages/admim/SusConectadoAdmin.jsx - Versão corrigida com todas as importações
+// src/pages/admim/SusConectadoAdmin.jsx - Versão com i18n e padronização completa
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   HiCloud,
   HiRefresh,
@@ -134,10 +135,10 @@ const Avatar = ({ nome, size = "sm" }) => {
 };
 
 // Badge de status com ícone e animação
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, t }) => {
   const config = {
     concluido: {
-      label: "Concluído",
+      label: t("sus.status.concluido"),
       bg: "bg-emerald-50",
       text: "text-emerald-700",
       border: "border-emerald-200",
@@ -145,7 +146,7 @@ const StatusBadge = ({ status }) => {
       icon: HiCheckCircle,
     },
     pendente: {
-      label: "Pendente",
+      label: t("sus.status.pendente"),
       bg: "bg-amber-50",
       text: "text-amber-700",
       border: "border-amber-200",
@@ -153,7 +154,7 @@ const StatusBadge = ({ status }) => {
       icon: HiClock,
     },
     agendado: {
-      label: "Agendado",
+      label: t("sus.status.agendado"),
       bg: "bg-sky-50",
       text: "text-sky-700",
       border: "border-sky-200",
@@ -181,22 +182,22 @@ const StatusBadge = ({ status }) => {
 };
 
 // Badge de prioridade
-const PriorityBadge = ({ prioridade }) => {
+const PriorityBadge = ({ prioridade, t }) => {
   const config = {
     alta: {
-      label: "Alta Prioridade",
+      label: t("sus.prioridade.alta"),
       bg: "bg-rose-50",
       text: "text-rose-700",
       border: "border-rose-200",
     },
     media: {
-      label: "Média Prioridade",
+      label: t("sus.prioridade.media"),
       bg: "bg-amber-50",
       text: "text-amber-700",
       border: "border-amber-200",
     },
     baixa: {
-      label: "Baixa Prioridade",
+      label: t("sus.prioridade.baixa"),
       bg: "bg-sky-50",
       text: "text-sky-700",
       border: "border-sky-200",
@@ -279,7 +280,7 @@ const MetricCard = ({
 };
 
 // Card de exame com design moderno e interativo
-const ExamCard = ({ exame, onDetalhes }) => {
+const ExamCard = ({ exame, onDetalhes, t }) => {
   const borderColor = {
     concluido: "border-emerald-200 hover:border-emerald-400",
     pendente: "border-amber-200 hover:border-amber-400",
@@ -307,18 +308,18 @@ const ExamCard = ({ exame, onDetalhes }) => {
               <span>{exame.medicoSolicitante}</span>
             </p>
           </div>
-          <StatusBadge status={exame.status} />
+          <StatusBadge status={exame.status} t={t} />
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <PriorityBadge prioridade={exame.prioridade} />
+          <PriorityBadge prioridade={exame.prioridade} t={t} />
           <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full border border-gray-200">
             {exame.tipo}
           </span>
           {isArquivado && (
             <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full border border-gray-200">
               <HiArchive className="inline mr-1" size={12} />
-              Arquivado
+              {t("comum.arquivado")}
             </span>
           )}
         </div>
@@ -344,7 +345,7 @@ const ExamCard = ({ exame, onDetalhes }) => {
               onDetalhes(exame);
             }}
           >
-            Ver detalhes <HiExternalLink size={14} />
+            {t("sus.ver_detalhes")} <HiExternalLink size={14} />
           </button>
         </div>
       </div>
@@ -355,6 +356,8 @@ const ExamCard = ({ exame, onDetalhes }) => {
 // ----------------------------- PÁGINA PRINCIPAL -----------------------------
 
 const SusConectado = () => {
+  const { t } = useTranslation();
+
   const [indicadores, setIndicadores] = useState({
     coberturaVacinal: 78,
     mediaEspera: 45,
@@ -443,8 +446,8 @@ const SusConectado = () => {
     setSyncing(false);
     Swal.fire({
       icon: "success",
-      title: "Sincronizado!",
-      text: "Dados nacionais e da sua UBS foram atualizados.",
+      title: t("sus.sincronizado"),
+      text: t("sus.sincronizado_texto"),
       toast: true,
       position: "top-end",
       showConfirmButton: false,
@@ -457,10 +460,11 @@ const SusConectado = () => {
     fetchDados();
   }, []);
 
-  const verDetalhesExame = (exame) => {
-    Swal.fire({
-      title: exame.nome,
-      html: `
+  const verDetalhesExame = useCallback(
+    (exame) => {
+      Swal.fire({
+        title: exame.nome,
+        html: `
         <div class="text-left space-y-3 p-1">
           <div class="flex items-center gap-4 pb-3 border-b border-gray-100">
             <div class="p-2.5 bg-blue-50 rounded-full"><HiDocumentText class="w-6 h-6 text-blue-600" /></div>
@@ -470,27 +474,29 @@ const SusConectado = () => {
             </div>
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div><span class="text-gray-500">Médico:</span> <span class="font-medium">${exame.medicoSolicitante}</span></div>
-            <div><span class="text-gray-500">Tipo:</span> <span class="font-medium">${exame.tipo}</span></div>
-            <div><span class="text-gray-500">Data Solicitação:</span> <span class="font-medium">${exame.dataSolicitacao}</span></div>
-            <div><span class="text-gray-500">Data Resultado:</span> <span class="font-medium">${exame.dataResultado || "Não disponível"}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">Status:</span> <span class="font-medium">${exame.status === "concluido" ? "✅ Concluído" : exame.status === "pendente" ? "⏳ Pendente" : "📅 Agendado"}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">Prioridade:</span> <span class="font-medium">${exame.prioridade === "alta" ? "🔴 Alta" : exame.prioridade === "media" ? "🟡 Média" : "🟢 Baixa"}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">Resultado:</span> <span class="font-medium">${exame.resultado}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">Arquivado:</span> <span class="font-medium">${exame.arquivado ? "Sim" : "Não"}</span></div>
+            <div><span class="text-gray-500">${t("sus.medico")}:</span> <span class="font-medium">${exame.medicoSolicitante}</span></div>
+            <div><span class="text-gray-500">${t("sus.tipo")}:</span> <span class="font-medium">${exame.tipo}</span></div>
+            <div><span class="text-gray-500">${t("sus.data_solicitacao")}:</span> <span class="font-medium">${exame.dataSolicitacao}</span></div>
+            <div><span class="text-gray-500">${t("sus.data_resultado")}:</span> <span class="font-medium">${exame.dataResultado || t("sus.nao_disponivel")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium">${exame.status === "concluido" ? "✅ " + t("sus.status.concluido") : exame.status === "pendente" ? "⏳ " + t("sus.status.pendente") : "📅 " + t("sus.status.agendado")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("sus.prioridade")}:</span> <span class="font-medium">${exame.prioridade === "alta" ? "🔴 " + t("sus.prioridade.alta") : exame.prioridade === "media" ? "🟡 " + t("sus.prioridade.media") : "🟢 " + t("sus.prioridade.baixa")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("sus.resultado")}:</span> <span class="font-medium">${exame.resultado}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("comum.arquivado")}:</span> <span class="font-medium">${exame.arquivado ? t("comum.sim") : t("comum.nao")}</span></div>
           </div>
         </div>
       `,
-      icon: exame.status === "concluido" ? "success" : "info",
-      confirmButtonColor: "#1e293b",
-      confirmButtonText: "Fechar",
-      customClass: {
-        popup: "rounded-3xl shadow-2xl border border-gray-100",
-        confirmButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
-      },
-    });
-  };
+        icon: exame.status === "concluido" ? "success" : "info",
+        confirmButtonColor: "#1e293b",
+        confirmButtonText: t("comum.fechar"),
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+        },
+      });
+    },
+    [t],
+  );
 
   const limparBusca = () => setSearchTerm("");
   const limparFiltros = () => {
@@ -499,108 +505,121 @@ const SusConectado = () => {
     setCurrentPage(1);
   };
 
-  const handleArquivar = (exame) => {
-    Swal.fire({
-      title: "Arquivar exame",
-      text: `Deseja arquivar o exame ${exame.nome}?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#1e293b",
-      cancelButtonColor: "#94a3b8",
-      confirmButtonText: "Sim, arquivar",
-      cancelButtonText: "Cancelar",
-      customClass: {
-        popup: "rounded-3xl shadow-2xl border border-gray-100",
-        confirmButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
-        cancelButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setExames((prev) =>
-          prev.map((e) => (e.id === exame.id ? { ...e, arquivado: true } : e)),
-        );
-        Swal.fire({
-          icon: "success",
-          title: "Arquivado!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2500,
-          timerProgressBar: true,
-        });
-      }
-    });
-  };
+  const handleArquivar = useCallback(
+    (exame) => {
+      Swal.fire({
+        title: t("sus.arquivar_titulo"),
+        text: t("sus.arquivar_texto", { nome: exame.nome }),
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#1e293b",
+        cancelButtonColor: "#94a3b8",
+        confirmButtonText: t("comum.sim_arquivar"),
+        cancelButtonText: t("comum.cancelar"),
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+          cancelButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setExames((prev) =>
+            prev.map((e) =>
+              e.id === exame.id ? { ...e, arquivado: true } : e,
+            ),
+          );
+          Swal.fire({
+            icon: "success",
+            title: t("sus.arquivado_sucesso"),
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+          });
+        }
+      });
+    },
+    [t],
+  );
 
-  const handleDesarquivar = (exame) => {
-    Swal.fire({
-      title: "Desarquivar exame",
-      text: `Restaurar o exame ${exame.nome}?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#1e293b",
-      cancelButtonColor: "#94a3b8",
-      confirmButtonText: "Sim, desarquivar",
-      cancelButtonText: "Cancelar",
-      customClass: {
-        popup: "rounded-3xl shadow-2xl border border-gray-100",
-        confirmButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
-        cancelButton:
-          "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setExames((prev) =>
-          prev.map((e) => (e.id === exame.id ? { ...e, arquivado: false } : e)),
-        );
-        Swal.fire({
-          icon: "success",
-          title: "Desarquivado!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2500,
-          timerProgressBar: true,
-        });
-      }
-    });
-  };
+  const handleDesarquivar = useCallback(
+    (exame) => {
+      Swal.fire({
+        title: t("sus.desarquivar_titulo"),
+        text: t("sus.desarquivar_texto", { nome: exame.nome }),
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#1e293b",
+        cancelButtonColor: "#94a3b8",
+        confirmButtonText: t("comum.sim_desarquivar"),
+        cancelButtonText: t("comum.cancelar"),
+        customClass: {
+          popup: "rounded-3xl shadow-2xl border border-gray-100",
+          confirmButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all",
+          cancelButton:
+            "px-6 py-2.5 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all",
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setExames((prev) =>
+            prev.map((e) =>
+              e.id === exame.id ? { ...e, arquivado: false } : e,
+            ),
+          );
+          Swal.fire({
+            icon: "success",
+            title: t("sus.desarquivado_sucesso"),
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+          });
+        }
+      });
+    },
+    [t],
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Cabeçalho */}
-        <HeaderSection />
+        <HeaderSection t={t} />
 
         {/* Indicadores */}
         <MetricsGrid
           indicadores={indicadores}
           ubsData={ubsData}
           stats={stats}
+          t={t}
         />
 
         {/* Status da UBS */}
-        <UBSStatusCard ubsData={ubsData} indicadores={indicadores} />
+        <UBSStatusCard ubsData={ubsData} indicadores={indicadores} t={t} />
 
         {/* Seção Meus Exames */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <HiDocumentText className="text-purple-500" /> Meus Exames
+              <HiDocumentText className="text-purple-500" />{" "}
+              {t("sus.meus_exames")}
             </h2>
-            <p className="text-gray-500">Acompanhe seus exames solicitados</p>
+            <p className="text-gray-500">{t("sus.meus_exames_subtitulo")}</p>
           </div>
           <div className="flex items-center gap-3 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition">
             <HiChartPie className="text-gray-400" />
             <span className="text-sm font-medium">
               <span className="text-emerald-600">{stats.concluidos}</span>{" "}
-              concluídos ·
+              {t("sus.concluidos")} ·
               <span className="text-amber-600"> {stats.pendentes}</span>{" "}
-              pendentes ·
-              <span className="text-sky-600"> {stats.agendados}</span> agendados
+              {t("sus.pendentes")} ·
+              <span className="text-sky-600"> {stats.agendados}</span>{" "}
+              {t("sus.agendados")}
             </span>
           </div>
         </div>
@@ -621,6 +640,7 @@ const SusConectado = () => {
           limparBusca={limparBusca}
           setCurrentPage={setCurrentPage}
           totalResults={examesFiltrados.length}
+          t={t}
         />
 
         {/* Grid/Lista de exames */}
@@ -641,10 +661,10 @@ const SusConectado = () => {
               <HiXCircle className="text-gray-300 text-5xl" />
             </div>
             <p className="text-gray-500 text-lg font-medium">
-              Nenhum exame encontrado
+              {t("sus.nenhum_exame")}
             </p>
             <p className="text-gray-400 text-sm">
-              Tente ajustar os filtros ou a busca
+              {t("sus.nenhum_exame_texto")}
             </p>
           </div>
         ) : viewMode === "grid" ? (
@@ -654,6 +674,7 @@ const SusConectado = () => {
                 key={exame.id}
                 exame={exame}
                 onDetalhes={verDetalhesExame}
+                t={t}
               />
             ))}
           </div>
@@ -664,6 +685,7 @@ const SusConectado = () => {
               onDetalhes={verDetalhesExame}
               onArquivar={handleArquivar}
               onDesarquivar={handleDesarquivar}
+              t={t}
             />
           </div>
         )}
@@ -676,21 +698,22 @@ const SusConectado = () => {
             setCurrentPage={setCurrentPage}
             itemsPerPage={itemsPerPage}
             totalItems={examesFiltrados.length}
+            t={t}
           />
         )}
 
         {/* Rodapé */}
-        <FooterSection />
+        <FooterSection t={t} />
       </div>
     </div>
   );
 };
 
 // ============================================================
-// SUBCOMPONENTES (com paleta padronizada)
+// SUBCOMPONENTES (com i18n)
 // ============================================================
 
-const HeaderSection = () => {
+const HeaderSection = ({ t }) => {
   const hoje = new Date();
   const dataFormatada = hoje.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -708,14 +731,14 @@ const HeaderSection = () => {
             <HiHome className="w-4 h-4" />
             <span>Dashboard</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
-            <span className="text-white font-medium">SUS Conectado</span>
+            <span className="text-white font-medium">{t("sus.titulo")}</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
             <HiCloud className="w-7 h-7" />
-            SUS Conectado
+            {t("sus.titulo")}
           </h1>
           <p className="text-white/80 text-sm mt-1 flex items-center gap-2">
-            <span>Integração nacional – dados em tempo real</span>
+            <span>{t("sus.subtitulo")}</span>
             <span className="w-1 h-1 rounded-full bg-white/30"></span>
             <span>{dataFormatada}</span>
           </p>
@@ -725,10 +748,10 @@ const HeaderSection = () => {
             onClick={() => {
               Swal.fire({
                 icon: "info",
-                title: "Sincronizar Dados",
-                text: "Dados nacionais e da sua UBS serão atualizados.",
+                title: t("sus.sincronizar_titulo"),
+                text: t("sus.sincronizar_texto"),
                 confirmButtonColor: "#1e293b",
-                confirmButtonText: "Continuar",
+                confirmButtonText: t("comum.continuar"),
                 customClass: {
                   popup: "rounded-3xl shadow-2xl border border-gray-100",
                   confirmButton:
@@ -739,7 +762,7 @@ const HeaderSection = () => {
             className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-xl font-semibold border border-white/20 transition-all"
           >
             <HiRefresh />
-            Sincronizar
+            {t("comum.sincronizar")}
           </button>
         </div>
       </div>
@@ -749,67 +772,67 @@ const HeaderSection = () => {
   );
 };
 
-const MetricsGrid = ({ indicadores, ubsData, stats }) => {
+const MetricsGrid = ({ indicadores, ubsData, stats, t }) => {
   const cards = [
     {
-      title: "Cobertura Vacinal (BR)",
+      title: t("sus.cobertura_vacinal"),
       value: indicadores.coberturaVacinal,
       unit: "%",
       icon: HiDatabase,
       color: "blue",
       trend: "up",
       trendValue: "+2%",
-      subtitle: "este mês",
+      subtitle: t("sus.este_mes"),
     },
     {
-      title: "Média de Espera",
+      title: t("sus.media_espera"),
       value: indicadores.mediaEspera,
       unit: "dias",
       icon: HiClock,
       color: "amber",
       trend: "down",
       trendValue: "-5 dias",
-      subtitle: "redução",
+      subtitle: t("sus.reducao"),
     },
     {
-      title: "Leitos SUS Ocupados",
+      title: t("sus.leitos_ocupados"),
       value: indicadores.leitosOcupados,
       unit: "%",
       icon: HiUsers,
       color: "red",
       trend: "up",
       trendValue: "+3%",
-      subtitle: "hoje",
+      subtitle: t("sus.hoje"),
     },
     {
-      title: "Produção Mensal",
+      title: t("sus.producao_mensal"),
       value: ubsData.producaoMensal,
       unit: "",
       icon: HiTrendingUp,
       color: "green",
       trend: "up",
       trendValue: "+12%",
-      subtitle: "vs mês passado",
+      subtitle: t("sus.vs_mes_passado"),
     },
     {
-      title: "Total Exames",
+      title: t("sus.total_exames"),
       value: stats.total,
       unit: "",
       icon: HiDocumentText,
       color: "purple",
       trend: "up",
       trendValue: "+8%",
-      subtitle: "no total",
+      subtitle: t("sus.no_total"),
     },
     {
-      title: "Arquivados",
+      title: t("comum.arquivados"),
       value: stats.arquivados,
       unit: "",
       icon: HiArchive,
       color: "gray",
       trend: "up",
       trendValue: "+2%",
-      subtitle: "arquivados",
+      subtitle: t("sus.arquivados_sub"),
     },
   ];
 
@@ -822,7 +845,7 @@ const MetricsGrid = ({ indicadores, ubsData, stats }) => {
   );
 };
 
-const UBSStatusCard = ({ ubsData, indicadores }) => {
+const UBSStatusCard = ({ ubsData, indicadores, t }) => {
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-emerald-50 rounded-full opacity-30 -translate-y-1/2 translate-x-1/4" />
@@ -832,16 +855,18 @@ const UBSStatusCard = ({ ubsData, indicadores }) => {
             <HiClipboardList className="text-white text-2xl" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Sua UBS</p>
+            <p className="text-sm text-gray-500 font-medium">
+              {t("sus.sua_ubs")}
+            </p>
             <p className="font-bold text-gray-800 text-lg">
-              Código SUS:{" "}
+              {t("sus.codigo_sus")}:{" "}
               <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">
                 {ubsData.codigoSUS}
               </span>
             </p>
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <HiClock className="text-gray-400" />
-              Última sincronização: {ubsData.ultimaSincronizacao}
+              {t("sus.ultima_sincronizacao")}: {ubsData.ultimaSincronizacao}
             </p>
           </div>
         </div>
@@ -851,7 +876,7 @@ const UBSStatusCard = ({ ubsData, indicadores }) => {
               {ubsData.producaoMensal}
             </p>
             <p className="text-xs text-gray-400 font-medium">
-              atendimentos/mês
+              {t("sus.atendimentos_mes")}
             </p>
           </div>
           <div className="w-px h-10 bg-gray-200" />
@@ -860,7 +885,7 @@ const UBSStatusCard = ({ ubsData, indicadores }) => {
               {indicadores.coberturaVacinal}%
             </p>
             <p className="text-xs text-gray-400 font-medium">
-              cobertura nacional
+              {t("sus.cobertura_nacional")}
             </p>
           </div>
         </div>
@@ -884,6 +909,7 @@ const FilterBar = ({
   limparBusca,
   setCurrentPage,
   totalResults,
+  t,
 }) => {
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
@@ -901,7 +927,7 @@ const FilterBar = ({
             <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar exame, médico ou status..."
+              placeholder={t("sus.buscar_exame")}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -929,7 +955,9 @@ const FilterBar = ({
               } hover:bg-gray-100 transition flex items-center gap-1`}
             >
               <HiFilter size={18} />
-              <span className="hidden sm:inline text-sm">Filtros</span>
+              <span className="hidden sm:inline text-sm">
+                {t("comum.filtros")}
+              </span>
               {isFilterActive && (
                 <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
               )}
@@ -966,32 +994,32 @@ const FilterBar = ({
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-600">
-                  Status:
+                  {t("comum.status")}:
                 </span>
                 <select
                   value={selectedStatus}
                   onChange={handleFilterChange(setSelectedStatus)}
                   className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
                 >
-                  <option value="todos">Todos</option>
-                  <option value="concluido">Concluído</option>
-                  <option value="pendente">Pendente</option>
-                  <option value="agendado">Agendado</option>
+                  <option value="todos">{t("comum.todos")}</option>
+                  <option value="concluido">{t("sus.status.concluido")}</option>
+                  <option value="pendente">{t("sus.status.pendente")}</option>
+                  <option value="agendado">{t("sus.status.agendado")}</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-600">
-                  Prioridade:
+                  {t("sus.prioridade")}:
                 </span>
                 <select
                   value={selectedPrioridade}
                   onChange={handleFilterChange(setSelectedPrioridade)}
                   className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
                 >
-                  <option value="todas">Todas</option>
-                  <option value="alta">Alta</option>
-                  <option value="media">Média</option>
-                  <option value="baixa">Baixa</option>
+                  <option value="todas">{t("sus.prioridade.todas")}</option>
+                  <option value="alta">{t("sus.prioridade.alta")}</option>
+                  <option value="media">{t("sus.prioridade.media")}</option>
+                  <option value="baixa">{t("sus.prioridade.baixa")}</option>
                 </select>
               </div>
               {isFilterActive && (
@@ -999,7 +1027,7 @@ const FilterBar = ({
                   onClick={limparFiltros}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                 >
-                  Limpar filtros
+                  {t("comum.limpar_filtros")}
                 </button>
               )}
             </div>
@@ -1009,12 +1037,15 @@ const FilterBar = ({
         <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
           <HiFilter className="w-4 h-4" />
           <span>
-            <strong className="text-gray-700">{totalResults}</strong> resultado
-            {totalResults !== 1 && "s"} encontrado{totalResults !== 1 && "s"}
+            <strong className="text-gray-700">{totalResults}</strong>{" "}
+            {totalResults === 1 ? t("comum.resultado") : t("comum.resultados")}{" "}
+            {totalResults === 1
+              ? t("comum.encontrado")
+              : t("comum.encontrados")}
           </span>
           {isFilterActive && (
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-              filtros ativos
+              {t("comum.filtros_ativos")}
             </span>
           )}
         </div>
@@ -1023,7 +1054,7 @@ const FilterBar = ({
   );
 };
 
-const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
+const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar, t }) => {
   if (data.length === 0) {
     return (
       <div className="p-12 text-center">
@@ -1031,11 +1062,9 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
           <HiDocumentText className="w-12 h-12 text-gray-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-700">
-          Nenhum exame encontrado
+          {t("sus.nenhum_exame")}
         </h3>
-        <p className="text-gray-500 mt-1">
-          Tente ajustar os filtros ou realizar uma nova busca.
-        </p>
+        <p className="text-gray-500 mt-1">{t("sus.nenhum_exame_texto")}</p>
       </div>
     );
   }
@@ -1046,22 +1075,22 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
         <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Exame
+              {t("sus.exame")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
-              Médico
+              {t("sus.medico")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-              Tipo
+              {t("sus.tipo")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Data
+              {t("sus.data")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Status
+              {t("comum.status")}
             </th>
             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Ações
+              {t("comum.acoes")}
             </th>
           </tr>
         </thead>
@@ -1080,7 +1109,7 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
                       <span className="font-medium text-gray-800 truncate max-w-[150px] block">
                         {exame.nome}
                       </span>
-                      <PriorityBadge prioridade={exame.prioridade} />
+                      <PriorityBadge prioridade={exame.prioridade} t={t} />
                     </div>
                   </div>
                 </td>
@@ -1094,14 +1123,14 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
                   {exame.dataSolicitacao}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <StatusBadge status={exame.status} />
+                  <StatusBadge status={exame.status} t={t} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => onDetalhes(exame)}
                       className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
-                      title="Visualizar"
+                      title={t("comum.visualizar")}
                     >
                       <HiEye size={16} />
                     </button>
@@ -1109,7 +1138,7 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
                       <button
                         onClick={() => onArquivar(exame)}
                         className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-                        title="Arquivar"
+                        title={t("comum.arquivar")}
                       >
                         <HiArchive size={16} />
                       </button>
@@ -1117,7 +1146,7 @@ const ExamsTable = ({ data, onDetalhes, onArquivar, onDesarquivar }) => {
                       <button
                         onClick={() => onDesarquivar(exame)}
                         className="p-2 rounded-lg text-green-600 hover:bg-green-100 transition"
-                        title="Desarquivar"
+                        title={t("comum.desarquivar")}
                       >
                         <HiRefresh size={16} />
                       </button>
@@ -1139,6 +1168,7 @@ const PaginationControls = ({
   setCurrentPage,
   itemsPerPage,
   totalItems,
+  t,
 }) => {
   const start = (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, totalItems);
@@ -1146,9 +1176,11 @@ const PaginationControls = ({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div className="text-sm text-gray-500">
-        Mostrando <strong className="text-gray-700">{start}</strong> a{" "}
-        <strong className="text-gray-700">{end}</strong> de{" "}
-        <strong className="text-gray-700">{totalItems}</strong> registros
+        {t("comum.mostrando")}{" "}
+        <strong className="text-gray-700">{start}</strong> {t("comum.a")}{" "}
+        <strong className="text-gray-700">{end}</strong> {t("comum.de")}{" "}
+        <strong className="text-gray-700">{totalItems}</strong>{" "}
+        {t("comum.registros")}
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -1204,16 +1236,11 @@ const PaginationControls = ({
   );
 };
 
-const FooterSection = () => {
+const FooterSection = ({ t }) => {
   return (
     <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>
-        Dados simulados para demonstração. Em produção, integre com a API
-        oficial do DataSUS.
-      </p>
-      <p className="mt-1">
-        © 2025 SUS Conectado - Todos os direitos reservados
-      </p>
+      <p>{t("sus.footer_dados")}</p>
+      <p className="mt-1">{t("sus.footer_copyright")}</p>
     </div>
   );
 };
