@@ -704,7 +704,7 @@ const HeaderSection = ({ t }) => {
         <div>
           <div className="flex items-center gap-2 text-white/80 text-sm">
             <HiHome className="w-4 h-4" />
-            <span>Dashboard</span>
+            <span>{t("procurar_ubs.navegacao.dashboard")}</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
             <span className="text-white font-medium">
               {t("procurar_ubs.titulo")}
@@ -738,13 +738,6 @@ const HeaderSection = ({ t }) => {
   );
 };
 
-const FooterSection = ({ t }) => {
-  return (
-    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>{t("procurar_ubs.footer.clique_ubs")}</p>
-      <p className="mt-1">{t("procurar_ubs.footer.copyright")}</p>
-    </div>
-  );
-};
+const FooterSection = ({ t }) => {};
 
 export default ProcurarUBS;

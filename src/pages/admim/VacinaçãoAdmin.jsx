@@ -1,4 +1,4 @@
-// src/pages/admim/VacinacaoAdmin.jsx - Versão com i18n e padronização completa
+// src/pages/admin/VacinacaoAdmin.jsx - Versão com i18n e sem pontos no meio das palavras
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,6 @@ import {
   HiClipboardList,
   HiTrendingUp,
   HiTrendingDown,
-  HiChartPie,
   HiOfficeBuilding,
   HiClock,
   HiCheckCircle,
@@ -26,7 +25,6 @@ import {
   HiRefresh,
   HiPlus,
   HiDocumentReport,
-  HiUser,
 } from "react-icons/hi";
 import { FaSyringe } from "react-icons/fa";
 import Swal from "sweetalert2";
@@ -392,7 +390,7 @@ const MetricCard = ({
           >
             {trendValue}
           </span>
-          <span className="text-gray-400">vs. anterior</span>
+          <span className="text-gray-400">vs anterior</span>
         </div>
       )}
     </div>
@@ -440,17 +438,14 @@ const VacinacaoAdmin = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Extrair UBS únicas para filtro
   const ubsList = useMemo(() => {
     const unicas = [...new Set(estoque.map((r) => r.ubs))];
     return ["todas", ...unicas];
   }, [estoque]);
 
-  // Filtrar e ordenar
   const filteredData = useMemo(() => {
     let result = estoque;
 
-    // Busca
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       result = result.filter(
@@ -461,17 +456,14 @@ const VacinacaoAdmin = () => {
       );
     }
 
-    // Filtro de status
     if (filterStatus !== "todos") {
       result = result.filter((r) => r.status === filterStatus);
     }
 
-    // Filtro de UBS
     if (filterUBS !== "todas") {
       result = result.filter((r) => r.ubs === filterUBS);
     }
 
-    // Ordenação
     if (sortConfig.key) {
       result.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -489,7 +481,6 @@ const VacinacaoAdmin = () => {
     return result;
   }, [estoque, searchTerm, filterStatus, filterUBS, sortConfig]);
 
-  // Métricas
   const metrics = useMemo(() => {
     const total = filteredData.length;
     const disponiveis = filteredData.filter(
@@ -512,14 +503,12 @@ const VacinacaoAdmin = () => {
     };
   }, [filteredData]);
 
-  // Paginação
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage, itemsPerPage]);
 
-  // Handlers
   const handleSort = useCallback((key) => {
     setSortConfig((prev) => ({
       key,
@@ -607,7 +596,7 @@ const VacinacaoAdmin = () => {
             <div class="p-2.5 bg-blue-50 rounded-full"><FaSyringe class="w-6 h-6 text-blue-600" /></div>
             <div>
               <p class="font-semibold text-gray-800 text-lg">${registro.vacina}</p>
-              <p class="text-sm text-gray-500">ID: #${registro.id}</p>
+              <p class="text-sm text-gray-500">${t("vacinas.modais.id")} #${registro.id}</p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -1021,7 +1010,6 @@ const VacinacaoAdmin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - padronizado com i18n */}
         <HeaderSection
           user={user}
           title={t("vacinas.titulo")}
@@ -1030,7 +1018,6 @@ const VacinacaoAdmin = () => {
           t={t}
         />
 
-        {/* Métricas - 4 cards */}
         <div className="flex flex-wrap gap-4">
           <MetricCard
             title={t("vacinas.metricas.total_lotes")}
@@ -1070,7 +1057,6 @@ const VacinacaoAdmin = () => {
           />
         </div>
 
-        {/* Filtros */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100/80 overflow-hidden backdrop-blur-sm">
           <FilterBar
             searchTerm={searchTerm}
@@ -1087,7 +1073,6 @@ const VacinacaoAdmin = () => {
           />
         </div>
 
-        {/* Tabela */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100/80 overflow-hidden backdrop-blur-sm">
           {isLoading ? (
             <div className="p-8 flex justify-center">
@@ -1124,7 +1109,6 @@ const VacinacaoAdmin = () => {
           )}
         </div>
 
-        {/* Botões flutuantes */}
         <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
           <button
             onClick={novoLote}
@@ -1142,7 +1126,6 @@ const VacinacaoAdmin = () => {
           </button>
         </div>
 
-        {/* Rodapé */}
         <FooterSection t={t} />
       </div>
     </div>
@@ -1150,7 +1133,7 @@ const VacinacaoAdmin = () => {
 };
 
 // ============================================================
-// SUBCOMPONENTES (com i18n)
+// SUBCOMPONENTES
 // ============================================================
 
 const HeaderSection = ({ user, title, subtitle, icon: Icon, t }) => {
@@ -1169,10 +1152,10 @@ const HeaderSection = ({ user, title, subtitle, icon: Icon, t }) => {
         <div>
           <div className="flex items-center gap-2 text-white/80 text-sm">
             <HiHome className="w-4 h-4" />
-            <span>Dashboard</span>
+            <span>{t("vacinas.navegacao.dashboard")}</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
             <span className="text-white font-medium">
-              {t("vacinas.abas.vacinas")}
+              {t("vacinas.navegacao.vacinas")}
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 flex items-center gap-2">
@@ -1191,7 +1174,7 @@ const HeaderSection = ({ user, title, subtitle, icon: Icon, t }) => {
           </div>
           <div className="text-white text-sm">
             <p className="font-medium">{user?.nome || "Admin"}</p>
-            <p className="text-white/70 text-xs">Administrador</p>
+            <p className="text-white/70 text-xs">{t("vacinas.perfil.admin")}</p>
           </div>
         </div>
       </div>
@@ -1536,13 +1519,6 @@ const PaginationControls = ({
   );
 };
 
-const FooterSection = ({ t }) => {
-  return (
-    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>{t("vacinas.footer.clique_linha")}</p>
-      <p className="mt-1">{t("vacinas.footer.copyright")}</p>
-    </div>
-  );
-};
+const FooterSection = ({ t }) => {};
 
 export default VacinacaoAdmin;

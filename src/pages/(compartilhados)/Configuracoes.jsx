@@ -38,7 +38,7 @@ import { HiChevronDoubleLeft, HiDocumentText, HiUsers } from "react-icons/hi";
 // COMPONENTES REUTILIZÁVEIS
 // ============================================================
 
-const MetricCard = ({ title, value, icon: Icon, color = "blue" }) => {
+const MetricCard = ({ title, value, icon: Icon, color = "blue", theme }) => {
   const colorMap = {
     blue: "from-blue-600 to-blue-700",
     green: "from-emerald-500 to-emerald-600",
@@ -49,14 +49,31 @@ const MetricCard = ({ title, value, icon: Icon, color = "blue" }) => {
     gray: "from-slate-500 to-slate-600",
   };
   const gradient = colorMap[color] || colorMap.blue;
+
+  const isDark = theme === "dark";
+
   return (
-    <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-5 flex-1 min-w-[140px]">
+    <div
+      className={`group rounded-2xl border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-5 flex-1 min-w-[140px] ${
+        isDark
+          ? "bg-slate-800/80 border-slate-700/80"
+          : "bg-white/80 backdrop-blur-sm border-gray-100/80"
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <p
+            className={`text-xs font-medium uppercase tracking-wider ${
+              isDark ? "text-slate-400" : "text-gray-500"
+            }`}
+          >
             {title}
           </p>
-          <p className="text-2xl font-bold text-gray-800 mt-1 group-hover:scale-105 transition-transform origin-left">
+          <p
+            className={`text-2xl font-bold mt-1 group-hover:scale-105 transition-transform origin-left ${
+              isDark ? "text-white" : "text-gray-800"
+            }`}
+          >
             {value}
           </p>
         </div>
@@ -76,9 +93,11 @@ const ConfigToggle = ({
   defaultChecked = false,
   checked,
   onChange,
+  theme,
 }) => {
   const [internalChecked, setInternalChecked] = useState(defaultChecked);
   const isChecked = checked !== undefined ? checked : internalChecked;
+  const isDark = theme === "dark";
 
   const handleToggle = () => {
     const newValue = !isChecked;
@@ -90,15 +109,31 @@ const ConfigToggle = ({
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition">
+    <div
+      className={`flex items-center justify-between p-4 rounded-xl border transition ${
+        isDark
+          ? "bg-slate-800/80 border-slate-700/80 hover:border-slate-600"
+          : "bg-white/80 border-gray-100/80 hover:border-blue-200"
+      }`}
+    >
       <div>
-        <p className="font-medium text-gray-700">{label}</p>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
+        <p
+          className={`font-medium ${isDark ? "text-slate-200" : "text-gray-700"}`}
+        >
+          {label}
+        </p>
+        {description && (
+          <p
+            className={`text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}
+          >
+            {description}
+          </p>
+        )}
       </div>
       <div
         onClick={handleToggle}
         className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
-          isChecked ? "bg-blue-600" : "bg-gray-300"
+          isChecked ? "bg-blue-600" : isDark ? "bg-slate-600" : "bg-gray-300"
         }`}
       >
         <span
@@ -129,6 +164,7 @@ const Configuracoes = () => {
     useAccessibility();
 
   const [abaAtiva, setAbaAtiva] = useState("geral");
+  const isDark = theme === "dark";
 
   // Notificações
   const [notifications, setNotifications] = useState({
@@ -771,7 +807,13 @@ const Configuracoes = () => {
   // RENDER PRINCIPAL
   // ============================================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+    <div
+      className={`min-h-screen p-4 md:p-6 lg:p-8 ${
+        isDark
+          ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+          : "bg-gradient-to-br from-slate-50 via-white to-blue-50/30"
+      }`}
+    >
       <div className="max-w-7xl mx-auto space-y-6">
         <HeaderSection />
 
@@ -782,18 +824,21 @@ const Configuracoes = () => {
             value={ubsList.length}
             icon={FaBuilding}
             color="blue"
+            theme={theme}
           />
           <MetricCard
             title={t("configuracoes.metricas.usuarios")}
             value={usuarios.length}
             icon={HiUsers}
             color="green"
+            theme={theme}
           />
           <MetricCard
             title={t("configuracoes.metricas.medicos")}
             value={medicosList.length}
             icon={FaStethoscope}
             color="teal"
+            theme={theme}
           />
           <MetricCard
             title={t("configuracoes.metricas.tema")}
@@ -804,17 +849,25 @@ const Configuracoes = () => {
             }
             icon={theme === "light" ? FaRegSun : FaRegMoon}
             color="amber"
+            theme={theme}
           />
           <MetricCard
             title={t("configuracoes.metricas.fonte")}
             value={fonteSistema}
             icon={FaFont}
             color="indigo"
+            theme={theme}
           />
         </div>
 
         {/* Abas */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-xl p-1.5 overflow-x-auto">
+        <div
+          className={`rounded-3xl border shadow-xl p-1.5 overflow-x-auto ${
+            isDark
+              ? "bg-slate-800/80 border-slate-700/80"
+              : "bg-white/80 backdrop-blur-sm border-gray-100/80"
+          }`}
+        >
           <div className="flex flex-nowrap gap-1 min-w-max">
             {abas.map((aba) => (
               <button
@@ -823,7 +876,9 @@ const Configuracoes = () => {
                 className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   abaAtiva === aba.id
                     ? "bg-slate-700 text-white shadow-md scale-105"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    : isDark
+                      ? "text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <aba.icon size={18} />
@@ -834,20 +889,46 @@ const Configuracoes = () => {
         </div>
 
         {/* Conteúdo das abas */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/80 shadow-xl p-6 md:p-8 hover:shadow-2xl transition-all">
+        <div
+          className={`rounded-3xl border shadow-xl p-6 md:p-8 hover:shadow-2xl transition-all ${
+            isDark
+              ? "bg-slate-800/80 border-slate-700/80"
+              : "bg-white/80 backdrop-blur-sm border-gray-100/80"
+          }`}
+        >
           {/* Aba Geral */}
           {abaAtiva === "geral" && (
             <div className="space-y-10">
               {/* Aparência */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
+                <h2
+                  className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   <FaPalette className="text-blue-600" />{" "}
                   {t("configuracoes.geral.aparencia")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Tema */}
-                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                    <label className="block font-semibold text-gray-700 mb-3">
+                  <div
+                    className={`rounded-xl p-5 shadow-sm border ${
+                      isDark
+                        ? "bg-slate-700/50 border-slate-600/50"
+                        : "bg-white/80 border-gray-100/80"
+                    }`}
+                  >
+                    <label
+                      className={`block font-semibold mb-3 ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.geral.tema")}
                     </label>
                     <div className="flex gap-3">
@@ -856,7 +937,9 @@ const Configuracoes = () => {
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center ${
                           theme === "light"
                             ? "bg-slate-700 text-white shadow-md"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : isDark
+                              ? "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
                         <FaRegSun /> {t("configuracoes.geral.claro")}
@@ -866,7 +949,9 @@ const Configuracoes = () => {
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center ${
                           theme === "dark"
                             ? "bg-slate-700 text-white shadow-md"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : isDark
+                              ? "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
                         <FaRegMoon /> {t("configuracoes.geral.escuro")}
@@ -875,15 +960,29 @@ const Configuracoes = () => {
                   </div>
 
                   {/* Fonte */}
-                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                    <label className="block font-semibold text-gray-700 mb-3">
+                  <div
+                    className={`rounded-xl p-5 shadow-sm border ${
+                      isDark
+                        ? "bg-slate-700/50 border-slate-600/50"
+                        : "bg-white/80 border-gray-100/80"
+                    }`}
+                  >
+                    <label
+                      className={`block font-semibold mb-3 ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       <FaFont className="inline mr-2 text-blue-600" />
                       {t("configuracoes.geral.fonte")}
                     </label>
                     <select
                       value={fonteSistema}
                       onChange={(e) => setFonteSistema(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        isDark
+                          ? "bg-slate-700 border-slate-600 text-slate-200"
+                          : "bg-white border-gray-300"
+                      }`}
                     >
                       {fontesDisponiveis.map((f) => (
                         <option key={f} value={f}>
@@ -895,13 +994,29 @@ const Configuracoes = () => {
                 </div>
 
                 {/* Tamanho da fonte */}
-                <div className="mt-6 bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-semibold text-gray-700">
+                <div
+                  className={`mt-6 rounded-xl p-5 shadow-sm border ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-white/80 border-gray-100/80"
+                  }`}
+                >
+                  <div
+                    className={`flex justify-between items-center mb-3 ${
+                      isDark ? "text-slate-200" : "text-gray-700"
+                    }`}
+                  >
+                    <span className="font-semibold">
                       <FaFont className="inline mr-2 text-blue-600" />
                       {t("configuracoes.geral.tamanhoFonte")}
                     </span>
-                    <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-bold">
+                    <span
+                      className={`px-4 py-1.5 rounded-full text-sm font-bold ${
+                        isDark
+                          ? "bg-blue-900/50 text-blue-300"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
                       {fontSize}%
                     </span>
                   </div>
@@ -912,37 +1027,57 @@ const Configuracoes = () => {
                     step="5"
                     value={fontSize}
                     onChange={(e) => setFontSize(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     style={{
                       background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
                         ((fontSize - 20) / (180 - 20)) * 100
-                      }%, #e5e7eb ${
+                      }%, ${isDark ? "#475569" : "#e5e7eb"} ${
                         ((fontSize - 20) / (180 - 20)) * 100
-                      }%, #e5e7eb 100%)`,
+                      }%, ${isDark ? "#475569" : "#e5e7eb"} 100%)`,
                     }}
                   />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <div
+                    className={`flex justify-between text-xs mt-2 ${
+                      isDark ? "text-slate-400" : "text-gray-500"
+                    }`}
+                  >
                     <span>20%</span>
                     <span className="font-bold text-blue-700">100%</span>
                     <span>180%</span>
                   </div>
-                  <div className="mt-4 p-4 bg-gray-50/60 rounded-xl border text-center transition-all">
+                  <div
+                    className={`mt-4 p-4 rounded-xl border text-center transition-all ${
+                      isDark
+                        ? "bg-slate-700/30 border-slate-600/50"
+                        : "bg-gray-50/60 border-gray-200"
+                    }`}
+                  >
                     <p
-                      className="text-gray-700"
+                      className={isDark ? "text-slate-200" : "text-gray-700"}
                       style={{
                         fontSize: `${fontSize}%`,
                         fontFamily: fonteSistema,
                       }}
                     >
                       {t("configuracoes.geral.previsualizacao_texto")}{" "}
-                      {fontSize}% {t("configuracoes.geral.de_tamanho")}
+                      {fontSize} {t("configuracoes.geral.de_tamanho")}
                     </p>
                   </div>
                 </div>
 
                 {/* Cor principal */}
-                <div className="mt-6 bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                  <p className="font-semibold text-gray-700 mb-4">
+                <div
+                  className={`mt-6 rounded-xl p-5 shadow-sm border ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-white/80 border-gray-100/80"
+                  }`}
+                >
+                  <p
+                    className={`font-semibold mb-4 ${
+                      isDark ? "text-slate-200" : "text-gray-700"
+                    }`}
+                  >
                     <FaPalette className="inline mr-2 text-blue-600" />
                     {t("configuracoes.geral.corPrincipal")}
                   </p>
@@ -954,7 +1089,9 @@ const Configuracoes = () => {
                         className={`w-12 h-12 rounded-full border-3 transition-all ${
                           primaryColor === cor.valor
                             ? "border-gray-900 scale-110 shadow-lg ring-2 ring-blue-500"
-                            : "border-white hover:scale-105"
+                            : isDark
+                              ? "border-slate-600 hover:scale-105"
+                              : "border-white hover:scale-105"
                         }`}
                         style={{ backgroundColor: cor.valor }}
                         title={cor.nome}
@@ -964,21 +1101,43 @@ const Configuracoes = () => {
                       type="color"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="w-12 h-12 rounded-full border cursor-pointer"
+                      className={`w-12 h-12 rounded-full border cursor-pointer ${
+                        isDark ? "bg-slate-700 border-slate-600" : "bg-white"
+                      }`}
                     />
                   </div>
                 </div>
               </section>
 
               {/* Preferências Regionais */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
+                <h2
+                  className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   <FaGlobe className="text-blue-600" />{" "}
                   {t("configuracoes.geral.preferenciasRegionais")}
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                    <label className="block font-semibold text-gray-700 mb-2">
+                  <div
+                    className={`rounded-xl p-5 shadow-sm border ${
+                      isDark
+                        ? "bg-slate-700/50 border-slate-600/50"
+                        : "bg-white/80 border-gray-100/80"
+                    }`}
+                  >
+                    <label
+                      className={`block font-semibold mb-2 ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.geral.idioma")}
                     </label>
                     <select
@@ -1004,13 +1163,21 @@ const Configuracoes = () => {
                           timerProgressBar: true,
                         });
                       }}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        isDark
+                          ? "bg-slate-700 border-slate-600 text-slate-200"
+                          : "bg-white border-gray-300"
+                      }`}
                     >
                       <option value="pt">Português (Brasil)</option>
                       <option value="en">English</option>
                       <option value="es">Español</option>
                     </select>
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div
+                      className={`mt-2 text-xs ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.geral.idioma_atual")}:{" "}
                       {idioma === "pt"
                         ? "Português"
@@ -1020,8 +1187,18 @@ const Configuracoes = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white/80 rounded-xl p-5 shadow-sm border border-gray-100/80">
-                    <label className="block font-semibold text-gray-700 mb-2">
+                  <div
+                    className={`rounded-xl p-5 shadow-sm border ${
+                      isDark
+                        ? "bg-slate-700/50 border-slate-600/50"
+                        : "bg-white/80 border-gray-100/80"
+                    }`}
+                  >
+                    <label
+                      className={`block font-semibold mb-2 ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.geral.formatoData")}
                     </label>
                     <select
@@ -1054,13 +1231,21 @@ const Configuracoes = () => {
                           timerProgressBar: true,
                         });
                       }}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        isDark
+                          ? "bg-slate-700 border-slate-600 text-slate-200"
+                          : "bg-white border-gray-300"
+                      }`}
                     >
                       <option value="dd/MM/yyyy">dd/MM/yyyy</option>
                       <option value="MM/dd/yyyy">MM/dd/yyyy</option>
                       <option value="yyyy-MM-dd">yyyy-MM-dd</option>
                     </select>
-                    <div className="mt-3 text-sm text-gray-500">
+                    <div
+                      className={`mt-3 text-sm ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.data_atual")}:{" "}
                       {(() => {
                         const hoje = new Date();
@@ -1081,8 +1266,18 @@ const Configuracoes = () => {
               </section>
 
               {/* Notificações */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
+                <h2
+                  className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   <FaBell className="text-blue-600" />{" "}
                   {t("configuracoes.geral.notificacoes")}
                 </h2>
@@ -1090,9 +1285,17 @@ const Configuracoes = () => {
                   {Object.entries(notifications).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between bg-white/80 p-4 rounded-xl shadow-sm border border-gray-100/80 hover:border-blue-200 transition"
+                      className={`flex items-center justify-between p-4 rounded-xl shadow-sm border transition ${
+                        isDark
+                          ? "bg-slate-700/50 border-slate-600/50 hover:border-slate-500"
+                          : "bg-white/80 border-gray-100/80 hover:border-blue-200"
+                      }`}
                     >
-                      <span className="font-medium text-gray-700 capitalize">
+                      <span
+                        className={`font-medium ${
+                          isDark ? "text-slate-200" : "text-gray-700"
+                        } capitalize`}
+                      >
                         {key === "agendamentos" &&
                           t("configuracoes.notificacoes.agendamentos_label")}
                         {key === "filas" &&
@@ -1107,7 +1310,11 @@ const Configuracoes = () => {
                       <button
                         onClick={() => handleNotifChange(key)}
                         className={`relative w-12 h-6 rounded-full transition-colors ${
-                          value ? "bg-blue-600" : "bg-gray-300"
+                          value
+                            ? "bg-blue-600"
+                            : isDark
+                              ? "bg-slate-600"
+                              : "bg-gray-300"
                         }`}
                       >
                         <span
@@ -1180,7 +1387,11 @@ const Configuracoes = () => {
           {/* Painel */}
           {abaAtiva === "painel" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaTachometerAlt className="text-blue-600" />{" "}
                 {t("configuracoes.abas.painel")}
               </h2>
@@ -1189,16 +1400,19 @@ const Configuracoes = () => {
                   label={t("configuracoes.painel.visao_geral")}
                   description={t("configuracoes.painel.visao_geral_desc")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.painel.notificacoes")}
                   description={t("configuracoes.painel.notificacoes_desc")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.painel.widget_metricas")}
                   description={t("configuracoes.painel.widget_metricas_desc")}
                   defaultChecked
+                  theme={theme}
                 />
               </div>
             </div>
@@ -1207,16 +1421,36 @@ const Configuracoes = () => {
           {/* Filas */}
           {abaAtiva === "filas" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaListAlt className="text-blue-600" />{" "}
                 {t("configuracoes.abas.filas")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
-                  <label className="block font-medium text-gray-700 mb-3">
+                <div
+                  className={`rounded-xl p-5 border ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                  }`}
+                >
+                  <label
+                    className={`block font-medium mb-3 ${
+                      isDark ? "text-slate-200" : "text-gray-700"
+                    }`}
+                  >
                     {t("configuracoes.filas.tempo_espera")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                  <select
+                    className={`p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 ${
+                      isDark
+                        ? "bg-slate-700 border-slate-600 text-slate-200"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
                     <option>5 {t("configuracoes.filas.minutos")}</option>
                     <option>10 {t("configuracoes.filas.minutos")}</option>
                     <option selected>
@@ -1227,10 +1461,12 @@ const Configuracoes = () => {
                 <ConfigToggle
                   label={t("configuracoes.filas.exibir_posicao")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.filas.notificar_proximo")}
                   defaultChecked
+                  theme={theme}
                 />
               </div>
             </div>
@@ -1239,16 +1475,36 @@ const Configuracoes = () => {
           {/* Agendamento */}
           {abaAtiva === "agendamento" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaCalendarAlt className="text-blue-600" />{" "}
                 {t("configuracoes.abas.agendamento")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
-                  <label className="block font-medium text-gray-700 mb-3">
+                <div
+                  className={`rounded-xl p-5 border ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                  }`}
+                >
+                  <label
+                    className={`block font-medium mb-3 ${
+                      isDark ? "text-slate-200" : "text-gray-700"
+                    }`}
+                  >
                     {t("configuracoes.agendamento.dias_antecedencia")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                  <select
+                    className={`p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 ${
+                      isDark
+                        ? "bg-slate-700 border-slate-600 text-slate-200"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
                     <option>30 {t("configuracoes.agendamento.dias")}</option>
                     <option selected>
                       60 {t("configuracoes.agendamento.dias")}
@@ -1259,10 +1515,12 @@ const Configuracoes = () => {
                 <ConfigToggle
                   label={t("configuracoes.agendamento.reagendamento_online")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.agendamento.lembrete_email")}
                   defaultChecked
+                  theme={theme}
                 />
               </div>
             </div>
@@ -1271,20 +1529,27 @@ const Configuracoes = () => {
           {/* Histórico */}
           {abaAtiva === "historico" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaHistory className="text-blue-600" />{" "}
                 {t("configuracoes.abas.historico")}
               </h2>
               <div className="space-y-4">
                 <ConfigToggle
                   label={t("configuracoes.historico.compartilhar_ubs")}
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.historico.manter_indeterminado")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.historico.exportar_csv")}
+                  theme={theme}
                 />
               </div>
             </div>
@@ -1293,16 +1558,36 @@ const Configuracoes = () => {
           {/* Vacinas */}
           {abaAtiva === "vacinas" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaSyringe className="text-blue-600" />{" "}
                 {t("configuracoes.abas.vacinas")}
               </h2>
               <div className="space-y-5">
-                <div className="bg-gray-50/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100/80">
-                  <label className="block font-medium text-gray-700 mb-3">
+                <div
+                  className={`rounded-xl p-5 border ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                  }`}
+                >
+                  <label
+                    className={`block font-medium mb-3 ${
+                      isDark ? "text-slate-200" : "text-gray-700"
+                    }`}
+                  >
                     {t("configuracoes.vacinas.lembrete_campanhas")}
                   </label>
-                  <select className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 bg-white">
+                  <select
+                    className={`p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none w-64 ${
+                      isDark
+                        ? "bg-slate-700 border-slate-600 text-slate-200"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
                     <option>1 {t("configuracoes.vacinas.semana_antes")}</option>
                     <option selected>
                       2 {t("configuracoes.vacinas.semanas_antes")}
@@ -1313,10 +1598,12 @@ const Configuracoes = () => {
                 <ConfigToggle
                   label={t("configuracoes.vacinas.notificar_estoque_baixo")}
                   defaultChecked
+                  theme={theme}
                 />
                 <ConfigToggle
                   label={t("configuracoes.vacinas.alertar_vencendo")}
                   defaultChecked
+                  theme={theme}
                 />
               </div>
             </div>
@@ -1325,17 +1612,35 @@ const Configuracoes = () => {
           {/* Segurança */}
           {abaAtiva === "seguranca" && (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <h2
+                className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
                 <FaUserLock className="text-blue-600" />{" "}
                 {t("configuracoes.abas.seguranca")}
               </h2>
               <div className="space-y-6">
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4 hover:border-blue-200 transition">
+                <div
+                  className={`flex flex-wrap justify-between items-center p-5 rounded-xl border gap-4 transition ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50 hover:border-slate-500"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80 hover:border-blue-200"
+                  }`}
+                >
                   <div>
-                    <p className="font-semibold text-gray-700">
+                    <p
+                      className={`font-semibold ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.seguranca.alterar_senha")}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p
+                      className={`text-sm ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.seguranca.alterar_senha_desc")}
                     </p>
                   </div>
@@ -1346,12 +1651,26 @@ const Configuracoes = () => {
                     {t("configuracoes.seguranca.alterar")}
                   </button>
                 </div>
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4 hover:border-red-200 transition">
+                <div
+                  className={`flex flex-wrap justify-between items-center p-5 rounded-xl border gap-4 transition ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50 hover:border-red-800"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80 hover:border-red-200"
+                  }`}
+                >
                   <div>
-                    <p className="font-semibold text-gray-700">
+                    <p
+                      className={`font-semibold ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.seguranca.encerrar_sessoes")}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p
+                      className={`text-sm ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.seguranca.encerrar_sessoes_desc")}
                     </p>
                   </div>
@@ -1371,12 +1690,26 @@ const Configuracoes = () => {
                     {t("configuracoes.seguranca.encerrar")}
                   </button>
                 </div>
-                <div className="flex flex-wrap justify-between items-center p-5 bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-100/80 gap-4">
+                <div
+                  className={`flex flex-wrap justify-between items-center p-5 rounded-xl border gap-4 ${
+                    isDark
+                      ? "bg-slate-700/50 border-slate-600/50"
+                      : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                  }`}
+                >
                   <div>
-                    <p className="font-semibold text-gray-700">
+                    <p
+                      className={`font-semibold ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.seguranca.autenticacao_dois_fatores")}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p
+                      className={`text-sm ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t(
                         "configuracoes.seguranca.autenticacao_dois_fatores_desc",
                       )}
@@ -1391,12 +1724,20 @@ const Configuracoes = () => {
                         confirmButtonColor: "#1e293b",
                       });
                     }}
-                    className="bg-gray-200 text-gray-600 px-6 py-2.5 rounded-xl font-medium hover:bg-gray-300 transition"
+                    className={`px-6 py-2.5 rounded-xl font-medium transition ${
+                      isDark
+                        ? "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
                   >
                     {t("configuracoes.seguranca.configurar")}
                   </button>
                 </div>
-                <div className="text-xs text-gray-400 mt-4">
+                <div
+                  className={`text-xs mt-4 ${
+                    isDark ? "text-slate-400" : "text-gray-400"
+                  }`}
+                >
                   * {t("configuracoes.seguranca.funcionalidades_simuladas")}
                 </div>
               </div>
@@ -1407,9 +1748,19 @@ const Configuracoes = () => {
           {abaAtiva === "admin" && user?.role === "admin" && (
             <div className="space-y-10">
               {/* Unidades */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                  <h2
+                    className={`text-xl font-bold flex items-center gap-3 ${
+                      isDark ? "text-white" : "text-gray-800"
+                    }`}
+                  >
                     <FaBuilding className="text-blue-600" />{" "}
                     {t("configuracoes.admin.ubs.titulo")}
                   </h2>
@@ -1422,20 +1773,36 @@ const Configuracoes = () => {
                 </div>
                 <div className="space-y-3">
                   {ubsList.length === 0 ? (
-                    <p className="text-gray-500 text-center py-6">
+                    <p
+                      className={`text-center py-6 ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.admin.ubs.nenhuma")}
                     </p>
                   ) : (
                     ubsList.map((ubs) => (
                       <div
                         key={ubs.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition"
+                        className={`flex flex-wrap justify-between items-center p-4 rounded-xl border transition ${
+                          isDark
+                            ? "bg-slate-800/50 border-slate-700/50 hover:border-slate-600"
+                            : "bg-white/80 border-gray-100/80 hover:border-blue-200"
+                        }`}
                       >
                         <div>
-                          <p className="font-medium text-gray-800">
+                          <p
+                            className={`font-medium ${
+                              isDark ? "text-slate-200" : "text-gray-800"
+                            }`}
+                          >
                             {ubs.nome}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p
+                            className={`text-sm ${
+                              isDark ? "text-slate-400" : "text-gray-500"
+                            }`}
+                          >
                             {ubs.endereco}
                           </p>
                         </div>
@@ -1453,9 +1820,19 @@ const Configuracoes = () => {
               </section>
 
               {/* Usuários */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                  <h2
+                    className={`text-xl font-bold flex items-center gap-3 ${
+                      isDark ? "text-white" : "text-gray-800"
+                    }`}
+                  >
                     <FaUsersCog className="text-blue-600" />{" "}
                     {t("configuracoes.admin.usuarios.titulo")}
                   </h2>
@@ -1468,18 +1845,36 @@ const Configuracoes = () => {
                 </div>
                 <div className="space-y-3">
                   {usuarios.length === 0 ? (
-                    <p className="text-gray-500 text-center py-6">
+                    <p
+                      className={`text-center py-6 ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.admin.usuarios.nenhum")}
                     </p>
                   ) : (
                     usuarios.map((us) => (
                       <div
                         key={us.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition gap-2"
+                        className={`flex flex-wrap justify-between items-center p-4 rounded-xl border gap-2 ${
+                          isDark
+                            ? "bg-slate-800/50 border-slate-700/50 hover:border-slate-600"
+                            : "bg-white/80 border-gray-100/80 hover:border-blue-200"
+                        }`}
                       >
                         <div>
-                          <p className="font-medium text-gray-800">{us.nome}</p>
-                          <p className="text-sm text-gray-500">
+                          <p
+                            className={`font-medium ${
+                              isDark ? "text-slate-200" : "text-gray-800"
+                            }`}
+                          >
+                            {us.nome}
+                          </p>
+                          <p
+                            className={`text-sm ${
+                              isDark ? "text-slate-400" : "text-gray-500"
+                            }`}
+                          >
                             {us.email} •{" "}
                             <span className="capitalize">{us.role}</span>
                           </p>
@@ -1507,9 +1902,19 @@ const Configuracoes = () => {
               </section>
 
               {/* Médicos */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                  <h2
+                    className={`text-xl font-bold flex items-center gap-3 ${
+                      isDark ? "text-white" : "text-gray-800"
+                    }`}
+                  >
                     <FaStethoscope className="text-blue-600" />{" "}
                     {t("configuracoes.admin.medicos.titulo")}
                   </h2>
@@ -1522,20 +1927,36 @@ const Configuracoes = () => {
                 </div>
                 <div className="space-y-3">
                   {medicosList.length === 0 ? (
-                    <p className="text-gray-500 text-center py-6">
+                    <p
+                      className={`text-center py-6 ${
+                        isDark ? "text-slate-400" : "text-gray-500"
+                      }`}
+                    >
                       {t("configuracoes.admin.medicos.nenhum")}
                     </p>
                   ) : (
                     medicosList.map((med) => (
                       <div
                         key={med.id}
-                        className="flex flex-wrap justify-between items-center p-4 bg-white/80 rounded-xl border border-gray-100/80 hover:border-blue-200 transition"
+                        className={`flex flex-wrap justify-between items-center p-4 rounded-xl border transition ${
+                          isDark
+                            ? "bg-slate-800/50 border-slate-700/50 hover:border-slate-600"
+                            : "bg-white/80 border-gray-100/80 hover:border-blue-200"
+                        }`}
                       >
                         <div>
-                          <p className="font-medium text-gray-800">
+                          <p
+                            className={`font-medium ${
+                              isDark ? "text-slate-200" : "text-gray-800"
+                            }`}
+                          >
                             {med.nome}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p
+                            className={`text-sm ${
+                              isDark ? "text-slate-400" : "text-gray-500"
+                            }`}
+                          >
                             {med.especialidade}
                           </p>
                         </div>
@@ -1553,14 +1974,34 @@ const Configuracoes = () => {
               </section>
 
               {/* Parâmetros Gerais */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
+                <h2
+                  className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   <FaCog className="text-blue-600" />{" "}
                   {t("configuracoes.admin.parametros.titulo")}
                 </h2>
                 <div className="space-y-5">
-                  <div className="bg-white/80 rounded-xl p-5 border border-gray-100/80">
-                    <label className="block font-medium text-gray-700 mb-3">
+                  <div
+                    className={`rounded-xl p-5 border ${
+                      isDark
+                        ? "bg-slate-800/50 border-slate-700/50"
+                        : "bg-white/80 border-gray-100/80"
+                    }`}
+                  >
+                    <label
+                      className={`block font-medium mb-3 ${
+                        isDark ? "text-slate-200" : "text-gray-700"
+                      }`}
+                    >
                       {t("configuracoes.admin.parametros.tempo_maximo")}
                     </label>
                     <input
@@ -1572,7 +2013,11 @@ const Configuracoes = () => {
                           tempoMaximoEspera: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-32 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                      className={`w-32 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none ${
+                        isDark
+                          ? "bg-slate-700 border-slate-600 text-slate-200"
+                          : "bg-white border-gray-300"
+                      }`}
                     />
                   </div>
                   <ConfigToggle
@@ -1584,6 +2029,7 @@ const Configuracoes = () => {
                         permitirAutoAgendamento: checked,
                       })
                     }
+                    theme={theme}
                   />
                   <ConfigToggle
                     label={t("configuracoes.admin.parametros.fila_prioritaria")}
@@ -1594,6 +2040,7 @@ const Configuracoes = () => {
                         filaPrioritariaAutomatica: checked,
                       })
                     }
+                    theme={theme}
                   />
                   <ConfigToggle
                     label={t(
@@ -1606,31 +2053,46 @@ const Configuracoes = () => {
                         notificarAltaDemanda: checked,
                       })
                     }
+                    theme={theme}
                   />
                 </div>
               </section>
 
               {/* Logs */}
-              <section className="bg-gray-50/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/80">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <section
+                className={`rounded-2xl p-6 border ${
+                  isDark
+                    ? "bg-slate-700/50 border-slate-600/50"
+                    : "bg-gray-50/60 backdrop-blur-sm border-gray-100/80"
+                }`}
+              >
+                <h2
+                  className={`text-xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   <HiDocumentText className="text-blue-600" />{" "}
                   {t("configuracoes.admin.logs.titulo")}
                 </h2>
-                <div className="bg-white/80 p-4 rounded-xl max-h-48 overflow-y-auto text-xs font-mono border border-gray-100/80">
-                  <p className="text-gray-600 py-1">
-                    [2024-12-06 08:32] Admin fez login
-                  </p>
-                  <p className="text-gray-600 py-1">
+                <div
+                  className={`p-4 rounded-xl max-h-48 overflow-y-auto text-xs font-mono border ${
+                    isDark
+                      ? "bg-slate-800/50 border-slate-700/50 text-slate-400"
+                      : "bg-white/80 border-gray-100/80 text-gray-600"
+                  }`}
+                >
+                  <p className="py-1">[2024-12-06 08:32] Admin fez login</p>
+                  <p className="py-1">
                     [2024-12-06 08:35] Relatório de filas exportado
                   </p>
-                  <p className="text-gray-600 py-1">
+                  <p className="py-1">
                     [2024-12-06 09:10] Novo usuário cadastrado:
                     atendente2@ubs.com
                   </p>
-                  <p className="text-gray-600 py-1">
+                  <p className="py-1">
                     [2024-12-06 09:45] Sincronização com DataSUS concluída
                   </p>
-                  <p className="text-gray-600 py-1">
+                  <p className="py-1">
                     [2024-12-06 10:15] Configurações de vacinas atualizadas
                   </p>
                 </div>
@@ -1651,8 +2113,18 @@ const Configuracoes = () => {
               </section>
 
               {/* Backup */}
-              <section className="bg-amber-50/80 backdrop-blur-sm border border-amber-200 rounded-2xl p-6">
-                <h3 className="font-bold text-amber-800 mb-4 flex items-center gap-3">
+              <section
+                className={`border rounded-2xl p-6 ${
+                  isDark
+                    ? "bg-amber-900/30 border-amber-700/50"
+                    : "bg-amber-50/80 backdrop-blur-sm border-amber-200"
+                }`}
+              >
+                <h3
+                  className={`font-bold mb-4 flex items-center gap-3 ${
+                    isDark ? "text-amber-300" : "text-amber-800"
+                  }`}
+                >
                   <FaShieldAlt /> {t("configuracoes.admin.backup.titulo")}
                 </h3>
                 <div className="flex flex-wrap gap-4">
@@ -1668,7 +2140,11 @@ const Configuracoes = () => {
                         timer: 2000,
                       });
                     }}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-sm"
+                    className={`px-6 py-2.5 rounded-xl font-medium transition shadow-sm ${
+                      isDark
+                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                        : "bg-amber-600 hover:bg-amber-700 text-white"
+                    }`}
                   >
                     {t("configuracoes.admin.backup.gerar")}
                   </button>
@@ -1681,7 +2157,11 @@ const Configuracoes = () => {
                         confirmButtonColor: "#1e293b",
                       });
                     }}
-                    className="border border-amber-600 text-amber-600 px-6 py-2.5 rounded-xl font-medium hover:bg-amber-100 transition"
+                    className={`border px-6 py-2.5 rounded-xl font-medium transition ${
+                      isDark
+                        ? "border-amber-600 text-amber-400 hover:bg-amber-900/30"
+                        : "border-amber-600 text-amber-600 hover:bg-amber-100"
+                    }`}
                   >
                     {t("configuracoes.admin.backup.restaurar")}
                   </button>

@@ -1266,13 +1266,6 @@ const PaginationControls = ({
   );
 };
 
-const FooterSection = ({ t }) => {
-  return (
-    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>{t("historico.footer.clique_linha")}</p>
-      <p className="mt-1">© 2025 {t("historico.footer.titulo")}</p>
-    </div>
-  );
-};
+const FooterSection = ({ t }) => {};
 
 export default HistoricoMedicoAdmin;

@@ -23,7 +23,24 @@
     "anterior": "Anterior",
     "proximo": "Próximo",
     "sem_dados": "Nenhum dado encontrado.",
-    "tente_ajustar_filtros": "Tente ajustar os filtros."
+    "tente_ajustar_filtros": "Tente ajustar os filtros.",
+    "fechar": "Fechar",
+    "sim": "Sim",
+    "nao": "Não",
+    "sim_arquivar": "Sim, arquivar",
+    "sim_desarquivar": "Sim, desarquivar",
+    "erro": "Erro",
+    "ativo": "Ativo",
+    "arquivado": "Arquivado",
+    "acesso_restrito": "Acesso Restrito",
+    "acesso_restrito_texto": "Você não tem permissão para acessar esta página.",
+    "adicionar": "Adicionar",
+    "registro": "registro",
+    "encontrado_singular": "encontrado",
+    "filtros": "Filtros",
+    "todos": "Todos",
+    "continuar": "Continuar",
+    "sincronizar": "Sincronizar"
   },
   "configuracoes": {
     "titulo": "Configurações do Sistema",
@@ -292,23 +309,31 @@
   "agendamento": {
     "titulo": "Gerenciamento de Agendamentos",
     "subtitulo": "Controle total sobre consultas e horários.",
-    "novo": "Novo Agendamento",
-    "relatorio": "Relatório",
+    "abas": {
+      "agendamentos": "Agendamentos"
+    },
+    "metricas": {
+      "total": "Total",
+      "total_subtitle": "consultas no total",
+      "confirmados": "Confirmados",
+      "confirmados_subtitle": "consultas confirmadas",
+      "pendentes": "Pendentes",
+      "pendentes_subtitle": "aguardando confirmação",
+      "cancelados": "Cancelados",
+      "cancelados_subtitle": "consultas canceladas",
+      "concluidos": "Concluídos",
+      "concluidos_subtitle": "atendimentos finalizados",
+      "ocupacao": "Ocupação",
+      "ocupacao_subtitle": "taxa de ocupação",
+      "arquivados": "Arquivados",
+      "arquivados_subtitle": "registros arquivados"
+    },
     "buscar": "Buscar por paciente, médico ou especialidade...",
     "filtros": {
       "status": "Status: Todos",
       "medico": "Médico: Todos",
-      "data": "Data",
+      "todos": "Todos",
       "arquivados": "Arquivados"
-    },
-    "tabela": {
-      "paciente": "Paciente",
-      "medico": "Médico",
-      "especialidade": "Especialidade",
-      "data": "Data",
-      "horario": "Horário",
-      "status": "Status",
-      "acoes": "Ações"
     },
     "status": {
       "confirmado": "Confirmado",
@@ -321,17 +346,53 @@
       "editar": "Editar Agendamento",
       "visualizar": "Consulta de {{paciente}}",
       "arquivar": "Arquivar agendamento",
+      "arquivar_texto": "Tem certeza que deseja arquivar o agendamento de {{paciente}}?",
       "desarquivar": "Desarquivar agendamento",
+      "desarquivar_texto": "Tem certeza que deseja desarquivar o agendamento de {{paciente}}?",
       "excluir": "Exclusão segura",
-      "senha": "Senha de autorização",
+      "excluir_texto": "Tem certeza que deseja excluir permanentemente o agendamento de",
+      "senha_autorizacao": "Senha de autorização",
       "senha_incorreta": "Senha incorreta! Acesso negado.",
       "campos_obrigatorios": "Preencha todos os campos obrigatórios.",
-      "data_passado": "A data/hora não pode ser no passado."
+      "data_passado": "A data/hora não pode ser no passado.",
+      "observacoes": "Observações",
+      "observacoes_placeholder": "Informações adicionais...",
+      "criado": "Agendamento criado com sucesso!",
+      "atualizado": "Agendamento atualizado com sucesso!",
+      "arquivado": "Agendamento arquivado!",
+      "desarquivado": "Agendamento desarquivado!",
+      "excluido": "Agendamento excluído!",
+      "nenhuma": "Nenhuma",
+      "arquivado_label": "Arquivado",
+      "sem_dados_relatorio": "Não há dados para gerar o relatório.",
+      "erro_pdf": "Não foi possível gerar o PDF."
+    },
+    "relatorio_titulo": "Relatório de Agendamentos",
+    "gerado_em": "Gerado em",
+    "total_consultas": "Total de consultas",
+    "pagina": "Página",
+    "de": "de",
+    "pdf_gerado": "PDF gerado com sucesso!",
+    "novo": "Novo Agendamento",
+    "relatorio": "Relatório",
+    "sem_dados": "Nenhum agendamento encontrado.",
+    "sem_dados_texto": "Tente ajustar os filtros ou criar um novo agendamento.",
+    "tabela": {
+      "paciente": "Paciente",
+      "medico": "Médico",
+      "especialidade": "Especialidade",
+      "data": "Data",
+      "horario": "Horário",
+      "status": "Status",
+      "acoes": "Ações"
     }
   },
   "filas": {
     "titulo": "Monitoramento de Filas",
     "subtitulo": "Visão gerencial de todas as unidades de saúde",
+    "abas": {
+      "filas": "Filas"
+    },
     "metricas": {
       "totalPacientes": "Total de pacientes",
       "tempoMedio": "Tempo médio",
@@ -350,8 +411,15 @@
       "ubs": "Todas UBS",
       "especialidade": "Especialidade",
       "prioridade": "Prioridade",
+      "prioridade_nenhuma": "Nenhuma",
       "tempo": "Tempo médio",
-      "pacientes": "Nº pacientes"
+      "tempo_ate_10": "Até 10 min",
+      "tempo_11_20": "11 a 20 min",
+      "tempo_acima_20": "Acima de 20 min",
+      "pacientes": "Nº pacientes",
+      "pacientes_ate_5": "Até 5",
+      "pacientes_6_10": "6 a 10",
+      "pacientes_11_mais": "11 ou mais"
     },
     "tabela": {
       "ubs": "UBS",
@@ -371,66 +439,253 @@
     "modais": {
       "abrirFila": "Abrir fila",
       "reordenar": "Reordenar Fila - {{ubs}}",
+      "reordenar_titulo": "Reordenar fila",
       "instrucoes": "Use ↑ ↓ para mover, ⭐ para priorizar (vai para o topo)",
       "salvar": "Salvar",
       "cancelar": "Cancelar",
       "sucesso": "Fila atualizada!",
-      "exportar": "Relatório CSV"
+      "exportar": "Relatório CSV",
+      "csv_exportado": "Relatório exportado com sucesso!",
+      "sem_dados_exportar": "Não há dados para exportar.",
+      "paciente": "Paciente",
+      "chegada": "Chegada",
+      "prioridade": "Prioridade",
+      "espera": "Tempo de espera"
     }
   },
   "historico": {
     "titulo": "Histórico de Consultas",
     "subtitulo": "Controle total sobre todos os registros médicos",
+    "abas": {
+      "historico": "Histórico"
+    },
     "metricas": {
       "total": "Total",
       "ativos": "Ativos",
       "arquivados": "Arquivados",
       "especialidades": "Especialidades",
-      "ubs": "UBS"
+      "ubs": "UBS",
+      "consultas": "consultas no total",
+      "ativos_sub": "registros ativos",
+      "arquivados_sub": "registros arquivados",
+      "especialidades_sub": "especialidades diferentes"
     },
     "filtros": {
       "buscar": "Buscar por paciente, médico, especialidade, diagnóstico ou UBS...",
       "status": "Status: Todos",
       "ativos": "Ativos",
-      "arquivados": "Arquivados"
+      "arquivados": "Arquivados",
+      "todos": "Todos",
+      "todas_especialidades": "Todas as especialidades"
     },
     "tabela": {
       "paciente": "Paciente",
       "data": "Data",
-      "medico_esp": "Médico / Esp.",
+      "medico": "Médico",
+      "especialidade": "Especialidade",
       "ubs": "UBS",
       "diagnostico": "Diagnóstico",
       "status": "Status",
-      "acoes": "Ações"
+      "acoes": "Ações",
+      "observacao": "Observação"
     },
     "modais": {
+      "visualizar_titulo": "📋 Consulta de",
       "visualizar": "Consulta de {{paciente}}",
+      "editar_titulo": "Editar Diagnóstico",
       "editar": "Editar Diagnóstico",
       "novo_diagnostico": "Novo Diagnóstico",
+      "arquivar_titulo": "Arquivar registro",
       "arquivar": "Arquivar registro",
+      "arquivar_texto": "Tem certeza que deseja arquivar o registro de {{paciente}}?",
       "desarquivar": "Desarquivar registro",
+      "desarquivar_texto": "Tem certeza que deseja desarquivar o registro de {{paciente}}?",
+      "excluir_titulo": "Exclusão segura",
       "excluir": "Exclusão segura",
+      "excluir_texto": "Tem certeza que deseja excluir permanentemente o registro de",
+      "senha_autorizacao": "Senha de autorização",
       "senha": "Senha de autorização",
       "senha_incorreta": "Senha incorreta! Acesso negado.",
-      "sucesso_editar": "Atualizado!",
-      "sucesso_arquivar": "Arquivado!",
-      "sucesso_desarquivar": "Desarquivado!",
-      "sucesso_excluir": "Excluído!"
-    }
+      "observacoes": "Observações",
+      "nenhuma_observacao": "Nenhuma observação",
+      "data_arquivamento": "Data de arquivamento",
+      "diagnostico_obrigatorio": "O diagnóstico é obrigatório.",
+      "sucesso_editar": "Registro atualizado!",
+      "sucesso_arquivar": "Registro arquivado!",
+      "sucesso_desarquivar": "Registro desarquivado!",
+      "sucesso_excluir": "Registro excluído!"
+    },
+    "footer": {
+      "clique_linha": "💡 Clique em qualquer linha para visualizar os detalhes completos.",
+      "titulo": "Sistema de Gestão de Saúde"
+    },
+    "sem_dados": "Nenhum registro encontrado.",
+    "sem_dados_texto": "Tente ajustar os filtros ou criar um novo registro."
   },
   "vacinas": {
     "titulo": "Gerenciamento de Vacinas",
     "subtitulo": "Controle de estoque e campanhas de vacinação.",
-    "metricas": {
-      "total": "Total de doses",
-      "disponiveis": "Disponíveis",
-      "aplicadas": "Aplicadas",
-      "vencidas": "Vencidas"
+    "novo_lote": "Novo Lote",
+    "exportar_pdf": "Exportar PDF",
+    "vacina": "Vacina",
+    "ubs": "UBS",
+    "quantidade": "Quantidade",
+    "lote": "Lote",
+    "validade": "Validade",
+    "doses": "doses",
+    "sem_dados": "Nenhum registro encontrado",
+    "sem_dados_texto": "Não há vacinas cadastradas no estoque",
+    "navegacao": {
+      "dashboard": "Dashboard",
+      "vacinas": "Vacinas"
     },
-    "estoque": "Estoque",
-    "campanhas": "Campanhas",
-    "adicionar": "Adicionar Lote",
-    "buscar": "Buscar por vacina ou lote..."
+    "perfil": {
+      "admin": "Administrador"
+    },
+    "metricas": {
+      "total_lotes": "Total de Lotes",
+      "lotes": "lotes",
+      "doses_disponiveis": "Doses Disponíveis",
+      "doses": "doses",
+      "criticos": "Críticos",
+      "em_atencao": "em atenção",
+      "esgotados": "Esgotados",
+      "reposicao": "reposição",
+      "vs_anterior": "vs anterior"
+    },
+    "status": {
+      "disponivel": "Disponível",
+      "critico": "Crítico",
+      "esgotado": "Esgotado"
+    },
+    "filtros": {
+      "buscar": "Buscar vacinas, UBS ou lote...",
+      "todos_status": "Todos os status",
+      "todas_ubs": "Todas as UBS"
+    },
+    "modais": {
+      "id": "ID",
+      "novo_lote_titulo": "💉 Adicionar Novo Lote",
+      "editar_lote_titulo": "✏️ Editar Lote",
+      "nome_vacina": "Nome da vacina",
+      "codigo_lote": "Código do lote",
+      "campos_obrigatorios": "Preencha todos os campos obrigatórios",
+      "lote_adicionado": "Lote adicionado com sucesso",
+      "atualizado": "Lote atualizado com sucesso",
+      "arquivar_titulo": "Arquivar Registro",
+      "arquivar_texto": "Deseja arquivar o lote {{lote}} da vacina {{vacina}}?",
+      "arquivado_sucesso": "Registro arquivado com sucesso",
+      "desarquivado_sucesso": "Registro desarquivado com sucesso",
+      "sem_dados": "Sem dados",
+      "sem_dados_texto": "Não há dados para gerar o relatório",
+      "pdf_gerado": "PDF gerado com sucesso",
+      "erro_pdf": "Erro ao gerar PDF",
+      "erro_pdf_texto": "Ocorreu um erro ao gerar o relatório PDF"
+    },
+    "pdf": {
+      "titulo": "Relatório de Estoque de Vacinas",
+      "gerado_em": "Gerado em",
+      "total_registros": "Total de registros",
+      "pagina": "Página",
+      "de": "de",
+      "rodape": "Minha UBS - Sistema de Gestão"
+    },
+    "footer": {
+      "clique_linha": "Clique em uma linha para visualizar os detalhes do registro",
+      "copyright": "© 2026 Minha UBS. Todos os direitos reservados"
+    }
+  },
+  "sus": {
+    "titulo": "SUS Conectado",
+    "subtitulo": "Integração e monitoramento de dados do sistema único de saúde",
+    "navegacao": {
+      "dashboard": "Dashboard"
+    },
+    "cobertura_vacinal": "Cobertura Vacinal",
+    "media_espera": "Média de Espera",
+    "leitos_ocupados": "Leitos Ocupados",
+    "producao_mensal": "Produção Mensal",
+    "total_exames": "Total de Exames",
+    "este_mes": "este mês",
+    "reducao": "redução",
+    "hoje": "hoje",
+    "vs_mes_passado": "vs mês passado",
+    "no_total": "no total",
+    "arquivados_sub": "arquivados",
+    "sua_ubs": "Sua UBS",
+    "codigo_sus": "Código SUS",
+    "ultima_sincronizacao": "Última sincronização",
+    "atendimentos_mes": "atendimentos/mês",
+    "cobertura_nacional": "cobertura nacional",
+    "meus_exames": "Meus Exames",
+    "meus_exames_subtitulo": "Acompanhe todos os seus exames e resultados",
+    "concluidos": "concluídos",
+    "pendentes": "pendentes",
+    "agendados": "agendados",
+    "buscar_exame": "Buscar exame, médico ou status...",
+    "nenhum_exame": "Nenhum exame encontrado",
+    "nenhum_exame_texto": "Tente ajustar os filtros ou realizar uma nova busca",
+    "ver_detalhes": "Ver detalhes",
+    "footer_dados": "Dados atualizados automaticamente a cada 15 minutos",
+    "footer_copyright": "© 2026 Minha UBS - Todos os direitos reservados",
+    "sincronizar_titulo": "Sincronizar Dados",
+    "sincronizar_texto": "Os dados serão atualizados com as informações mais recentes do sistema",
+    "sincronizado": "Sincronizado!",
+    "sincronizado_texto": "Dados atualizados com sucesso",
+    "modais": {
+      "id": "ID"
+    },
+    "exame": "Exame",
+    "medico": "Médico",
+    "tipo": "Tipo",
+    "data": "Data",
+    "data_solicitacao": "Data Solicitação",
+    "data_resultado": "Data Resultado",
+    "resultado": "Resultado",
+    "prioridade": "Prioridade",
+    "nao_disponivel": "Não disponível",
+    "status": {
+      "concluido": "Concluído",
+      "pendente": "Pendente",
+      "agendado": "Agendado"
+    },
+    "prioridade_obj": {
+      "alta": "Alta",
+      "media": "Média",
+      "baixa": "Baixa",
+      "todas": "Todas"
+    },
+    "arquivar_titulo": "Arquivar Exame",
+    "arquivar_texto": "Deseja arquivar o exame {{nome}}?",
+    "arquivado_sucesso": "Exame arquivado com sucesso",
+    "desarquivar_titulo": "Desarquivar Exame",
+    "desarquivar_texto": "Deseja desarquivar o exame {{nome}}?",
+    "desarquivado_sucesso": "Exame desarquivado com sucesso"
+  },
+  "procurar_ubs": {
+    "titulo": "Procurar UBS",
+    "subtitulo": "Encontre a unidade de saúde mais próxima de você",
+    "navegacao": {
+      "dashboard": "Dashboard"
+    },
+    "pesquisar": "Buscar UBS ou endereço...",
+    "todas_ubs": "Todas as UBS",
+    "unidades": "unidades",
+    "de_distancia": "de distância",
+    "ubs_mais_proxima": "UBS mais próxima",
+    "rotas": "Rotas",
+    "centralizar": "Centralizar em mim",
+    "sua_localizacao": "Sua localização",
+    "voce_esta_aqui": "Você está aqui",
+    "resultado": "Resultado",
+    "localizacao": "Localização",
+    "abrir_rotas": "Abrir rotas",
+    "localizacao_ativa": "Localização ativa",
+    "permissao_concedida": "Permissão concedida",
+    "footer": {
+      "clique_ubs": "💡 Clique em uma UBS para mais informações ou use o mapa para navegar",
+      "copyright": "© 2026 Minha UBS. Todos os direitos reservados"
+    }
   },
   "login": {
     "titulo": "Bem-vindo de volta",

@@ -1,4 +1,4 @@
-// src/pages/admim/SusConectadoAdmin.jsx - Versão com i18n e padronização completa
+// src/pages/admin/SusConectadoAdmin.jsx - Versão com i18n e padronização completa
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -185,19 +185,19 @@ const StatusBadge = ({ status, t }) => {
 const PriorityBadge = ({ prioridade, t }) => {
   const config = {
     alta: {
-      label: t("sus.prioridade.alta"),
+      label: t("sus prioridade alta"),
       bg: "bg-rose-50",
       text: "text-rose-700",
       border: "border-rose-200",
     },
     media: {
-      label: t("sus.prioridade.media"),
+      label: t("sus prioridade media"),
       bg: "bg-amber-50",
       text: "text-amber-700",
       border: "border-amber-200",
     },
     baixa: {
-      label: t("sus.prioridade.baixa"),
+      label: t("sus prioridade baixa"),
       bg: "bg-sky-50",
       text: "text-sky-700",
       border: "border-sky-200",
@@ -272,7 +272,7 @@ const MetricCard = ({
           >
             {trendValue}
           </span>
-          <span className="text-gray-400">vs. anterior</span>
+          <span className="text-gray-400">vs anterior</span>
         </div>
       )}
     </div>
@@ -355,7 +355,7 @@ const ExamCard = ({ exame, onDetalhes, t }) => {
 
 // ----------------------------- PÁGINA PRINCIPAL -----------------------------
 
-const SusConectado = () => {
+const SusConectadoAdmin = () => {
   const { t } = useTranslation();
 
   const [indicadores, setIndicadores] = useState({
@@ -470,7 +470,7 @@ const SusConectado = () => {
             <div class="p-2.5 bg-blue-50 rounded-full"><HiDocumentText class="w-6 h-6 text-blue-600" /></div>
             <div>
               <p class="font-semibold text-gray-800 text-lg">${exame.nome}</p>
-              <p class="text-sm text-gray-500">ID: #${exame.id}</p>
+              <p class="text-sm text-gray-500">${t("sus.modais.id")} #${exame.id}</p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -478,8 +478,8 @@ const SusConectado = () => {
             <div><span class="text-gray-500">${t("sus.tipo")}:</span> <span class="font-medium">${exame.tipo}</span></div>
             <div><span class="text-gray-500">${t("sus.data_solicitacao")}:</span> <span class="font-medium">${exame.dataSolicitacao}</span></div>
             <div><span class="text-gray-500">${t("sus.data_resultado")}:</span> <span class="font-medium">${exame.dataResultado || t("sus.nao_disponivel")}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium">${exame.status === "concluido" ? "✅ " + t("sus.status.concluido") : exame.status === "pendente" ? "⏳ " + t("sus.status.pendente") : "📅 " + t("sus.status.agendado")}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">${t("sus.prioridade")}:</span> <span class="font-medium">${exame.prioridade === "alta" ? "🔴 " + t("sus.prioridade.alta") : exame.prioridade === "media" ? "🟡 " + t("sus.prioridade.media") : "🟢 " + t("sus.prioridade.baixa")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium">${exame.status === "concluido" ? "✅ " + t("sus status concluido") : exame.status === "pendente" ? "⏳ " + t("sus status pendente") : "📅 " + t("sus status agendado")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("sus.prioridade")}:</span> <span class="font-medium">${exame.prioridade === "alta" ? "🔴 " + t("sus prioridade alta") : exame.prioridade === "media" ? "🟡 " + t("sus prioridade media") : "🟢 " + t("sus prioridade baixa")}</span></div>
             <div class="col-span-2"><span class="text-gray-500">${t("sus.resultado")}:</span> <span class="font-medium">${exame.resultado}</span></div>
             <div class="col-span-2"><span class="text-gray-500">${t("comum.arquivado")}:</span> <span class="font-medium">${exame.arquivado ? t("comum.sim") : t("comum.nao")}</span></div>
           </div>
@@ -729,7 +729,7 @@ const HeaderSection = ({ t }) => {
         <div>
           <div className="flex items-center gap-2 text-white/80 text-sm">
             <HiHome className="w-4 h-4" />
-            <span>Dashboard</span>
+            <span>{t("sus.navegacao.dashboard")}</span>
             <HiChevronDoubleLeft className="w-3 h-3 rotate-180" />
             <span className="text-white font-medium">{t("sus.titulo")}</span>
           </div>
@@ -825,7 +825,7 @@ const MetricsGrid = ({ indicadores, ubsData, stats, t }) => {
       subtitle: t("sus.no_total"),
     },
     {
-      title: t("comum.arquivados"),
+      title: t("comum arquivados"),
       value: stats.arquivados,
       unit: "",
       icon: HiArchive,
@@ -1236,13 +1236,6 @@ const PaginationControls = ({
   );
 };
 
-const FooterSection = ({ t }) => {
-  return (
-    <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-      <p>{t("sus.footer_dados")}</p>
-      <p className="mt-1">{t("sus.footer_copyright")}</p>
-    </div>
-  );
-};
+const FooterSection = ({ t }) => {};
 
-export default SusConectado;
+export default SusConectadoAdmin;

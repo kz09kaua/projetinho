@@ -457,7 +457,7 @@ const AgendamentoAdmin = () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("agendamento.tabela.paciente")} <span class="text-red-500">*</span></label>
-              <input id="swal-paciente" placeholder="${t("agendamento.modais.nome_completo")}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
+              <input id="swal-paciente" placeholder="${t("agendamento.tabela.paciente")}" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">${t("agendamento.tabela.medico")} <span class="text-red-500">*</span></label>
@@ -663,7 +663,7 @@ const AgendamentoAdmin = () => {
             <div><span class="text-gray-500">${t("agendamento.tabela.horario")}:</span> <span class="font-medium">${agendamento.horario}</span></div>
             <div class="col-span-2"><span class="text-gray-500">${t("comum.status")}:</span> <span class="font-medium">${agendamento.status}</span></div>
             <div class="col-span-2"><span class="text-gray-500">${t("agendamento.modais.observacoes")}:</span> <span class="font-medium">${agendamento.observacoes || t("agendamento.modais.nenhuma")}</span></div>
-            <div class="col-span-2"><span class="text-gray-500">${t("agendamento.modais.arquivado")}:</span> <span class="font-medium">${agendamento.arquivado ? t("comum.sim") : t("comum.nao")}</span></div>
+            <div class="col-span-2"><span class="text-gray-500">${t("agendamento.modais.arquivado_label")}:</span> <span class="font-medium">${agendamento.arquivado ? t("comum.sim") : t("comum.nao")}</span></div>
           </div>
         </div>
       `,
@@ -866,7 +866,7 @@ const AgendamentoAdmin = () => {
         t("agendamento.tabela.data"),
         t("agendamento.tabela.horario"),
         t("comum.status"),
-        t("agendamento.modais.arquivado"),
+        t("agendamento.modais.arquivado_label"),
       ];
       const rows = filteredData.map((a) => [
         a.paciente,
@@ -1347,7 +1347,7 @@ const AppointmentsTable = ({
               {t("agendamento.tabela.medico")} {renderSortIcon("medico")}
             </th>
             <th
-              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition hidden md:table-cell"
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell"
               onClick={() => handleSort("especialidade")}
             >
               {t("agendamento.tabela.especialidade")}{" "}
@@ -1360,7 +1360,7 @@ const AppointmentsTable = ({
               {t("agendamento.tabela.data")} {renderSortIcon("data")}
             </th>
             <th
-              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition hidden sm:table-cell"
+              className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell"
               onClick={() => handleSort("horario")}
             >
               {t("agendamento.tabela.horario")} {renderSortIcon("horario")}

@@ -163,28 +163,6 @@ const getStatusDetalhado = (pacientes) => {
 // COMPONENTES AUXILIARES (com tradução)
 // ============================================================
 
-const Avatar = ({ nome, size = "sm" }) => {
-  const iniciais = nome
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-  const tamanho =
-    size === "sm"
-      ? "w-8 h-8 text-xs"
-      : size === "md"
-        ? "w-10 h-10 text-sm"
-        : "w-12 h-12 text-base";
-  return (
-    <div
-      className={`${tamanho} rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0`}
-    >
-      {iniciais}
-    </div>
-  );
-};
-
 const FilaStatusBadge = ({ status }) => {
   const config = {
     Normal: {
@@ -505,14 +483,14 @@ const FilasAtendimentoAdmin = () => {
   }, []);
 
   // ============================================================
-  // MODAL PREMIUM (com tradução)
+  // MODAL (com tradução)
   // ============================================================
   const showPremiumModal = ({
     title,
     html,
     preConfirm,
-    confirmText = "Salvar",
-    cancelText = "Cancelar",
+    confirmText = t("comum.salvar"),
+    cancelText = t("comum.cancelar"),
     icon = null,
     showCancel = true,
     width = 580,
@@ -966,7 +944,6 @@ const FilasAtendimentoAdmin = () => {
             totalResults={filteredData.length}
             ubsList={ubsList}
             especialidadeList={especialidadeList}
-            t={t}
           />
         </div>
 
@@ -990,7 +967,6 @@ const FilasAtendimentoAdmin = () => {
               handleSort={handleSort}
               handleAbrirFila={handleAbrirFila}
               handleReordenar={handleReordenar}
-              t={t}
             />
           )}
           {totalPages > 1 && (
@@ -1000,7 +976,6 @@ const FilasAtendimentoAdmin = () => {
               setCurrentPage={setCurrentPage}
               itemsPerPage={itemsPerPage}
               totalItems={filteredData.length}
-              t={t}
             />
           )}
         </div>
@@ -1091,8 +1066,9 @@ const FilterBar = ({
   totalResults,
   ubsList,
   especialidadeList,
-  t,
 }) => {
+  const { t } = useTranslation();
+
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
     setCurrentPage(1);
@@ -1217,8 +1193,9 @@ const FilasTable = ({
   handleSort,
   handleAbrirFila,
   handleReordenar,
-  t,
 }) => {
+  const { t } = useTranslation();
+
   const renderSortIcon = (key) => {
     if (sortConfig.key !== key)
       return <HiSortAscending className="inline ml-1 text-gray-300" />;
@@ -1348,8 +1325,9 @@ const PaginationControls = ({
   setCurrentPage,
   itemsPerPage,
   totalItems,
-  t,
 }) => {
+  const { t } = useTranslation();
+
   const start = (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, totalItems);
 

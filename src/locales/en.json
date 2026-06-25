@@ -23,7 +23,24 @@
     "anterior": "Previous",
     "proximo": "Next",
     "sem_dados": "No data found.",
-    "tente_ajustar_filtros": "Try adjusting your filters."
+    "tente_ajustar_filtros": "Try adjusting your filters.",
+    "fechar": "Close",
+    "sim": "Yes",
+    "nao": "No",
+    "sim_arquivar": "Yes, archive",
+    "sim_desarquivar": "Yes, unarchive",
+    "erro": "Error",
+    "ativo": "Active",
+    "arquivado": "Archived",
+    "acesso_restrito": "Restricted Access",
+    "acesso_restrito_texto": "You don't have permission to access this page.",
+    "adicionar": "Add",
+    "registro": "record",
+    "encontrado_singular": "found",
+    "filtros": "Filters",
+    "todos": "All",
+    "continuar": "Continue",
+    "sincronizar": "Sync"
   },
   "configuracoes": {
     "titulo": "System Settings",
@@ -292,23 +309,31 @@
   "agendamento": {
     "titulo": "Appointment Management",
     "subtitulo": "Complete control over appointments and schedules.",
-    "novo": "New Appointment",
-    "relatorio": "Report",
+    "abas": {
+      "agendamentos": "Appointments"
+    },
+    "metricas": {
+      "total": "Total",
+      "total_subtitle": "appointments total",
+      "confirmados": "Confirmed",
+      "confirmados_subtitle": "confirmed appointments",
+      "pendentes": "Pending",
+      "pendentes_subtitle": "awaiting confirmation",
+      "cancelados": "Cancelled",
+      "cancelados_subtitle": "cancelled appointments",
+      "concluidos": "Completed",
+      "concluidos_subtitle": "completed attendances",
+      "ocupacao": "Occupancy",
+      "ocupacao_subtitle": "occupancy rate",
+      "arquivados": "Archived",
+      "arquivados_subtitle": "archived records"
+    },
     "buscar": "Search by patient, doctor or specialty...",
     "filtros": {
       "status": "Status: All",
       "medico": "Doctor: All",
-      "data": "Date",
+      "todos": "All",
       "arquivados": "Archived"
-    },
-    "tabela": {
-      "paciente": "Patient",
-      "medico": "Doctor",
-      "especialidade": "Specialty",
-      "data": "Date",
-      "horario": "Time",
-      "status": "Status",
-      "acoes": "Actions"
     },
     "status": {
       "confirmado": "Confirmed",
@@ -321,17 +346,53 @@
       "editar": "Edit Appointment",
       "visualizar": "Appointment of {{paciente}}",
       "arquivar": "Archive appointment",
+      "arquivar_texto": "Are you sure you want to archive the appointment of {{paciente}}?",
       "desarquivar": "Unarchive appointment",
+      "desarquivar_texto": "Are you sure you want to unarchive the appointment of {{paciente}}?",
       "excluir": "Secure deletion",
-      "senha": "Authorization password",
+      "excluir_texto": "Are you sure you want to permanently delete the appointment of",
+      "senha_autorizacao": "Authorization password",
       "senha_incorreta": "Incorrect password! Access denied.",
       "campos_obrigatorios": "Please fill all required fields.",
-      "data_passado": "Date/time cannot be in the past."
+      "data_passado": "Date/time cannot be in the past.",
+      "observacoes": "Observations",
+      "observacoes_placeholder": "Additional information...",
+      "criado": "Appointment created successfully!",
+      "atualizado": "Appointment updated successfully!",
+      "arquivado": "Appointment archived!",
+      "desarquivado": "Appointment unarchived!",
+      "excluido": "Appointment deleted!",
+      "nenhuma": "None",
+      "arquivado_label": "Archived",
+      "sem_dados_relatorio": "No data to generate report.",
+      "erro_pdf": "Unable to generate PDF."
+    },
+    "relatorio_titulo": "Appointment Report",
+    "gerado_em": "Generated on",
+    "total_consultas": "Total appointments",
+    "pagina": "Page",
+    "de": "of",
+    "pdf_gerado": "PDF generated successfully!",
+    "novo": "New Appointment",
+    "relatorio": "Report",
+    "sem_dados": "No appointments found.",
+    "sem_dados_texto": "Try adjusting your filters or create a new appointment.",
+    "tabela": {
+      "paciente": "Patient",
+      "medico": "Doctor",
+      "especialidade": "Specialty",
+      "data": "Date",
+      "horario": "Time",
+      "status": "Status",
+      "acoes": "Actions"
     }
   },
   "filas": {
     "titulo": "Queue Monitoring",
     "subtitulo": "Management view of all health units",
+    "abas": {
+      "filas": "Queues"
+    },
     "metricas": {
       "totalPacientes": "Total patients",
       "tempoMedio": "Average time",
@@ -350,8 +411,15 @@
       "ubs": "All UBS",
       "especialidade": "Specialty",
       "prioridade": "Priority",
+      "prioridade_nenhuma": "None",
       "tempo": "Average time",
-      "pacientes": "Number of patients"
+      "tempo_ate_10": "Up to 10 min",
+      "tempo_11_20": "11 to 20 min",
+      "tempo_acima_20": "Over 20 min",
+      "pacientes": "Number of patients",
+      "pacientes_ate_5": "Up to 5",
+      "pacientes_6_10": "6 to 10",
+      "pacientes_11_mais": "11 or more"
     },
     "tabela": {
       "ubs": "UBS",
@@ -371,66 +439,253 @@
     "modais": {
       "abrirFila": "Open queue",
       "reordenar": "Reorder Queue - {{ubs}}",
+      "reordenar_titulo": "Reorder queue",
       "instrucoes": "Use ↑ ↓ to move, ⭐ to prioritize (goes to top)",
       "salvar": "Save",
       "cancelar": "Cancel",
       "sucesso": "Queue updated!",
-      "exportar": "CSV Report"
+      "exportar": "CSV Report",
+      "csv_exportado": "Report exported successfully!",
+      "sem_dados_exportar": "No data to export.",
+      "paciente": "Patient",
+      "chegada": "Arrival",
+      "prioridade": "Priority",
+      "espera": "Waiting time"
     }
   },
   "historico": {
     "titulo": "Medical History",
     "subtitulo": "Complete control over all medical records",
+    "abas": {
+      "historico": "History"
+    },
     "metricas": {
       "total": "Total",
       "ativos": "Active",
       "arquivados": "Archived",
       "especialidades": "Specialties",
-      "ubs": "UBS"
+      "ubs": "UBS",
+      "consultas": "appointments total",
+      "ativos_sub": "active records",
+      "arquivados_sub": "archived records",
+      "especialidades_sub": "different specialties"
     },
     "filtros": {
       "buscar": "Search by patient, doctor, specialty, diagnosis or UBS...",
       "status": "Status: All",
       "ativos": "Active",
-      "arquivados": "Archived"
+      "arquivados": "Archived",
+      "todos": "All",
+      "todas_especialidades": "All specialties"
     },
     "tabela": {
       "paciente": "Patient",
       "data": "Date",
-      "medico_esp": "Doctor / Specialty",
+      "medico": "Doctor",
+      "especialidade": "Specialty",
       "ubs": "UBS",
       "diagnostico": "Diagnosis",
       "status": "Status",
-      "acoes": "Actions"
+      "acoes": "Actions",
+      "observacao": "Observation"
     },
     "modais": {
+      "visualizar_titulo": "📋 Appointment of",
       "visualizar": "Appointment of {{paciente}}",
+      "editar_titulo": "Edit Diagnosis",
       "editar": "Edit Diagnosis",
       "novo_diagnostico": "New Diagnosis",
+      "arquivar_titulo": "Archive record",
       "arquivar": "Archive record",
+      "arquivar_texto": "Are you sure you want to archive the record of {{paciente}}?",
       "desarquivar": "Unarchive record",
+      "desarquivar_texto": "Are you sure you want to unarchive the record of {{paciente}}?",
+      "excluir_titulo": "Secure deletion",
       "excluir": "Secure deletion",
+      "excluir_texto": "Are you sure you want to permanently delete the record of",
+      "senha_autorizacao": "Authorization password",
       "senha": "Authorization password",
       "senha_incorreta": "Incorrect password! Access denied.",
-      "sucesso_editar": "Updated!",
-      "sucesso_arquivar": "Archived!",
-      "sucesso_desarquivar": "Unarchived!",
-      "sucesso_excluir": "Deleted!"
-    }
+      "observacoes": "Observations",
+      "nenhuma_observacao": "No observations",
+      "data_arquivamento": "Archive date",
+      "diagnostico_obrigatorio": "Diagnosis is required.",
+      "sucesso_editar": "Record updated!",
+      "sucesso_arquivar": "Record archived!",
+      "sucesso_desarquivar": "Record unarchived!",
+      "sucesso_excluir": "Record deleted!"
+    },
+    "footer": {
+      "clique_linha": "💡 Click any row to view full details.",
+      "titulo": "Health Management System"
+    },
+    "sem_dados": "No records found.",
+    "sem_dados_texto": "Try adjusting your filters or create a new record."
   },
   "vacinas": {
     "titulo": "Vaccine Management",
     "subtitulo": "Inventory and vaccination campaign control.",
-    "metricas": {
-      "total": "Total doses",
-      "disponiveis": "Available",
-      "aplicadas": "Applied",
-      "vencidas": "Expired"
+    "novo_lote": "New Batch",
+    "exportar_pdf": "Export PDF",
+    "vacina": "Vaccine",
+    "ubs": "UBS",
+    "quantidade": "Quantity",
+    "lote": "Batch",
+    "validade": "Expiry Date",
+    "doses": "doses",
+    "sem_dados": "No records found",
+    "sem_dados_texto": "There are no vaccines registered in stock",
+    "navegacao": {
+      "dashboard": "Dashboard",
+      "vacinas": "Vaccines"
     },
-    "estoque": "Inventory",
-    "campanhas": "Campaigns",
-    "adicionar": "Add Batch",
-    "buscar": "Search by vaccine or batch..."
+    "perfil": {
+      "admin": "Administrator"
+    },
+    "metricas": {
+      "total_lotes": "Total Batches",
+      "lotes": "batches",
+      "doses_disponiveis": "Available Doses",
+      "doses": "doses",
+      "criticos": "Critical",
+      "em_atencao": "on alert",
+      "esgotados": "Out of Stock",
+      "reposicao": "restock",
+      "vs_anterior": "vs previous"
+    },
+    "status": {
+      "disponivel": "Available",
+      "critico": "Critical",
+      "esgotado": "Out of Stock"
+    },
+    "filtros": {
+      "buscar": "Search vaccines, UBS or batch...",
+      "todos_status": "All status",
+      "todas_ubs": "All UBS"
+    },
+    "modais": {
+      "id": "ID",
+      "novo_lote_titulo": "💉 Add New Batch",
+      "editar_lote_titulo": "✏️ Edit Batch",
+      "nome_vacina": "Vaccine name",
+      "codigo_lote": "Batch code",
+      "campos_obrigatorios": "Please fill all required fields",
+      "lote_adicionado": "Batch added successfully",
+      "atualizado": "Batch updated successfully",
+      "arquivar_titulo": "Archive Record",
+      "arquivar_texto": "Do you want to archive batch {{lote}} of vaccine {{vacina}}?",
+      "arquivado_sucesso": "Record archived successfully",
+      "desarquivado_sucesso": "Record unarchived successfully",
+      "sem_dados": "No data",
+      "sem_dados_texto": "No data to generate report",
+      "pdf_gerado": "PDF generated successfully",
+      "erro_pdf": "Error generating PDF",
+      "erro_pdf_texto": "An error occurred while generating the PDF report"
+    },
+    "pdf": {
+      "titulo": "Vaccine Stock Report",
+      "gerado_em": "Generated on",
+      "total_registros": "Total records",
+      "pagina": "Page",
+      "de": "of",
+      "rodape": "My UBS - Management System"
+    },
+    "footer": {
+      "clique_linha": "Click a row to view full record details",
+      "copyright": "© 2026 My UBS. All rights reserved"
+    }
+  },
+  "sus": {
+    "titulo": "SUS Connected",
+    "subtitulo": "Integration and monitoring of the unified health system data",
+    "navegacao": {
+      "dashboard": "Dashboard"
+    },
+    "cobertura_vacinal": "Vaccination Coverage",
+    "media_espera": "Average Wait Time",
+    "leitos_ocupados": "Occupied Beds",
+    "producao_mensal": "Monthly Production",
+    "total_exames": "Total Exams",
+    "este_mes": "this month",
+    "reducao": "reduction",
+    "hoje": "today",
+    "vs_mes_passado": "vs last month",
+    "no_total": "in total",
+    "arquivados_sub": "archived",
+    "sua_ubs": "Your UBS",
+    "codigo_sus": "SUS Code",
+    "ultima_sincronizacao": "Last sync",
+    "atendimentos_mes": "appointments/month",
+    "cobertura_nacional": "national coverage",
+    "meus_exames": "My Exams",
+    "meus_exames_subtitulo": "Track all your exams and results",
+    "concluidos": "completed",
+    "pendentes": "pending",
+    "agendados": "scheduled",
+    "buscar_exame": "Search exam, doctor or status...",
+    "nenhum_exame": "No exams found",
+    "nenhum_exame_texto": "Try adjusting your filters or perform a new search",
+    "ver_detalhes": "View details",
+    "footer_dados": "Data updated automatically every 15 minutes",
+    "footer_copyright": "© 2026 My UBS - All rights reserved",
+    "sincronizar_titulo": "Sync Data",
+    "sincronizar_texto": "Data will be updated with the latest system information",
+    "sincronizado": "Synced!",
+    "sincronizado_texto": "Data updated successfully",
+    "modais": {
+      "id": "ID"
+    },
+    "exame": "Exam",
+    "medico": "Doctor",
+    "tipo": "Type",
+    "data": "Date",
+    "data_solicitacao": "Request Date",
+    "data_resultado": "Result Date",
+    "resultado": "Result",
+    "prioridade": "Priority",
+    "nao_disponivel": "Not available",
+    "status": {
+      "concluido": "Completed",
+      "pendente": "Pending",
+      "agendado": "Scheduled"
+    },
+    "prioridade_obj": {
+      "alta": "High",
+      "media": "Medium",
+      "baixa": "Low",
+      "todas": "All"
+    },
+    "arquivar_titulo": "Archive Exam",
+    "arquivar_texto": "Do you want to archive the exam {{nome}}?",
+    "arquivado_sucesso": "Exam archived successfully",
+    "desarquivar_titulo": "Unarchive Exam",
+    "desarquivar_texto": "Do you want to unarchive the exam {{nome}}?",
+    "desarquivado_sucesso": "Exam unarchived successfully"
+  },
+  "procurar_ubs": {
+    "titulo": "Find UBS",
+    "subtitulo": "Find the nearest health unit to you",
+    "navegacao": {
+      "dashboard": "Dashboard"
+    },
+    "pesquisar": "Search UBS or address...",
+    "todas_ubs": "All UBS",
+    "unidades": "units",
+    "de_distancia": "away",
+    "ubs_mais_proxima": "Nearest UBS",
+    "rotas": "Routes",
+    "centralizar": "Center on me",
+    "sua_localizacao": "Your location",
+    "voce_esta_aqui": "You are here",
+    "resultado": "Result",
+    "localizacao": "Location",
+    "abrir_rotas": "Open routes",
+    "localizacao_ativa": "Location active",
+    "permissao_concedida": "Permission granted",
+    "footer": {
+      "clique_ubs": "💡 Click on a UBS for more information or use the map to navigate",
+      "copyright": "© 2026 My UBS. All rights reserved"
+    }
   },
   "login": {
     "titulo": "Welcome back",
