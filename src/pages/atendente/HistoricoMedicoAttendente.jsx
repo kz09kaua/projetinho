@@ -1,5 +1,5 @@
 // src/pages/HistoricoMedicoAttendente.jsx
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   HiSearch,
@@ -30,13 +30,14 @@ const HistoricoMedicoAttendente = () => {
     );
   }
 
-  const [cpfBusca, setCpfBusca] = useState("");
+  const [busca, setBusca] = useState("");
   const [paciente, setPaciente] = useState(null);
   const [filtroEspecialidade, setFiltroEspecialidade] = useState("todas");
   const [expandedConsulta, setExpandedConsulta] = useState(null);
   const [ordenacao, setOrdenacao] = useState("recente");
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const sugestoesRef = useRef(null);
 
-  // Mock enriquecido – paciente Maria Silva com histórico completo
   const pacientesMock = [
     {
       id: 1,
@@ -154,25 +155,89 @@ const HistoricoMedicoAttendente = () => {
     },
   ];
 
+  // Formata CPF
+  const formatarCPF = (valor) => {
+    const nums = valor.replace(/\D/g, "");
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 6) return nums.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (nums.length <= 9)
+      return nums.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+
+  // Manipula digitação: detecta se é nome ou CPF
+  const handleBuscaChange = (e) => {
+    const rawValue = e.target.value;
+    // Se contém apenas dígitos e possíveis separadores de CPF, aplica máscara
+    if (/^[\d.\- ]*$/.test(rawValue)) {
+      const formatado = formatarCPF(rawValue);
+      setBusca(formatado);
+      setMostrarSugestoes(false); // CPF não mostra sugestões
+    } else {
+      // É nome
+      setBusca(rawValue);
+      setMostrarSugestoes(rawValue.trim().length > 0);
+    }
+  };
+
+  // Fecha sugestões ao clicar fora
+  useEffect(() => {
+    const handleClickFora = (e) => {
+      if (sugestoesRef.current && !sugestoesRef.current.contains(e.target)) {
+        setMostrarSugestoes(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickFora);
+    return () => document.removeEventListener("mousedown", handleClickFora);
+  }, []);
+
+  // Lista de sugestões (apenas quando é nome)
+  const sugestoes = (() => {
+    if (!busca.trim() || /^[\d.\- ]+$/.test(busca)) return [];
+    const termo = busca.toLowerCase();
+    return pacientesMock.filter((p) => p.nome.toLowerCase().includes(termo));
+  })();
+
+  const selecionarSugestao = (pacienteSug) => {
+    setBusca(pacienteSug.nome);
+    setMostrarSugestoes(false);
+    // Busca automática
+    setPaciente(pacienteSug);
+    setExpandedConsulta(null);
+  };
+
   const buscarHistorico = () => {
-    const cpfLimpo = cpfBusca.replace(/\D/g, "");
-    if (cpfLimpo.length !== 11) {
-      Swal.fire("CPF inválido", "Digite um CPF válido.", "warning");
+    const termoLimpo = busca.trim();
+    if (termoLimpo === "") {
+      Swal.fire("Campo vazio", "Digite um nome ou CPF.", "warning");
       return;
     }
-    const encontrado = pacientesMock.find((p) => p.cpf === cpfBusca);
+
+    const cpfNumerico = termoLimpo.replace(/\D/g, "");
+    const encontrado = pacientesMock.find((p) => {
+      if (cpfNumerico.length === 11) {
+        return p.cpf.replace(/\D/g, "") === cpfNumerico;
+      }
+      return p.nome.toLowerCase().includes(termoLimpo.toLowerCase());
+    });
+
     if (encontrado) {
       setPaciente(encontrado);
       setExpandedConsulta(null);
     } else {
-      Swal.fire("Não encontrado", "Nenhum paciente com esse CPF.", "error");
+      Swal.fire(
+        "Não encontrado",
+        "Nenhum paciente com esse nome ou CPF.",
+        "error",
+      );
       setPaciente(null);
     }
   };
 
   const limparBusca = () => {
-    setCpfBusca("");
+    setBusca("");
     setPaciente(null);
+    setMostrarSugestoes(false);
   };
 
   const toggleExpandir = (id) => {
@@ -230,25 +295,44 @@ const HistoricoMedicoAttendente = () => {
             <HiDocumentText className="text-blue-600" /> Histórico de Consultas
           </h1>
           <p className="text-gray-500 mt-1">
-            Visualize o prontuário completo do paciente.
+            Busque por nome ou CPF e acesse o prontuário completo.
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <div className="flex gap-3">
-            <div className="relative flex-1">
+          <div className="flex gap-3 relative">
+            <div className="relative flex-1" ref={sugestoesRef}>
               <input
                 type="text"
-                value={cpfBusca}
-                onChange={(e) => setCpfBusca(e.target.value)}
-                placeholder="CPF do paciente (ex: 123.456.789-00)"
+                value={busca}
+                onChange={handleBuscaChange}
+                placeholder="Nome ou CPF do paciente (ex: 123.456.789-00)"
                 className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
-                maxLength={14}
+                autoComplete="off"
               />
               <HiSearch
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={20}
               />
+              {mostrarSugestoes && sugestoes.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  {sugestoes.map((sug) => (
+                    <div
+                      key={sug.id}
+                      className="flex items-center gap-3 p-3 hover:bg-blue-50 cursor-pointer"
+                      onClick={() => selecionarSugestao(sug)}
+                    >
+                      <HiUser className="text-gray-400" size={18} />
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {sug.nome}
+                        </p>
+                        <p className="text-xs text-gray-500">CPF: {sug.cpf}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={buscarHistorico}
@@ -264,10 +348,11 @@ const HistoricoMedicoAttendente = () => {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Exemplo: 123.456.789-00 (Maria Silva)
+            Exemplo: 123.456.789-00 (Maria Silva) ou "Maria"
           </p>
         </div>
 
+        {/* Restante do layout (paciente, consultas) mantido igual ao anterior */}
         {paciente && (
           <>
             <div className="bg-white rounded-2xl p-6 border shadow-sm">
@@ -419,10 +504,7 @@ const HistoricoMedicoAttendente = () => {
         {!paciente && (
           <div className="text-center text-gray-500 py-16 bg-white rounded-2xl shadow-sm border">
             <HiDocumentText size={48} className="mx-auto mb-4 opacity-40" />
-            <p>
-              Utilize a busca por CPF para visualizar o histórico de um
-              paciente.
-            </p>
+            <p>Utilize a busca por nome ou CPF para visualizar o histórico.</p>
           </div>
         )}
       </div>

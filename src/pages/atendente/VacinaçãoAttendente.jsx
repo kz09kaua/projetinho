@@ -1,5 +1,5 @@
 // src/pages/VacinaçãoAttendente.jsx
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   HiSearch,
@@ -28,12 +28,13 @@ const VacinaçãoAttendente = () => {
     );
   }
 
-  const [cpfBusca, setCpfBusca] = useState("");
+  const [busca, setBusca] = useState("");
   const [paciente, setPaciente] = useState(null);
   const [expandedVacina, setExpandedVacina] = useState(null);
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const sugestoesRef = useRef(null);
 
-  // Mock com mais dados
   const pacientesVacinaMock = [
     {
       id: 1,
@@ -139,26 +140,85 @@ const VacinaçãoAttendente = () => {
     "Tríplice Viral",
   ];
 
+  const formatarCPF = (valor) => {
+    const nums = valor.replace(/\D/g, "");
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 6) return nums.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (nums.length <= 9)
+      return nums.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+
+  const handleBuscaChange = (e) => {
+    const rawValue = e.target.value;
+    if (/^[\d.\- ]*$/.test(rawValue)) {
+      setBusca(formatarCPF(rawValue));
+      setMostrarSugestoes(false);
+    } else {
+      setBusca(rawValue);
+      setMostrarSugestoes(rawValue.trim().length > 0);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickFora = (e) => {
+      if (sugestoesRef.current && !sugestoesRef.current.contains(e.target)) {
+        setMostrarSugestoes(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickFora);
+    return () => document.removeEventListener("mousedown", handleClickFora);
+  }, []);
+
+  const sugestoes = (() => {
+    if (!busca.trim() || /^[\d.\- ]+$/.test(busca)) return [];
+    const termo = busca.toLowerCase();
+    return pacientesVacinaMock.filter((p) =>
+      p.nome.toLowerCase().includes(termo),
+    );
+  })();
+
+  const selecionarSugestao = (pacienteSug) => {
+    setBusca(pacienteSug.nome);
+    setMostrarSugestoes(false);
+    setPaciente(pacienteSug);
+    setExpandedVacina(null);
+    setFiltroStatus("todos");
+  };
+
   const buscarPaciente = () => {
-    const cpfLimpo = cpfBusca.replace(/\D/g, "");
-    if (cpfLimpo.length !== 11) {
-      Swal.fire("CPF inválido", "Digite um CPF válido.", "warning");
+    const termoLimpo = busca.trim();
+    if (termoLimpo === "") {
+      Swal.fire("Campo vazio", "Digite um nome ou CPF.", "warning");
       return;
     }
-    const encontrado = pacientesVacinaMock.find((p) => p.cpf === cpfBusca);
+
+    const cpfNumerico = termoLimpo.replace(/\D/g, "");
+    const encontrado = pacientesVacinaMock.find((p) => {
+      if (cpfNumerico.length === 11) {
+        return p.cpf.replace(/\D/g, "") === cpfNumerico;
+      }
+      return p.nome.toLowerCase().includes(termoLimpo.toLowerCase());
+    });
+
     if (encontrado) {
       setPaciente(encontrado);
       setExpandedVacina(null);
       setFiltroStatus("todos");
     } else {
-      Swal.fire("Não encontrado", "Nenhum paciente com esse CPF.", "error");
+      Swal.fire(
+        "Não encontrado",
+        "Nenhum paciente com esse nome ou CPF.",
+        "error",
+      );
       setPaciente(null);
     }
   };
 
   const limparBusca = () => {
-    setCpfBusca("");
+    setBusca("");
     setPaciente(null);
+    setMostrarSugestoes(false);
   };
 
   const registrarVacina = async (vacinaExistente = null) => {
@@ -289,7 +349,7 @@ const VacinaçãoAttendente = () => {
               <HiBeaker className="text-emerald-600" /> Carteira de Vacinação
             </h1>
             <p className="text-gray-500 mt-1">
-              Busque um paciente e gerencie seu histórico vacinal.
+              Busque por nome ou CPF e gerencie o histórico vacinal.
             </p>
           </div>
           {paciente && (
@@ -302,22 +362,40 @@ const VacinaçãoAttendente = () => {
           )}
         </div>
 
-        {/* Busca */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <div className="flex gap-3">
-            <div className="relative flex-1">
+          <div className="flex gap-3 relative">
+            <div className="relative flex-1" ref={sugestoesRef}>
               <input
                 type="text"
-                value={cpfBusca}
-                onChange={(e) => setCpfBusca(e.target.value)}
-                placeholder="CPF do paciente (ex: 123.456.789-00)"
+                value={busca}
+                onChange={handleBuscaChange}
+                placeholder="Nome ou CPF do paciente (ex: 123.456.789-00)"
                 className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
-                maxLength={14}
+                autoComplete="off"
               />
               <HiSearch
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={20}
               />
+              {mostrarSugestoes && sugestoes.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  {sugestoes.map((sug) => (
+                    <div
+                      key={sug.id}
+                      className="flex items-center gap-3 p-3 hover:bg-emerald-50 cursor-pointer"
+                      onClick={() => selecionarSugestao(sug)}
+                    >
+                      <HiUser className="text-gray-400" size={18} />
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {sug.nome}
+                        </p>
+                        <p className="text-xs text-gray-500">CPF: {sug.cpf}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={buscarPaciente}
@@ -333,11 +411,11 @@ const VacinaçãoAttendente = () => {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Exemplo: 123.456.789-00 (Maria Silva)
+            Exemplo: 123.456.789-00 (Maria Silva) ou "Maria"
           </p>
         </div>
 
-        {/* Resultado */}
+        {/* Restante igual ao anterior */}
         {paciente && (
           <>
             <div className="bg-white rounded-2xl p-6 border shadow-sm">
