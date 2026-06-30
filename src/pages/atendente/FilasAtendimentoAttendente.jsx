@@ -1,21 +1,29 @@
 // src/pages/FilasAtendimentoAttendente.jsx
-import { useState } from "react";
-import { HiUserGroup, HiClock, HiUsers, HiExclamation } from "react-icons/hi";
+import { useState, useEffect } from "react";
+import { HiUserGroup, HiClock, HiUsers, HiExclamation, HiSearch, HiX, HiCheck, HiBan } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
 import ChatAtendimento from "../../components/ChatAtendimento";
 import Swal from "sweetalert2";
 
-const MetricCard = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-    <div className="flex justify-between items-start">
-      <span className="text-gray-500 text-sm font-medium">{title}</span>
-      <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-        <Icon size={20} />
+const MetricCard = ({ title, value, icon: Icon, color = "blue" }) => {
+  const colorMap = {
+    blue: "from-blue-500 to-blue-600",
+    green: "from-green-500 to-green-600",
+    yellow: "from-yellow-500 to-yellow-600",
+    red: "from-red-500 to-red-600",
+  };
+  return (
+    <div className="bg-white rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+      <div className="flex justify-between items-start">
+        <span className="text-gray-500 text-sm font-medium">{title}</span>
+        <div className={`p-2 rounded-xl bg-gradient-to-br ${colorMap[color]} text-white`}>
+          <Icon size={20} />
+        </div>
       </div>
+      <p className="text-2xl font-bold mt-2 text-gray-800">{value}</p>
     </div>
-    <p className="text-2xl font-bold mt-2 text-gray-800">{value}</p>
-  </div>
-);
+  );
+};
 
 const FilasAtendimentoAttendente = () => {
   const { user } = useAuth();
@@ -28,41 +36,155 @@ const FilasAtendimentoAttendente = () => {
     );
   }
 
-  const [fila] = useState([
+  // --- Estados ---
+  const [fila, setFila] = useState([
     {
+      id: 1,
       posicao: 1,
       paciente: "José Souza",
       prioridade: "Normal",
       tempo: "10 min",
       senha: "G-108",
       status: "Aguardando",
+      especialidade: "Clínica Geral",
     },
     {
+      id: 2,
       posicao: 2,
       paciente: "Maria Lima",
       prioridade: "Alta",
       tempo: "5 min",
       senha: "P-042",
-      status: "Em Atendimento",
+      status: "Aguardando",
+      especialidade: "Cardiologia",
     },
     {
+      id: 3,
       posicao: 3,
       paciente: "Pedro Santos",
       prioridade: "Normal",
       tempo: "15 min",
       senha: "G-110",
       status: "Aguardando",
+      especialidade: "Clínica Geral",
+    },
+    {
+      id: 4,
+      posicao: 4,
+      paciente: "Ana Oliveira",
+      prioridade: "Alta",
+      tempo: "8 min",
+      senha: "P-045",
+      status: "Aguardando",
+      especialidade: "Pediatria",
+    },
+    {
+      id: 5,
+      posicao: 5,
+      paciente: "Carlos Ferreira",
+      prioridade: "Normal",
+      tempo: "20 min",
+      senha: "G-115",
+      status: "Aguardando",
+      especialidade: "Ortopedia",
     },
   ]);
 
-  const estatisticas = {
-    totalPacientes: 24,
-    emAtendimento: 5,
-    tempoMedio: "12 min",
-    prioridades: 3,
+  const [emAtendimento, setEmAtendimento] = useState(null);
+  const [filtro, setFiltro] = useState("");
+  const [filtroPrioridade, setFiltroPrioridade] = useState("todas");
+
+  // --- Estatísticas dinâmicas ---
+  const totalPacientes = fila.length + (emAtendimento ? 1 : 0);
+  const emAtendimentoCount = emAtendimento ? 1 : 0;
+  const prioridades = fila.filter(p => p.prioridade === "Alta").length;
+  const tempoMedio = fila.length > 0 ? "12 min" : "0 min"; // mock
+
+  // --- Funções ---
+  const chamarProximo = () => {
+    if (emAtendimento) {
+      Swal.fire({
+        icon: "info",
+        title: "Paciente em atendimento",
+        text: `Finalize o atendimento de ${emAtendimento.paciente} antes de chamar o próximo.`,
+      });
+      return;
+    }
+    if (fila.length === 0) {
+      Swal.fire({
+        icon: "info",
+        title: "Fila vazia",
+        text: "Não há pacientes aguardando.",
+      });
+      return;
+    }
+    const proximo = fila[0];
+    setEmAtendimento(proximo);
+    setFila(prev => prev.slice(1));
+    Swal.fire({
+      icon: "success",
+      title: `Chamando ${proximo.paciente}`,
+      text: `Senha: ${proximo.senha}`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  };
+
+  const finalizarAtendimento = () => {
+    if (!emAtendimento) {
+      Swal.fire({
+        icon: "info",
+        title: "Nenhum paciente em atendimento",
+      });
+      return;
+    }
+    Swal.fire({
+      title: `Finalizar atendimento de ${emAtendimento.paciente}?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sim, finalizar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setEmAtendimento(null);
+        Swal.fire({
+          icon: "success",
+          title: "Atendimento finalizado",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    });
+  };
+
+  const cancelarPaciente = (id, nome) => {
+    Swal.fire({
+      title: `Cancelar ${nome}?`,
+      text: "O paciente será removido da fila.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sim, cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setFila(prev => prev.filter(p => p.id !== id));
+        Swal.fire({
+          icon: "success",
+          title: "Paciente removido",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    });
   };
 
   const chamarPaciente = (paciente) => {
+    if (emAtendimento) {
+      Swal.fire({
+        icon: "info",
+        title: "Paciente em atendimento",
+        text: `Finalize o atendimento de ${emAtendimento.paciente} antes de chamar outro.`,
+      });
+      return;
+    }
     Swal.fire({
       title: `Chamar ${paciente.paciente}?`,
       text: `Senha: ${paciente.senha}`,
@@ -71,19 +193,69 @@ const FilasAtendimentoAttendente = () => {
       confirmButtonText: "Sim, chamar",
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire("Chamado!", `${paciente.paciente} foi chamado.`, "success");
+        setEmAtendimento(paciente);
+        setFila(prev => prev.filter(p => p.id !== paciente.id));
+        Swal.fire({
+          icon: "success",
+          title: "Chamado!",
+          text: `${paciente.paciente} foi chamado.`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
       }
     });
   };
 
+  const novaFila = () => {
+    Swal.fire({
+      title: "Criar nova fila?",
+      text: "Isso irá reiniciar a fila com base nos pacientes aguardando.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sim, criar nova",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Reinicia a fila (mock - poderia vir de uma API)
+        const novaLista = [
+          { id: 1, posicao: 1, paciente: "José Souza", prioridade: "Normal", tempo: "10 min", senha: "G-108", status: "Aguardando", especialidade: "Clínica Geral" },
+          { id: 2, posicao: 2, paciente: "Maria Lima", prioridade: "Alta", tempo: "5 min", senha: "P-042", status: "Aguardando", especialidade: "Cardiologia" },
+          { id: 3, posicao: 3, paciente: "Pedro Santos", prioridade: "Normal", tempo: "15 min", senha: "G-110", status: "Aguardando", especialidade: "Clínica Geral" },
+        ];
+        setFila(novaLista);
+        setEmAtendimento(null);
+        Swal.fire({
+          icon: "success",
+          title: "Nova fila criada",
+          text: `${novaLista.length} pacientes na fila.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    });
+  };
+
+  // Atualiza posições da fila (para exibição correta)
+  useEffect(() => {
+    setFila(prev => prev.map((p, index) => ({ ...p, posicao: index + 1 })));
+  }, [fila.length]);
+
+  // --- Filtros ---
+  const filaFiltrada = fila.filter(p => {
+    const matchNome = p.paciente.toLowerCase().includes(filtro.toLowerCase());
+    const matchPrioridade = filtroPrioridade === "todas" || p.prioridade === filtroPrioridade;
+    return matchNome && matchPrioridade;
+  });
+
+  // --- Cores de status ---
   const statusBadge = (status) => {
     if (status === "Em Atendimento") return "bg-green-100 text-green-700";
-    return "bg-gray-100 text-gray-600";
+    return "bg-blue-100 text-blue-700";
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
@@ -91,74 +263,152 @@ const FilasAtendimentoAttendente = () => {
             </h1>
             <p className="text-gray-500 mt-1">Gerencie as filas e atendimentos da unidade.</p>
           </div>
-          <div className="flex gap-2">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={chamarProximo}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-2"
+            >
               <HiUserGroup size={18} /> Chamar Próximo
             </button>
-            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-semibold transition">
+            <button
+              onClick={finalizarAtendimento}
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-2"
+            >
+              <HiCheck size={18} /> Finalizar Atendimento
+            </button>
+            <button
+              onClick={novaFila}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-semibold transition"
+            >
               Nova Fila
             </button>
           </div>
         </div>
 
+        {/* Cards de estatísticas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Pacientes" value={estatisticas.totalPacientes} icon={HiUsers} />
-          <MetricCard title="Em Atendimento" value={estatisticas.emAtendimento} icon={HiUserGroup} />
-          <MetricCard title="Tempo Médio" value={estatisticas.tempoMedio} icon={HiClock} />
-          <MetricCard title="Prioridades" value={estatisticas.prioridades} icon={HiExclamation} />
+          <MetricCard title="Total Pacientes" value={totalPacientes} icon={HiUsers} color="blue" />
+          <MetricCard title="Em Atendimento" value={emAtendimentoCount} icon={HiUserGroup} color="green" />
+          <MetricCard title="Tempo Médio" value={tempoMedio} icon={HiClock} color="yellow" />
+          <MetricCard title="Prioridades" value={prioridades} icon={HiExclamation} color="red" />
         </div>
 
-        <div>
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Pacientes na Fila</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {fila.map((item) => (
-              <div
-                key={item.senha}
-                className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition ${
-                  item.prioridade === "Alta" ? "border-l-4 border-l-red-500" : ""
-                }`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                    <HiUserGroup size={22} />
-                  </div>
-                  <div className="flex gap-1">
-                    {item.prioridade === "Alta" && (
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700">
-                        Prioridade
-                      </span>
-                    )}
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge(item.status)}`}>
-                      {item.status}
-                    </span>
-                  </div>
+        {/* Em Atendimento */}
+        {emAtendimento && (
+          <div className="bg-white rounded-2xl border-2 border-green-500 p-4 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-green-100">
+                  <HiUserGroup className="text-green-600" size={24} />
                 </div>
-                <h4 className="font-bold text-lg text-gray-800">{item.paciente}</h4>
-                <p className="text-sm text-gray-500 mb-3">Clínica Geral</p>
-                <div className="grid grid-cols-2 gap-3 my-4">
-                  <div>
-                    <p className="text-xs text-gray-400">Senha</p>
-                    <p className="text-xl font-bold text-gray-800">{item.senha}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Espera</p>
-                    <p className="text-xl font-bold text-gray-800">{item.tempo}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => chamarPaciente(item)}
-                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition"
-                  >
-                    Chamar
-                  </button>
-                  <button className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition">
-                    Cancelar
-                  </button>
+                <div>
+                  <p className="text-sm text-gray-500">Em Atendimento</p>
+                  <p className="font-bold text-lg text-gray-800">{emAtendimento.paciente}</p>
+                  <p className="text-sm text-gray-500">Senha: {emAtendimento.senha} | {emAtendimento.especialidade}</p>
                 </div>
               </div>
-            ))}
+              <button
+                onClick={finalizarAtendimento}
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl font-semibold transition"
+              >
+                Finalizar Atendimento
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Filtros e busca */}
+        <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar paciente..."
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <select
+            value={filtroPrioridade}
+            onChange={(e) => setFiltroPrioridade(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+          >
+            <option value="todas">Todas prioridades</option>
+            <option value="Alta">Alta</option>
+            <option value="Normal">Normal</option>
+          </select>
+          <button
+            onClick={() => { setFiltro(""); setFiltroPrioridade("todas"); }}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
+          >
+            <HiX className="text-gray-500" /> Limpar
+          </button>
+        </div>
+
+        {/* Lista de pacientes */}
+        <div>
+          <h3 className="text-lg font-bold text-gray-800 mb-4">
+            Pacientes na Fila ({filaFiltrada.length})
+          </h3>
+          {filaFiltrada.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center text-gray-500 border">
+              {fila.length === 0 ? "Fila vazia." : "Nenhum paciente encontrado com os filtros atuais."}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filaFiltrada.map((item) => (
+                <div
+                  key={item.id}
+                  className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition ${
+                    item.prioridade === "Alta" ? "border-l-4 border-l-red-500" : ""
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                      <HiUserGroup size={22} />
+                    </div>
+                    <div className="flex gap-1">
+                      {item.prioridade === "Alta" && (
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700">
+                          Prioridade
+                        </span>
+                      )}
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                  </div>
+                  <h4 className="font-bold text-lg text-gray-800">{item.paciente}</h4>
+                  <p className="text-sm text-gray-500 mb-3">{item.especialidade}</p>
+                  <div className="grid grid-cols-2 gap-3 my-4">
+                    <div>
+                      <p className="text-xs text-gray-400">Senha</p>
+                      <p className="text-xl font-bold text-gray-800">{item.senha}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Espera</p>
+                      <p className="text-xl font-bold text-gray-800">{item.tempo}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => chamarPaciente(item)}
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition"
+                    >
+                      Chamar
+                    </button>
+                    <button
+                      onClick={() => cancelarPaciente(item.id, item.paciente)}
+                      className="flex-1 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-semibold transition"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <ChatAtendimento />

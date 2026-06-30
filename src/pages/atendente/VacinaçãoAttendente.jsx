@@ -18,8 +18,13 @@ import {
 } from "react-icons/hi";
 import Swal from "sweetalert2";
 
+// Chaves do localStorage
+const STORAGE_KEY_PACIENTES = "@agendamento_pacientes";
+const STORAGE_KEY_VACINAS = "@vacinas_pacientes";
+
 const VacinaçãoAttendente = () => {
   const { user } = useAuth();
+
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
@@ -35,128 +40,84 @@ const VacinaçãoAttendente = () => {
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const sugestoesRef = useRef(null);
 
-  const pacientesVacinaMock = [
-    {
-      id: 1,
-      nome: "Maria Silva",
-      cpf: "123.456.789-00",
-      sus: "1234 5678 9012",
-      dataNasc: "15/03/1980",
-      sexo: "Feminino",
-      vacinas: [
-        {
-          id: 1,
-          vacina: "COVID-19",
-          dose: "4ª Dose",
-          data: "12/05/2024",
-          lote: "AB9023",
-          status: "aplicada",
-          proximaDose: null,
-        },
-        {
-          id: 2,
-          vacina: "Hepatite B",
-          dose: "Dose Única",
-          data: "08/02/2024",
-          lote: "HP5521",
-          status: "aplicada",
-          proximaDose: null,
-        },
-        {
-          id: 3,
-          vacina: "Antitetânica",
-          dose: "Reforço",
-          data: null,
-          lote: null,
-          status: "pendente",
-          proximaDose: "15/07/2024",
-        },
-        {
-          id: 4,
-          vacina: "Febre Amarela",
-          dose: "Dose Única",
-          data: "22/10/2023",
-          lote: "FA008",
-          status: "aplicada",
-          proximaDose: null,
-        },
-        {
-          id: 5,
-          vacina: "Gripe",
-          dose: "Dose Anual",
-          data: null,
-          lote: null,
-          status: "pendente",
-          proximaDose: "10/06/2024",
-        },
-      ],
-    },
-    {
-      id: 2,
-      nome: "José Santos",
-      cpf: "987.654.321-00",
-      sus: "9876 5432 1098",
-      dataNasc: "22/07/1990",
-      sexo: "Masculino",
-      vacinas: [
-        {
-          id: 6,
-          vacina: "COVID-19",
-          dose: "3ª Dose",
-          data: "10/03/2024",
-          lote: "AB1234",
-          status: "aplicada",
-          proximaDose: null,
-        },
-        {
-          id: 7,
-          vacina: "Gripe",
-          dose: "Dose Anual",
-          data: null,
-          lote: null,
-          status: "pendente",
-          proximaDose: "20/06/2024",
-        },
-        {
-          id: 8,
-          vacina: "Hepatite B",
-          dose: "2ª Dose",
-          data: "05/04/2024",
-          lote: "HP6632",
-          status: "aplicada",
-          proximaDose: "05/07/2024",
-        },
-      ],
-    },
-  ];
+  // Dados reais vindos do localStorage
+  const [pacientesReais, setPacientesReais] = useState([]);
+  const [vacinasPorPaciente, setVacinasPorPaciente] = useState({});
 
-  const vacinasDisponiveis = [
-    "COVID-19",
-    "Gripe",
-    "Febre Amarela",
-    "Hepatite B",
-    "Antitetânica",
-    "HPV",
-    "Tríplice Viral",
-  ];
+  // Carrega dados do localStorage
+  const carregarDados = () => {
+    const pacientesSalvos = localStorage.getItem(STORAGE_KEY_PACIENTES);
+    const vacinasSalvas = localStorage.getItem(STORAGE_KEY_VACINAS);
 
-  const formatarCPF = (valor) => {
-    const nums = valor.replace(/\D/g, "");
-    if (nums.length <= 3) return nums;
-    if (nums.length <= 6) return nums.replace(/(\d{3})(\d{1,3})/, "$1.$2");
-    if (nums.length <= 9)
-      return nums.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
-    return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+    const pacientes = pacientesSalvos ? JSON.parse(pacientesSalvos) : [];
+    const vacinas = vacinasSalvas ? JSON.parse(vacinasSalvas) : {};
+
+    setPacientesReais(pacientes);
+    setVacinasPorPaciente(vacinas);
   };
 
+  // Salva vacinas no localStorage
+  const salvarVacinas = (novasVacinas) => {
+    localStorage.setItem(STORAGE_KEY_VACINAS, JSON.stringify(novasVacinas));
+    setVacinasPorPaciente(novasVacinas);
+  };
+
+  // Recarrega ao montar e escuta mudanças no localStorage
+  useEffect(() => {
+    carregarDados();
+
+    const handleStorageChange = (e) => {
+      if (e.key === STORAGE_KEY_PACIENTES) {
+        carregarDados();
+      }
+      if (e.key === STORAGE_KEY_VACINAS) {
+        const vacinas = JSON.parse(e.newValue || "{}");
+        setVacinasPorPaciente(vacinas);
+        // Se o paciente atual estiver selecionado, atualiza suas vacinas
+        if (paciente) {
+          const vacinasPaciente = vacinas[paciente.nome] || [];
+          setPaciente((prev) => ({
+            ...prev,
+            vacinas: vacinasPaciente,
+          }));
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Atualiza paciente quando as vacinas mudam
+  useEffect(() => {
+    if (paciente) {
+      const vacinas = vacinasPorPaciente[paciente.nome] || [];
+      setPaciente((prev) => ({
+        ...prev,
+        vacinas,
+      }));
+    }
+  }, [vacinasPorPaciente]);
+
+  // --- Funções auxiliares ---
+  const apenasNumeros = (str) => str.replace(/\D/g, "");
+  const formatarCPF = (valor) => {
+    const nums = apenasNumeros(valor);
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 6) return nums.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (nums.length <= 9) return nums.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+  const isCPF = (texto) => /^[\d.\- ]+$/.test(texto) && apenasNumeros(texto).length >= 11;
+
+  // --- Manipuladores do input ---
   const handleBuscaChange = (e) => {
-    const rawValue = e.target.value;
-    if (/^[\d.\- ]*$/.test(rawValue)) {
-      setBusca(formatarCPF(rawValue));
+    const raw = e.target.value;
+    if (isCPF(raw) || apenasNumeros(raw).length > 0) {
+      setBusca(formatarCPF(raw));
       setMostrarSugestoes(false);
     } else {
-      setBusca(rawValue);
-      setMostrarSugestoes(rawValue.trim().length > 0);
+      setBusca(raw);
+      setMostrarSugestoes(raw.trim().length > 1);
     }
   };
 
@@ -170,22 +131,28 @@ const VacinaçãoAttendente = () => {
     return () => document.removeEventListener("mousedown", handleClickFora);
   }, []);
 
+  // Sugestões baseadas nos pacientes reais
   const sugestoes = (() => {
-    if (!busca.trim() || /^[\d.\- ]+$/.test(busca)) return [];
-    const termo = busca.toLowerCase();
-    return pacientesVacinaMock.filter((p) =>
-      p.nome.toLowerCase().includes(termo),
+    const termo = busca.trim();
+    if (!termo || isCPF(termo) || termo.length < 2) return [];
+    return pacientesReais.filter((p) =>
+      p.nome.toLowerCase().includes(termo.toLowerCase())
     );
   })();
 
   const selecionarSugestao = (pacienteSug) => {
     setBusca(pacienteSug.nome);
     setMostrarSugestoes(false);
-    setPaciente(pacienteSug);
+    const vacinas = vacinasPorPaciente[pacienteSug.nome] || [];
+    setPaciente({
+      ...pacienteSug,
+      vacinas,
+    });
     setExpandedVacina(null);
     setFiltroStatus("todos");
   };
 
+  // --- Busca principal ---
   const buscarPaciente = () => {
     const termoLimpo = busca.trim();
     if (termoLimpo === "") {
@@ -193,24 +160,27 @@ const VacinaçãoAttendente = () => {
       return;
     }
 
-    const cpfNumerico = termoLimpo.replace(/\D/g, "");
-    const encontrado = pacientesVacinaMock.find((p) => {
-      if (cpfNumerico.length === 11) {
-        return p.cpf.replace(/\D/g, "") === cpfNumerico;
-      }
-      return p.nome.toLowerCase().includes(termoLimpo.toLowerCase());
-    });
+    const cpfNumerico = apenasNumeros(termoLimpo);
+    let encontrado = null;
+
+    if (cpfNumerico.length === 11) {
+      encontrado = pacientesReais.find((p) => apenasNumeros(p.cpf) === cpfNumerico);
+    } else {
+      encontrado = pacientesReais.find((p) =>
+        p.nome.toLowerCase().includes(termoLimpo.toLowerCase())
+      );
+    }
 
     if (encontrado) {
-      setPaciente(encontrado);
+      const vacinas = vacinasPorPaciente[encontrado.nome] || [];
+      setPaciente({
+        ...encontrado,
+        vacinas,
+      });
       setExpandedVacina(null);
       setFiltroStatus("todos");
     } else {
-      Swal.fire(
-        "Não encontrado",
-        "Nenhum paciente com esse nome ou CPF.",
-        "error",
-      );
+      Swal.fire("Não encontrado", "Nenhum paciente com esse nome ou CPF.", "error");
       setPaciente(null);
     }
   };
@@ -221,34 +191,78 @@ const VacinaçãoAttendente = () => {
     setMostrarSugestoes(false);
   };
 
+  // --- Vacinas disponíveis ---
+  const vacinasDisponiveis = [
+    "COVID-19",
+    "Gripe",
+    "Febre Amarela",
+    "Hepatite B",
+    "Antitetânica",
+    "HPV",
+    "Tríplice Viral",
+    "Pneumocócica",
+    "Meningite",
+    "Rotavírus",
+  ];
+
+  // --- Registrar vacina (nova ou pendente) ---
   const registrarVacina = async (vacinaExistente = null) => {
+    if (!paciente) {
+      Swal.fire("Erro", "Selecione um paciente primeiro.", "error");
+      return;
+    }
+
     const { value: formValues } = await Swal.fire({
       title: vacinaExistente
         ? `Registrar ${vacinaExistente.vacina} (${vacinaExistente.dose})`
         : "Registrar nova dose",
       html: `
-        <input id="vacina" class="swal2-input" list="vacinas" placeholder="Vacina" value="${vacinaExistente ? vacinaExistente.vacina : ""}" required ${vacinaExistente ? "disabled" : ""}>
-        <datalist id="vacinas">
-          ${vacinasDisponiveis.map((v) => `<option value="${v}">`).join("")}
-        </datalist>
-        <input id="dose" class="swal2-input" placeholder="Dose (ex: 1ª, Reforço)" value="${vacinaExistente ? vacinaExistente.dose : ""}" required>
-        <input id="lote" class="swal2-input" placeholder="Lote" required>
-        <input id="data" type="date" class="swal2-input" value="${new Date().toISOString().split("T")[0]}" required>
-        ${vacinaExistente ? "" : '<input id="proximaDose" type="date" class="swal2-input" placeholder="Próxima dose (se houver)">'}
+        <div style="text-align: left; max-width: 400px; margin: 0 auto;">
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 600; font-size: 0.9rem; color: #333;">Vacina</label>
+            <input id="vacina" class="swal2-input" list="vacinas" placeholder="Selecione a vacina" value="${vacinaExistente ? vacinaExistente.vacina : ""}" ${vacinaExistente ? "disabled" : ""} style="width: 100%; box-sizing: border-box; margin-top: 4px;">
+            <datalist id="vacinas">
+              ${vacinasDisponiveis.map((v) => `<option value="${v}">`).join("")}
+            </datalist>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 600; font-size: 0.9rem; color: #333;">Dose</label>
+            <input id="dose" class="swal2-input" placeholder="Ex: 1ª, Reforço" value="${vacinaExistente ? vacinaExistente.dose : ""}" style="width: 100%; box-sizing: border-box; margin-top: 4px;" required>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 600; font-size: 0.9rem; color: #333;">Lote</label>
+            <input id="lote" class="swal2-input" placeholder="Número do lote" style="width: 100%; box-sizing: border-box; margin-top: 4px;" required>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 600; font-size: 0.9rem; color: #333;">Data de Aplicação</label>
+            <input id="data" type="date" class="swal2-input" value="${new Date().toISOString().split("T")[0]}" style="width: 100%; box-sizing: border-box; margin-top: 4px;" required>
+          </div>
+          ${vacinaExistente ? "" : `
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; color: #333;">Próxima Dose (opcional)</label>
+            <input id="proximaDose" type="date" class="swal2-input" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
+          </div>
+          `}
+        </div>
       `,
       focusConfirm: false,
       preConfirm: () => {
         const nomeVacina = vacinaExistente
           ? vacinaExistente.vacina
           : document.getElementById("vacina").value;
-        const dose = document.getElementById("dose").value;
-        const lote = document.getElementById("lote").value;
+        const dose = document.getElementById("dose").value.trim();
+        const lote = document.getElementById("lote").value.trim();
         const data = document.getElementById("data").value;
         const proximaDose = vacinaExistente
           ? null
           : document.getElementById("proximaDose").value;
+
         if (!nomeVacina || !dose || !lote || !data) {
-          Swal.showValidationMessage("Preencha todos os campos obrigatórios");
+          Swal.showValidationMessage("Preencha todos os campos obrigatórios.");
+          return false;
+        }
+        if (dose.length < 2) {
+          Swal.showValidationMessage("Dose inválida. Ex: 1ª, 2ª, Reforço.");
           return false;
         }
         return {
@@ -259,63 +273,85 @@ const VacinaçãoAttendente = () => {
           proximaDose: proximaDose || null,
         };
       },
+      confirmButtonText: vacinaExistente ? "Registrar Aplicação" : "Cadastrar Dose",
+      confirmButtonColor: "#2563eb",
+      cancelButtonText: "Cancelar",
+      showCancelButton: true,
     });
+
     if (formValues) {
+      // Atualiza as vacinas do paciente
+      let vacinasAtuais = vacinasPorPaciente[paciente.nome] || [];
+
       if (vacinaExistente) {
-        setPaciente((prev) => ({
-          ...prev,
-          vacinas: prev.vacinas.map((v) =>
-            v.id === vacinaExistente.id
-              ? {
-                  ...v,
-                  status: "aplicada",
-                  lote: formValues.lote,
-                  data: formValues.data,
-                }
-              : v,
-          ),
-        }));
+        // Atualiza uma vacina pendente
+        vacinasAtuais = vacinasAtuais.map((v) =>
+          v.id === vacinaExistente.id
+            ? {
+                ...v,
+                status: "aplicada",
+                lote: formValues.lote,
+                data: formValues.data,
+                proximaDose: formValues.proximaDose || v.proximaDose,
+              }
+            : v
+        );
       } else {
-        const newId = Math.max(0, ...paciente.vacinas.map((v) => v.id)) + 1;
-        setPaciente((prev) => ({
-          ...prev,
-          vacinas: [
-            ...prev.vacinas,
-            {
-              id: newId,
-              vacina: formValues.vacina,
-              dose: formValues.dose,
-              data: formValues.data,
-              lote: formValues.lote,
-              status: "aplicada",
-              proximaDose: formValues.proximaDose,
-            },
-          ],
-        }));
+        // Nova vacina
+        const newId = Math.max(0, ...vacinasAtuais.map((v) => v.id), 0) + 1;
+        vacinasAtuais.push({
+          id: newId,
+          vacina: formValues.vacina,
+          dose: formValues.dose,
+          data: formValues.data,
+          lote: formValues.lote,
+          status: "aplicada",
+          proximaDose: formValues.proximaDose,
+        });
       }
-      Swal.fire("Registrado!", "Dose aplicada com sucesso.", "success");
+
+      // Salva no localStorage
+      salvarVacinas({
+        ...vacinasPorPaciente,
+        [paciente.nome]: vacinasAtuais,
+      });
+
+      // Atualiza o paciente atual
+      setPaciente((prev) => ({
+        ...prev,
+        vacinas: vacinasAtuais,
+      }));
+
+      Swal.fire({
+        icon: "success",
+        title: "Registrado!",
+        text: "Dose aplicada com sucesso.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     }
   };
 
+  // --- Expandir/contrair ---
   const toggleExpandir = (id) => {
     setExpandedVacina(expandedVacina === id ? null : id);
   };
 
+  // --- Exportar carteira ---
   const exportarCarteira = () => {
     if (!paciente) return;
-    const linhas = paciente.vacinas
-      .map(
-        (v) =>
-          `${v.vacina};${v.dose};${v.data || "Pendente"};${v.lote || "-"};${v.status};${v.proximaDose || "-"}`,
-      )
-      .join("\n");
+    const linhas = paciente.vacinas.map(
+      (v) =>
+        `${v.vacina};${v.dose};${v.data || "Pendente"};${v.lote || "-"};${v.status};${v.proximaDose || "-"}`
+    );
     const cabecalho = "Vacina;Dose;Data;Lote;Status;Próxima Dose";
-    const csv = `${cabecalho}\n${linhas}`;
+    const csv = "\uFEFF" + cabecalho + "\n" + linhas.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `carteira_vacinacao_${paciente.nome.replace(/\s+/g, "_")}.csv`;
     link.click();
+    URL.revokeObjectURL(link.href);
     Swal.fire({
       icon: "success",
       title: "Exportado!",
@@ -326,27 +362,28 @@ const VacinaçãoAttendente = () => {
     });
   };
 
+  // --- Filtros ---
   const vacinasFiltradas = paciente
     ? filtroStatus === "todos"
       ? paciente.vacinas
       : paciente.vacinas.filter((v) => v.status === filtroStatus)
     : [];
 
+  // --- Ícones de status ---
   const getStatusIcon = (status) => {
-    if (status === "aplicada")
-      return <HiCheckCircle className="text-green-500" />;
-    if (status === "pendente")
-      return <HiExclamation className="text-yellow-500" />;
+    if (status === "aplicada") return <HiCheckCircle className="text-blue-500" />;
+    if (status === "pendente") return <HiExclamation className="text-yellow-500" />;
     return null;
   };
 
+  // --- Render ---
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <HiBeaker className="text-emerald-600" /> Carteira de Vacinação
+              <HiBeaker className="text-blue-600" /> Carteira de Vacinação
             </h1>
             <p className="text-gray-500 mt-1">
               Busque por nome ou CPF e gerencie o histórico vacinal.
@@ -355,41 +392,46 @@ const VacinaçãoAttendente = () => {
           {paciente && (
             <button
               onClick={exportarCarteira}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition"
             >
               <HiDocumentDownload size={18} /> Exportar Carteira
             </button>
           )}
         </div>
 
+        {/* Barra de busca */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <div className="flex gap-3 relative">
+          <div className="flex flex-col md:flex-row gap-3 relative">
             <div className="relative flex-1" ref={sugestoesRef}>
               <input
                 type="text"
                 value={busca}
                 onChange={handleBuscaChange}
-                placeholder="Nome ou CPF do paciente (ex: 123.456.789-00)"
-                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                placeholder="Nome ou CPF (ex: 123.456.789-00)"
+                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 transition"
                 autoComplete="off"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    buscarPaciente();
+                  }
+                }}
               />
               <HiSearch
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={20}
               />
               {mostrarSugestoes && sugestoes.length > 0 && (
-                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg max-h-56 overflow-y-auto">
                   {sugestoes.map((sug) => (
                     <div
                       key={sug.id}
-                      className="flex items-center gap-3 p-3 hover:bg-emerald-50 cursor-pointer"
+                      className="flex items-center gap-3 p-3 hover:bg-blue-50 cursor-pointer transition"
                       onClick={() => selecionarSugestao(sug)}
                     >
                       <HiUser className="text-gray-400" size={18} />
                       <div>
-                        <p className="font-semibold text-gray-800">
-                          {sug.nome}
-                        </p>
+                        <p className="font-semibold text-gray-800">{sug.nome}</p>
                         <p className="text-xs text-gray-500">CPF: {sug.cpf}</p>
                       </div>
                     </div>
@@ -397,73 +439,83 @@ const VacinaçãoAttendente = () => {
                 </div>
               )}
             </div>
-            <button
-              onClick={buscarPaciente}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold transition"
-            >
-              <HiSearch size={18} className="inline mr-1" /> Buscar
-            </button>
-            <button
-              onClick={limparBusca}
-              className="border p-3 rounded-xl hover:bg-gray-50 transition"
-            >
-              <HiX size={20} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={buscarPaciente}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition flex items-center gap-2"
+              >
+                <HiSearch size={18} /> Buscar
+              </button>
+              <button
+                onClick={limparBusca}
+                className="border p-3 rounded-xl hover:bg-gray-50 transition"
+                title="Limpar"
+              >
+                <HiX size={20} />
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Exemplo: 123.456.789-00 (Maria Silva) ou "Maria"
+          <p className="text-xs text-gray-400 mt-2">
+            Digite pelo menos 2 letras para sugestões de nome ou insira um CPF completo.
           </p>
         </div>
 
-        {/* Restante igual ao anterior */}
+        {/* Paciente encontrado */}
         {paciente && (
           <>
             <div className="bg-white rounded-2xl p-6 border shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-bold text-xl">
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl shrink-0">
                   {paciente.nome.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <h2 className="font-bold text-xl text-gray-800">
-                    {paciente.nome}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    CPF: {paciente.cpf} | CNS: {paciente.sus}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Nasc.: {paciente.dataNasc} | Sexo: {paciente.sexo}
-                  </p>
+                <div className="flex-1 w-full">
+                  <h2 className="font-bold text-xl text-gray-800">{paciente.nome}</h2>
+                  <p className="text-sm text-gray-500">CPF: {paciente.cpf} | CNS: {paciente.sus}</p>
+                  <p className="text-sm text-gray-500">Nasc.: {paciente.dataNasc} | Sexo: {paciente.sexo}</p>
                 </div>
                 <button
                   onClick={() => registrarVacina(null)}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition shrink-0"
                 >
                   <HiPlus size={18} /> Nova Dose
                 </button>
               </div>
             </div>
 
+            {/* Lista de vacinas */}
             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-              <div className="p-6 border-b flex justify-between items-center flex-wrap gap-4">
+              <div className="p-6 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-xl font-bold text-gray-800">
-                  Registro de Doses
+                  Registro de Doses ({vacinasFiltradas.length})
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => setFiltroStatus("todos")}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filtroStatus === "todos" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      filtroStatus === "todos"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                   >
                     Todos
                   </button>
                   <button
                     onClick={() => setFiltroStatus("aplicada")}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filtroStatus === "aplicada" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      filtroStatus === "aplicada"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                   >
                     Aplicadas
                   </button>
                   <button
                     onClick={() => setFiltroStatus("pendente")}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filtroStatus === "pendente" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      filtroStatus === "pendente"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                   >
                     Pendentes
                   </button>
@@ -477,14 +529,16 @@ const VacinaçãoAttendente = () => {
                   </div>
                 ) : (
                   vacinasFiltradas.map((v) => (
-                    <div key={v.id} className="p-5">
+                    <div key={v.id} className="p-5 hover:bg-gray-50 transition">
                       <div
                         className="flex items-center justify-between cursor-pointer"
                         onClick={() => toggleExpandir(v.id)}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`p-2 rounded-xl ${v.status === "aplicada" ? "bg-green-50" : "bg-yellow-50"}`}
+                            className={`p-2 rounded-xl ${
+                              v.status === "aplicada" ? "bg-blue-50" : "bg-yellow-50"
+                            }`}
                           >
                             {getStatusIcon(v.status)}
                           </div>
@@ -496,8 +550,8 @@ const VacinaçãoAttendente = () => {
                               {v.status === "aplicada"
                                 ? `Aplicada em ${v.data} | Lote: ${v.lote}`
                                 : v.proximaDose
-                                  ? `Previsão: ${v.proximaDose}`
-                                  : "Pendente"}
+                                ? `Previsão: ${v.proximaDose}`
+                                : "Pendente"}
                             </p>
                           </div>
                         </div>
@@ -508,7 +562,7 @@ const VacinaçãoAttendente = () => {
                                 e.stopPropagation();
                                 registrarVacina(v);
                               }}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold"
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                             >
                               Registrar
                             </button>
@@ -521,11 +575,12 @@ const VacinaçãoAttendente = () => {
                         </div>
                       </div>
                       {expandedVacina === v.id && (
-                        <div className="mt-4 pl-12 grid grid-cols-2 gap-3 text-sm">
+                        <div
+                          className="mt-4 pl-12 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div>
-                            <span className="text-gray-500">
-                              Data aplicação:
-                            </span>{" "}
+                            <span className="text-gray-500">Data aplicação:</span>{" "}
                             <span className="font-medium">{v.data || "—"}</span>
                           </div>
                           <div>
@@ -538,18 +593,12 @@ const VacinaçãoAttendente = () => {
                           </div>
                           <div>
                             <span className="text-gray-500">Próxima dose:</span>{" "}
-                            <span className="font-medium">
-                              {v.proximaDose || "—"}
-                            </span>
+                            <span className="font-medium">{v.proximaDose || "—"}</span>
                           </div>
                           {v.status === "aplicada" && (
                             <div className="col-span-2">
-                              <span className="text-gray-500">
-                                Registrado por:
-                              </span>{" "}
-                              <span className="font-medium">
-                                Atendente (Sistema)
-                              </span>
+                              <span className="text-gray-500">Registrado por:</span>{" "}
+                              <span className="font-medium">Atendente (Sistema)</span>
                             </div>
                           )}
                         </div>
@@ -562,6 +611,7 @@ const VacinaçãoAttendente = () => {
           </>
         )}
 
+        {/* Estado vazio */}
         {!paciente && (
           <div className="text-center text-gray-500 py-16 bg-white rounded-2xl shadow-sm border">
             <HiClock size={48} className="mx-auto mb-4 opacity-40" />
