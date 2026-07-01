@@ -5,20 +5,25 @@ import { useAuth } from "../../contexts/AuthContext";
 import {
   HiBeaker,
   HiSearch,
-  HiDownload,
   HiPencil,
   HiTrash,
   HiExclamationCircle,
   HiCheckCircle,
-  HiUser,
   HiClipboardList,
   HiPlusCircle,
   HiMinusCircle,
+  HiCalendar,
+  HiCube,
 } from "react-icons/hi";
+
+// Função auxiliar para comparar datas (formato YYYY-MM-DD)
+const compararDatas = (data1, data2) => {
+  return data1.localeCompare(data2);
+};
 
 const EstoqueMedicamentos = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin"; // mantido para outras ações (editar/remover)
 
   const [medicamentos, setMedicamentos] = useState([
     {
@@ -55,6 +60,13 @@ const EstoqueMedicamentos = () => {
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
+  const hoje = new Date().toISOString().split("T")[0];
+
+  const totalMedicamentos = medicamentos.length;
+  const baixoEstoque = medicamentos.filter((m) => m.quantidade <= 10).length;
+  const vencidos = medicamentos.filter((m) => compararDatas(m.validade, hoje) < 0).length;
+  const validos = medicamentos.filter((m) => compararDatas(m.validade, hoje) >= 0).length;
+
   const medicamentosFiltrados = useMemo(() => {
     let resultado = medicamentos;
     if (termoBusca) {
@@ -62,55 +74,39 @@ const EstoqueMedicamentos = () => {
       resultado = resultado.filter(
         (m) =>
           m.nome.toLowerCase().includes(termo) ||
-          m.lote.toLowerCase().includes(termo),
+          m.lote.toLowerCase().includes(termo)
       );
     }
     if (filtroStatus === "baixo")
       resultado = resultado.filter((m) => m.quantidade <= 10);
     else if (filtroStatus === "vencido")
-      resultado = resultado.filter((m) => new Date(m.validade) < new Date());
+      resultado = resultado.filter((m) => compararDatas(m.validade, hoje) < 0);
     else if (filtroStatus === "valido")
-      resultado = resultado.filter((m) => new Date(m.validade) >= new Date());
+      resultado = resultado.filter((m) => compararDatas(m.validade, hoje) >= 0);
     return resultado;
-  }, [medicamentos, termoBusca, filtroStatus]);
+  }, [medicamentos, termoBusca, filtroStatus, hoje]);
 
-  // Retirar medicamento (dispensar) – vinculado a paciente
+  // ----- DISPENSAR (sem CPF e sem justificativa) -----
   const retirarMedicamento = async (med) => {
     const { value: formValues } = await Swal.fire({
       title: `Dispensar – ${med.nome}`,
       html: `
-        <input id="cpfPaciente" class="swal2-input" placeholder="CPF do paciente" required>
         <input id="nomePaciente" class="swal2-input" placeholder="Nome do paciente" required>
         <input id="qtd" type="number" class="swal2-input" placeholder="Quantidade a retirar" value="1" min="1" max="${med.quantidade}" required>
-        <input id="justificativa" class="swal2-input" placeholder="Justificativa" required>
       `,
       focusConfirm: false,
       preConfirm: () => {
-        const cpf = document
-          .getElementById("cpfPaciente")
-          .value.replace(/\D/g, "");
         const nome = document.getElementById("nomePaciente").value.trim();
         const qtd = parseInt(document.getElementById("qtd").value);
-        const justificativa = document
-          .getElementById("justificativa")
-          .value.trim();
-        if (cpf.length !== 11) {
-          Swal.showValidationMessage("CPF inválido");
-          return false;
-        }
         if (!nome) {
-          Swal.showValidationMessage("Informe o nome");
+          Swal.showValidationMessage("Informe o nome do paciente");
           return false;
         }
         if (!qtd || qtd < 1 || qtd > med.quantidade) {
           Swal.showValidationMessage("Quantidade inválida");
           return false;
         }
-        if (!justificativa) {
-          Swal.showValidationMessage("Justificativa obrigatória");
-          return false;
-        }
-        return { cpf, nome, qtd, justificativa };
+        return { nome, qtd };
       },
     });
     if (formValues) {
@@ -118,8 +114,8 @@ const EstoqueMedicamentos = () => {
         prev.map((m) =>
           m.id === med.id
             ? { ...m, quantidade: m.quantidade - formValues.qtd }
-            : m,
-        ),
+            : m
+        )
       );
       setLogRetiradas((prev) => [
         ...prev,
@@ -127,20 +123,18 @@ const EstoqueMedicamentos = () => {
           data: new Date().toLocaleString(),
           medicamento: med.nome,
           paciente: formValues.nome,
-          cpf: formValues.cpf,
           quantidade: formValues.qtd,
-          justificativa: formValues.justificativa,
         },
       ]);
       Swal.fire(
         "Retirado!",
-        `${formValues.qtd} unidade(s) dispensada(s).`,
-        "success",
+        `${formValues.qtd} unidade(s) dispensada(s) para ${formValues.nome}.`,
+        "success"
       );
     }
   };
 
-  // Adicionar estoque (aumentar quantidade)
+  // Adicionar estoque
   const adicionarEstoque = async (med) => {
     const { value: quantidade } = await Swal.fire({
       title: `Adicionar ao estoque de ${med.nome}`,
@@ -156,8 +150,8 @@ const EstoqueMedicamentos = () => {
         prev.map((m) =>
           m.id === med.id
             ? { ...m, quantidade: m.quantidade + parseInt(quantidade) }
-            : m,
-        ),
+            : m
+        )
       );
       Swal.fire({
         icon: "success",
@@ -170,10 +164,10 @@ const EstoqueMedicamentos = () => {
     }
   };
 
-  // Adicionar novo tipo (só admin)
+  // Adicionar novo medicamento (agora visível para todos)
   const adicionarNovoMedicamento = async () => {
     const { value: formValues } = await Swal.fire({
-      title: "Novo medicamento (admin)",
+      title: "Novo medicamento",
       html: `
         <input id="nome" class="swal2-input" placeholder="Nome" required>
         <input id="lote" class="swal2-input" placeholder="Lote" required>
@@ -185,7 +179,7 @@ const EstoqueMedicamentos = () => {
         const nome = document.getElementById("nome").value;
         const lote = document.getElementById("lote").value;
         const quantidade = parseInt(
-          document.getElementById("quantidade").value,
+          document.getElementById("quantidade").value
         );
         const validade = document.getElementById("validade").value;
         if (!nome || !lote || !quantidade || !validade) {
@@ -202,8 +196,12 @@ const EstoqueMedicamentos = () => {
     }
   };
 
-  // Editar (só admin)
+  // Editar (apenas admin)
   const editarMedicamento = async (med) => {
+    if (!isAdmin) {
+      Swal.fire("Acesso negado", "Apenas administradores podem editar.", "error");
+      return;
+    }
     const { value: formValues } = await Swal.fire({
       title: "Editar medicamento (admin)",
       html: `
@@ -217,7 +215,7 @@ const EstoqueMedicamentos = () => {
         const nome = document.getElementById("nome").value;
         const lote = document.getElementById("lote").value;
         const quantidade = parseInt(
-          document.getElementById("quantidade").value,
+          document.getElementById("quantidade").value
         );
         const validade = document.getElementById("validade").value;
         if (!nome || !lote || !quantidade || !validade) {
@@ -229,14 +227,18 @@ const EstoqueMedicamentos = () => {
     });
     if (formValues) {
       setMedicamentos((prev) =>
-        prev.map((m) => (m.id === med.id ? { ...m, ...formValues } : m)),
+        prev.map((m) => (m.id === med.id ? { ...m, ...formValues } : m))
       );
       Swal.fire("Atualizado!", "Medicamento editado.", "success");
     }
   };
 
-  // Remover (só admin)
+  // Remover (apenas admin)
   const removerMedicamento = (id) => {
+    if (!isAdmin) {
+      Swal.fire("Acesso negado", "Apenas administradores podem remover.", "error");
+      return;
+    }
     Swal.fire({
       title: "Remover medicamento?",
       text: "Esta ação não pode ser desfeita.",
@@ -251,30 +253,7 @@ const EstoqueMedicamentos = () => {
     });
   };
 
-  const exportarCSV = () => {
-    const cabecalho = ["Nome", "Lote", "Quantidade", "Validade"];
-    const linhas = medicamentos.map((m) => [
-      m.nome,
-      m.lote,
-      m.quantidade,
-      m.validade,
-    ]);
-    const csv = [cabecalho, ...linhas].map((l) => l.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "estoque_medicamentos.csv";
-    link.click();
-    Swal.fire({
-      icon: "success",
-      title: "Exportado!",
-      toast: true,
-      position: "top-end",
-      timer: 1500,
-      showConfirmButton: false,
-    });
-  };
-
+  // ----- FUNÇÕES DE STATUS -----
   const getStatusEstoque = (qtd) => {
     if (qtd <= 5) return { cor: "bg-red-100 text-red-700", texto: "Crítico" };
     if (qtd <= 15)
@@ -283,102 +262,153 @@ const EstoqueMedicamentos = () => {
   };
 
   const getStatusValidade = (validade) => {
-    const hoje = new Date();
-    const data = new Date(validade);
-    const diff = Math.ceil((data - hoje) / (1000 * 60 * 60 * 24));
+    const hojeStr = hoje;
+    const diff = compararDatas(validade, hojeStr);
     if (diff < 0)
-      return {
-        cor: "text-red-600",
-        icone: HiExclamationCircle,
-        label: "Vencido",
-      };
-    if (diff <= 30)
-      return {
-        cor: "text-yellow-600",
-        icone: HiExclamationCircle,
-        label: "Vence em breve",
-      };
-    return { cor: "text-green-600", icone: HiCheckCircle, label: "Válido" };
+      return { cor: "text-red-600", bg: "bg-red-100 text-red-700", icone: HiExclamationCircle, label: "Vencido" };
+    const dataValidade = new Date(validade);
+    const dataHoje = new Date(hojeStr);
+    const diffDias = Math.ceil((dataValidade - dataHoje) / (1000 * 60 * 60 * 24));
+    if (diffDias <= 30)
+      return { cor: "text-yellow-600", bg: "bg-yellow-100 text-yellow-700", icone: HiExclamationCircle, label: "Vence em breve" };
+    return { cor: "text-green-600", bg: "bg-green-100 text-green-700", icone: HiCheckCircle, label: "Válido" };
+  };
+
+  const limparFiltros = () => {
+    setTermoBusca("");
+    setFiltroStatus("todos");
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* CABEÇALHO */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <HiBeaker className="text-purple-600" /> Estoque de Medicamentos
+              <HiBeaker className="text-blue-600" /> Estoque de Medicamentos
             </h1>
             <p className="text-gray-500 mt-1">
               Dispensação controlada e gestão de lotes.
             </p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={exportarCSV}
-              className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2.5 rounded-xl font-semibold transition"
-            >
-              <HiDownload size={18} /> Exportar
-            </button>
-            {isAdmin && (
-              <button
-                onClick={adicionarNovoMedicamento}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition"
-              >
-                + Novo medicamento
-              </button>
-            )}
-          </div>
+          {/* BOTÃO ADICIONAR MEDICAMENTO - AGORA VISÍVEL PARA TODOS */}
+          <button
+            onClick={adicionarNovoMedicamento}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-all hover:shadow-lg"
+          >
+            <HiPlusCircle size={20} /> Novo medicamento
+          </button>
         </div>
 
-        <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-wrap gap-4 items-center">
+        {/* CARDS ESTATÍSTICAS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Total Medicamentos",
+              value: totalMedicamentos,
+              icon: HiCube,
+              color: "from-blue-500 to-blue-600",
+            },
+            {
+              label: "Baixo Estoque (≤10)",
+              value: baixoEstoque,
+              icon: HiExclamationCircle,
+              color: "from-yellow-500 to-yellow-600",
+            },
+            {
+              label: "Vencidos",
+              value: vencidos,
+              icon: HiCalendar,
+              color: "from-red-500 to-red-600",
+            },
+            {
+              label: "Válidos",
+              value: validos,
+              icon: HiCheckCircle,
+              color: "from-green-500 to-green-600",
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="bg-white rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
+            >
+              <div className="flex justify-between items-start">
+                <span className="text-gray-500 text-sm font-medium">
+                  {stat.label}
+                </span>
+                <div
+                  className={`p-2 rounded-xl bg-gradient-to-br ${stat.color} text-white`}
+                >
+                  <stat.icon size={18} />
+                </div>
+              </div>
+              <p className="text-2xl font-bold mt-3 text-gray-800">
+                {stat.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* FILTROS */}
+        <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
-            <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <HiSearch className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar por nome ou lote..."
               value={termoBusca}
               onChange={(e) => setTermoBusca(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
             />
           </div>
           <select
             value={filtroStatus}
             onChange={(e) => setFiltroStatus(e.target.value)}
-            className="border rounded-xl px-4 py-2.5 bg-white text-gray-700 focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
           >
             <option value="todos">Todos os status</option>
             <option value="baixo">Estoque baixo (≤10)</option>
             <option value="vencido">Vencidos</option>
             <option value="valido">Dentro da validade</option>
           </select>
-          <span className="text-sm text-gray-500">
+          <button
+            onClick={limparFiltros}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
+          >
+            <HiSearch className="text-gray-500" size={14} />
+            Limpar Filtros
+          </button>
+          <span className="text-sm text-gray-500 ml-auto">
             {medicamentosFiltrados.length} de {medicamentos.length} registros
           </span>
         </div>
 
-        {/* Tabela roxa/laranja */}
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        {/* TABELA */}
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h2 className="text-xl font-bold">Lista de Medicamentos</h2>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-purple-50 border-b">
+            <table className="min-w-full">
+              <thead className="bg-blue-50">
                 <tr>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Nome
                   </th>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Lote
                   </th>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Quantidade
                   </th>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Validade
                   </th>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Status
                   </th>
-                  <th className="p-4 text-left text-sm font-medium text-purple-700">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">
                     Ações
                   </th>
                 </tr>
@@ -386,7 +416,7 @@ const EstoqueMedicamentos = () => {
               <tbody className="divide-y divide-gray-100">
                 {medicamentosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       Nenhum medicamento encontrado.
                     </td>
                   </tr>
@@ -398,13 +428,13 @@ const EstoqueMedicamentos = () => {
                     return (
                       <tr
                         key={m.id}
-                        className="hover:bg-purple-50/30 transition-colors"
+                        className="hover:bg-blue-50/30 transition-colors"
                       >
-                        <td className="p-4 font-medium text-gray-800">
+                        <td className="px-6 py-4 font-medium text-gray-800">
                           {m.nome}
                         </td>
-                        <td className="p-4 text-gray-600">{m.lote}</td>
-                        <td className="p-4">
+                        <td className="px-6 py-4 text-gray-600">{m.lote}</td>
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <span className="font-bold">{m.quantidade}</span>
                             <span
@@ -414,7 +444,7 @@ const EstoqueMedicamentos = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-1">
                             <ValIcon className={`${statusVal.cor} text-sm`} />
                             <span className={statusVal.cor}>{m.validade}</span>
@@ -423,31 +453,25 @@ const EstoqueMedicamentos = () => {
                             {statusVal.label}
                           </span>
                         </td>
-                        <td className="p-4">
+                        <td className="px-6 py-4">
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                              new Date(m.validade) < new Date()
-                                ? "bg-red-100 text-red-700"
-                                : "bg-green-100 text-green-700"
-                            }`}
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusVal.bg}`}
                           >
-                            {new Date(m.validade) < new Date()
-                              ? "Vencido"
-                              : "Válido"}
+                            {statusVal.label}
                           </span>
                         </td>
-                        <td className="p-4">
+                        <td className="px-6 py-4">
                           <div className="flex gap-1.5">
                             <button
                               onClick={() => adicionarEstoque(m)}
-                              className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"
+                              className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
                               title="Adicionar estoque"
                             >
                               <HiPlusCircle size={16} />
                             </button>
                             <button
                               onClick={() => retirarMedicamento(m)}
-                              className="p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100"
+                              className="p-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition"
                               title="Retirar/Dispensar"
                             >
                               <HiMinusCircle size={16} />
@@ -456,14 +480,14 @@ const EstoqueMedicamentos = () => {
                               <>
                                 <button
                                   onClick={() => editarMedicamento(m)}
-                                  className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                                  className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
                                   title="Editar"
                                 >
                                   <HiPencil size={16} />
                                 </button>
                                 <button
                                   onClick={() => removerMedicamento(m.id)}
-                                  className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                                  className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
                                   title="Remover"
                                 >
                                   <HiTrash size={16} />
@@ -481,27 +505,26 @@ const EstoqueMedicamentos = () => {
           </div>
         </div>
 
+        {/* HISTÓRICO DE DISPENSAÇÕES */}
         {logRetiradas.length > 0 && (
-          <div className="bg-white rounded-2xl border p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <HiClipboardList className="text-purple-600" /> Últimas
-              dispensações
-            </h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+            <div className="p-6 border-b bg-blue-50/50">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <HiClipboardList className="text-blue-600" /> Últimas
+                dispensações
+              </h3>
+            </div>
+            <div className="p-6 divide-y divide-gray-100 max-h-60 overflow-y-auto">
               {logRetiradas.map((l, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center p-3 bg-gray-50 rounded-xl text-sm"
-                >
+                <div key={i} className="py-3 flex justify-between items-center">
                   <div>
                     <p className="font-medium">
                       {l.medicamento} ({l.quantidade} un.) → {l.paciente}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      CPF: {l.cpf} | Just.: {l.justificativa}
-                    </p>
                   </div>
-                  <span className="text-xs text-gray-400">{l.data}</span>
+                  <span className="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
+                    {l.data}
+                  </span>
                 </div>
               ))}
             </div>

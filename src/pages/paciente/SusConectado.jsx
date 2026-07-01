@@ -180,27 +180,19 @@ const SusConectado = () => {
               Integração nacional – dados em tempo real
             </p>
           </div>
-          <button
-            onClick={sincronizar}
-            disabled={syncing}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition"
-          >
-            <HiRefresh className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Sincronizando..." : "Sincronizar"}
-          </button>
         </div>
 
-        {/* Status da conexão */}
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        {/* Status da conexão - AGORA EM AZUL */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <HiCloud className="text-green-700 text-2xl" />
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <HiCloud className="text-blue-700 text-2xl" />
             </div>
             <div>
-              <p className="font-bold text-green-800">
+              <p className="font-bold text-blue-800">
                 Conexão com o DataSUS estabelecida
               </p>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-blue-700">
                 Última sincronização: {ubsData.ultimaSincronizacao}
               </p>
             </div>
@@ -208,7 +200,7 @@ const SusConectado = () => {
           <button
             onClick={sincronizar}
             disabled={syncing}
-            className="bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-xl font-semibold transition disabled:opacity-50"
+            className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded-xl font-semibold transition disabled:opacity-50"
           >
             <HiRefresh className={syncing ? "animate-spin" : ""} />{" "}
             {syncing ? "Sincronizando..." : "Sincronizar agora"}

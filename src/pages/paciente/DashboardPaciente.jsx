@@ -4,13 +4,16 @@ import { Link } from "react-router-dom";
 import {
   HiCalendar,
   HiClipboardList,
-  HiQrcode,
   HiClock,
   HiUser,
   HiExclamationCircle,
   HiArrowRight,
+  HiCheckCircle,
+  HiBell,
+  HiChartBar,
+  HiHome,
 } from "react-icons/hi";
-import { FaSyringe, FaFlask } from "react-icons/fa";
+import { FaSyringe, FaFlask, FaHeartbeat } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -32,6 +35,8 @@ const DashboardPaciente = () => {
     { senha: "P-12", especialidade: "Pediatria", status: "Aguardando" },
   ]);
 
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(new Date());
+
   useEffect(() => {
     const interval = setInterval(() => {
       setFila((prev) => ({
@@ -39,19 +44,10 @@ const DashboardPaciente = () => {
         posicao: Math.max(1, prev.posicao - 1),
         tempo: `${Math.max(1, parseInt(prev.tempo) - 1)} min`,
       }));
+      setUltimaAtualizacao(new Date());
     }, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleCheckinQR = () => {
-    Swal.fire({
-      title: "Check-in via QR Code",
-      text: "Leia o QR Code na recepção para confirmar sua presença.",
-      icon: "info",
-      confirmButtonColor: "#2563eb",
-      confirmButtonText: "Ok",
-    });
-  };
 
   const handleVerDetalhesFila = () => {
     Swal.fire({
@@ -67,7 +63,7 @@ const DashboardPaciente = () => {
         </div>
       `,
       icon: "info",
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: "#3b82f6",
       confirmButtonText: "Fechar",
     });
   };
@@ -78,7 +74,7 @@ const DashboardPaciente = () => {
       text: "Um atendente será chamado para auxiliá-lo.",
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: "#3b82f6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Chamar atendente",
       cancelButtonText: "Cancelar",
@@ -96,8 +92,25 @@ const DashboardPaciente = () => {
     });
   };
 
+  const handleNotificacao = () => {
+    Swal.fire({
+      title: "Notificações",
+      html: `
+        <div style="text-align:left;">
+          <p>🔔 Você tem 2 notificações não lidas</p>
+          <hr style="margin: 10px 0;" />
+          <p>📅 Consulta confirmada para amanhã às 14h</p>
+          <p>💉 Vacinação pendente - compareça ao posto</p>
+        </div>
+      `,
+      icon: "info",
+      confirmButtonColor: "#3b82f6",
+      confirmButtonText: "Ver todas",
+    });
+  };
+
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -109,28 +122,32 @@ const DashboardPaciente = () => {
               Sua consulta está confirmada para hoje.
             </p>
           </div>
-          <button
-            onClick={handleCheckinQR}
-            className="bg-white hover:bg-gray-50 px-5 py-3 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-3 transition"
-          >
-            <div className="text-right">
-              <p className="text-[10px] font-bold text-gray-400 uppercase">
-                Check-in via
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleNotificacao}
+              className="relative p-3 bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition"
+            >
+              <HiBell size={22} className="text-gray-600" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                2
+              </span>
+            </button>
+            <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-400">Última atualização</p>
+              <p className="text-sm font-medium text-gray-700">
+                {ultimaAtualizacao.toLocaleTimeString()}
               </p>
-              <p className="font-bold text-gray-800">QR Code</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <HiQrcode size={28} className="text-blue-700" />
-            </div>
-          </button>
+          </div>
         </div>
 
         {/* Grid principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+          {/* Status da Fila */}
+          <div className="lg:col-span-2 bg-white rounded-3xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex justify-between items-start mb-4">
-              <span className="bg-green-100 text-green-800 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 Chamada Ativa
               </span>
               <div className="text-right">
@@ -143,23 +160,23 @@ const DashboardPaciente = () => {
 
             <div className="text-center my-8">
               <p className="text-gray-500 text-sm">Você é o número</p>
-              <span className="text-7xl font-black text-blue-700">
+              <span className="text-7xl font-black text-blue-600">
                 {fila.posicao}
               </span>
               <p className="text-gray-500 text-sm mt-1">da fila de espera</p>
               <p className="text-sm text-gray-400 mt-3">
-                Senha: <strong>{fila.senha}</strong>
+                Senha: <strong className="text-blue-600">{fila.senha}</strong>
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-              <div className="bg-gray-50 p-4 rounded-2xl">
-                <p className="text-xs font-bold text-gray-400 uppercase">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-2xl border border-blue-100">
+                <p className="text-xs font-bold text-blue-400 uppercase">
                   Senha Atual
                 </p>
-                <p className="text-2xl font-black">{fila.senha}</p>
+                <p className="text-2xl font-black text-blue-700">{fila.senha}</p>
               </div>
-              <div className="bg-blue-50 p-4 rounded-2xl">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-2xl border border-blue-100">
                 <p className="text-xs font-bold text-blue-400 uppercase">
                   Tempo Estimado
                 </p>
@@ -170,8 +187,8 @@ const DashboardPaciente = () => {
             </div>
 
             <div className="mt-6">
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full w-2/3 bg-blue-700 rounded-full transition-all duration-500" />
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full w-2/3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000" />
               </div>
               <div className="flex justify-between mt-2 text-xs text-gray-400">
                 <span>Check-in</span>
@@ -183,7 +200,7 @@ const DashboardPaciente = () => {
 
             <button
               onClick={handleVerDetalhesFila}
-              className="mt-4 text-blue-600 text-sm font-medium hover:underline flex items-center gap-1"
+              className="mt-4 text-blue-600 text-sm font-medium hover:underline flex items-center gap-1 hover:text-blue-800 transition"
             >
               Ver detalhes <HiArrowRight size={14} />
             </button>
@@ -191,15 +208,15 @@ const DashboardPaciente = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <div className="bg-gray-800 text-white rounded-3xl p-6 shadow-lg">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-3xl p-6 shadow-xl">
               <h3 className="font-bold flex items-center gap-2 mb-4 text-lg">
-                <HiClock className="text-green-400" /> Ao Vivo
+                <HiClock className="text-blue-400" /> Chamadas Ativas
               </h3>
               <div className="space-y-3">
                 {chamadasAtivas.map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex justify-between items-center p-3 bg-white/10 rounded-xl hover:bg-white/20 transition"
+                    className="flex justify-between items-center p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/5"
                   >
                     <div>
                       <p className="text-xs text-gray-300">
@@ -208,10 +225,10 @@ const DashboardPaciente = () => {
                       <p className="font-bold text-lg">{item.senha}</p>
                     </div>
                     <span
-                      className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
                         item.status === "Chamado"
-                          ? "bg-green-500 text-white"
-                          : "bg-blue-500 text-white"
+                          ? "bg-green-500 text-white animate-pulse"
+                          : "bg-yellow-500 text-white"
                       }`}
                     >
                       {item.status}
@@ -223,7 +240,7 @@ const DashboardPaciente = () => {
 
             <button
               onClick={handleAjuda}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-3xl flex justify-between items-center transition shadow-lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-6 rounded-3xl flex justify-between items-center transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               <div className="text-left">
                 <p className="text-sm opacity-80">Precisa de ajuda?</p>
@@ -231,6 +248,18 @@ const DashboardPaciente = () => {
               </div>
               <HiExclamationCircle size={32} className="opacity-80" />
             </button>
+
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center">
+                  <HiCheckCircle size={24} className="text-green-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800">Check-in realizado</p>
+                  <p className="text-xs text-gray-500">Compareça à sala 03</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -238,9 +267,9 @@ const DashboardPaciente = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
           <Link
             to="/agendamento"
-            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
+            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 group-hover:bg-blue-200 transition flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 group-hover:bg-blue-200 transition-all duration-300 flex items-center justify-center mb-3">
               <HiCalendar size={24} className="text-blue-700" />
             </div>
             <p className="font-bold text-gray-800">Agendamentos</p>
@@ -248,10 +277,10 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/vacinação" // ← corrigido para coincidir com a rota real
-            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
+            to="/vacinação"
+            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-green-100 group-hover:bg-green-200 transition flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-green-100 group-hover:bg-green-200 transition-all duration-300 flex items-center justify-center mb-3">
               <FaSyringe size={24} className="text-green-700" />
             </div>
             <p className="font-bold text-gray-800">Vacinas</p>
@@ -259,10 +288,10 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/historico-medico" // ← corrigido para coincidir com a rota real
-            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
+            to="/historico-medico"
+            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 group-hover:bg-amber-200 transition flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 group-hover:bg-amber-200 transition-all duration-300 flex items-center justify-center mb-3">
               <HiClipboardList size={24} className="text-amber-700" />
             </div>
             <p className="font-bold text-gray-800">Histórico</p>
@@ -270,16 +299,18 @@ const DashboardPaciente = () => {
           </Link>
 
           <Link
-            to="/sus-conectado" // ← já estava correto
-            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
+            to="/sus-conectado"
+            className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 group-hover:bg-purple-200 transition flex items-center justify-center mb-3">
-              <FaFlask size={24} className="text-purple-700" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 group-hover:bg-blue-200 transition-all duration-300 flex items-center justify-center mb-3">
+              <FaFlask size={24} className="text-blue-700" />
             </div>
             <p className="font-bold text-gray-800">Exames</p>
             <p className="text-xs text-gray-500">3 resultados</p>
           </Link>
         </div>
+
+
       </div>
     </div>
   );

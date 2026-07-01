@@ -1,6 +1,5 @@
 // src/pages/Agendamento.jsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import {
   HiCalendar,
   HiClock,
@@ -19,6 +18,7 @@ const Agendamento = () => {
       horario: "09:00",
       medico: "Dra. Ana",
       especialidade: "Clínica Geral",
+      ubs: "UBS Santa Cecília - Central",
     },
     {
       id: 2,
@@ -26,16 +26,25 @@ const Agendamento = () => {
       horario: "14:30",
       medico: "Dr. Carlos",
       especialidade: "Cardiologia",
+      ubs: "UBS Vila Maria - Norte",
     },
   ]);
 
+  // Estados do formulário
   const [especialidadeSelecionada, setEspecialidadeSelecionada] =
     useState(null);
   const [dataSelecionada, setDataSelecionada] = useState(null);
   const [horarioSelecionado, setHorarioSelecionado] = useState(null);
   const [unidadeSelecionada, setUnidadeSelecionada] = useState(
-    "UBS Santa Cecília - Central",
+    "UBS Santa Cecília - Central"
   );
+
+  // Estados do calendário
+  const [mesAtual, setMesAtual] = useState(new Date().getMonth());
+  const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
+
+  // Dias lotados (exemplo: dias do mês que já estão cheios)
+  const diasLotados = [2, 5, 8, 12, 15, 18, 22, 25, 28, 30];
 
   const especialidades = [
     "Clínica Geral",
@@ -46,6 +55,7 @@ const Agendamento = () => {
     "Dermatologia",
   ];
 
+  // Horários (manhã e tarde)
   const horarios = [
     "08:00",
     "08:30",
@@ -55,19 +65,137 @@ const Agendamento = () => {
     "10:30",
     "11:00",
     "11:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
   ];
 
-  const diasCalendario = [
-    28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-  ];
-  const diaSelecionado = 6;
+  // Função para gerar os dias do calendário
+  const gerarDiasCalendario = (mes, ano) => {
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    const diasDoMesAnterior = new Date(ano, mes, 0).getDate();
 
+    const dias = [];
+    // Dias do mês anterior
+    for (let i = primeiroDia - 1; i >= 0; i--) {
+      dias.push({
+        dia: diasDoMesAnterior - i,
+        mes: mes - 1,
+        ano: ano,
+        isMesAtual: false,
+        disponivel: false,
+        lotado: false,
+      });
+    }
+    // Dias do mês atual
+    for (let i = 1; i <= diasNoMes; i++) {
+      const data = new Date(ano, mes, i);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const disponivel = data >= hoje;
+      const lotado = diasLotados.includes(i); // marca se o dia está lotado
+      dias.push({
+        dia: i,
+        mes: mes,
+        ano: ano,
+        isMesAtual: true,
+        disponivel: disponivel && !lotado, // se lotado, não disponível
+        lotado: lotado,
+      });
+    }
+    // Dias do próximo mês para completar a grade (até 42 células)
+    const totalDias = dias.length;
+    const diasRestantes = 42 - totalDias;
+    for (let i = 1; i <= diasRestantes; i++) {
+      dias.push({
+        dia: i,
+        mes: mes + 1,
+        ano: ano,
+        isMesAtual: false,
+        disponivel: false,
+        lotado: false,
+      });
+    }
+    return dias;
+  };
+
+  const diasCalendario = gerarDiasCalendario(mesAtual, anoAtual);
+
+  const nomeMes = (mes) => {
+    const meses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+    return meses[mes];
+  };
+
+  // Navegação do calendário
+  const mesAnterior = () => {
+    if (mesAtual === 0) {
+      setMesAtual(11);
+      setAnoAtual(anoAtual - 1);
+    } else {
+      setMesAtual(mesAtual - 1);
+    }
+    setDataSelecionada(null);
+  };
+
+  const mesSeguinte = () => {
+    if (mesAtual === 11) {
+      setMesAtual(0);
+      setAnoAtual(anoAtual + 1);
+    } else {
+      setMesAtual(mesAtual + 1);
+    }
+    setDataSelecionada(null);
+  };
+
+  // Selecionar um dia
+  const selecionarDia = (dia, mes, ano, disponivel, lotado) => {
+    if (!disponivel || lotado) return;
+    const dataFormatada = `${String(dia).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
+    setDataSelecionada(dataFormatada);
+  };
+
+  // Confirmar agendamento
   const handleConfirmarAgendamento = () => {
     if (!especialidadeSelecionada || !dataSelecionada || !horarioSelecionado) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
         text: "Selecione especialidade, data e horário.",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
+    }
+
+    // Verifica se a data/horário já foi agendado (evitar duplicidade)
+    const jaAgendado = consultas.some(
+      (c) => c.data === dataSelecionada && c.horario === horarioSelecionado
+    );
+    if (jaAgendado) {
+      Swal.fire({
+        icon: "error",
+        title: "Horário indisponível",
+        text: "Já existe uma consulta agendada para este horário.",
         confirmButtonColor: "#2563eb",
       });
       return;
@@ -97,6 +225,7 @@ const Agendamento = () => {
           horario: horarioSelecionado,
           medico: "Médico designado",
           especialidade: especialidadeSelecionada,
+          ubs: unidadeSelecionada,
         };
         setConsultas((prev) => [novaConsulta, ...prev]);
         Swal.fire({
@@ -108,6 +237,7 @@ const Agendamento = () => {
           timer: 2500,
           timerProgressBar: true,
         });
+        // Reset do formulário
         setEspecialidadeSelecionada(null);
         setDataSelecionada(null);
         setHorarioSelecionado(null);
@@ -124,6 +254,7 @@ const Agendamento = () => {
           <p><strong>Horário:</strong> ${consulta.horario}</p>
           <p><strong>Médico:</strong> ${consulta.medico}</p>
           <p><strong>Especialidade:</strong> ${consulta.especialidade}</p>
+          <p><strong>Unidade:</strong> ${consulta.ubs || "Não informada"}</p>
         </div>
       `,
       icon: "info",
@@ -194,12 +325,20 @@ const Agendamento = () => {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-700">Dezembro 2024</h3>
+                <h3 className="font-bold text-gray-700">
+                  {nomeMes(mesAtual)} {anoAtual}
+                </h3>
                 <div className="flex gap-1">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 transition">
+                  <button
+                    onClick={mesAnterior}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition"
+                  >
                     <HiChevronLeft size={20} />
                   </button>
-                  <button className="p-2 rounded-lg hover:bg-gray-100 transition">
+                  <button
+                    onClick={mesSeguinte}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition"
+                  >
                     <HiChevronRight size={20} />
                   </button>
                 </div>
@@ -215,30 +354,53 @@ const Agendamento = () => {
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {diasCalendario.map((d, i) => {
-                  const isSelecionado = d === diaSelecionado;
-                  const isDisponivel = d >= 4 && d <= 12;
+                  const diaStr = String(d.dia).padStart(2, "0");
+                  const mesStr = String(d.mes + 1).padStart(2, "0");
+                  const dataCompleta = `${diaStr}/${mesStr}/${d.ano}`;
+                  const isSelecionado = dataSelecionada === dataCompleta;
+                  let corClasse = "";
+                  let titulo = "";
+                  let onClick = () => {};
+
+                  if (!d.isMesAtual) {
+                    corClasse = "text-gray-300 cursor-not-allowed";
+                    titulo = "Fora do mês";
+                  } else if (d.lotado) {
+                    corClasse = "bg-red-100 text-red-700 cursor-not-allowed font-bold";
+                    titulo = "Dia lotado";
+                  } else if (!d.disponivel) {
+                    corClasse = "text-gray-300 cursor-not-allowed";
+                    titulo = "Data indisponível";
+                  } else if (isSelecionado) {
+                    corClasse = "bg-blue-700 text-white font-bold";
+                    titulo = "Selecionado";
+                    onClick = () =>
+                      selecionarDia(d.dia, d.mes, d.ano, d.disponivel, d.lotado);
+                  } else {
+                    corClasse = "hover:bg-blue-50 cursor-pointer";
+                    titulo = "Disponível";
+                    onClick = () =>
+                      selecionarDia(d.dia, d.mes, d.ano, d.disponivel, d.lotado);
+                  }
+
                   return (
                     <button
                       key={i}
-                      onClick={() => {
-                        if (isDisponivel) {
-                          setDataSelecionada("06/12/2024");
-                        }
-                      }}
-                      className={`p-2 text-center rounded-lg text-sm transition ${
-                        isSelecionado
-                          ? "bg-blue-700 text-white font-bold"
-                          : isDisponivel
-                            ? "hover:bg-blue-50 cursor-pointer"
-                            : "text-gray-300 cursor-not-allowed"
-                      }`}
+                      onClick={onClick}
+                      className={`p-2 text-center rounded-lg text-sm transition ${corClasse}`}
+                      title={titulo}
                     >
-                      {d}
+                      {d.dia}
+                      {d.lotado && d.isMesAtual && (
+                        <span className="block text-[8px] uppercase text-red-600">
+                          lotado
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-4 flex gap-4 text-xs">
+              <div className="mt-4 flex flex-wrap gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-blue-700" />{" "}
                   Selecionado
@@ -247,6 +409,10 @@ const Agendamento = () => {
                   <span className="w-3 h-3 rounded-full bg-gray-200 border" />{" "}
                   Indisponível
                 </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-red-200 border border-red-400" />{" "}
+                  Lotado
+                </div>
               </div>
             </div>
 
@@ -254,7 +420,7 @@ const Agendamento = () => {
               <label className="block font-bold text-gray-700 mb-3">
                 Horários Disponíveis
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {horarios.map((h) => (
                   <button
                     key={h}
@@ -311,6 +477,9 @@ const Agendamento = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Especialidade
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    UBS
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Ações
                   </th>
@@ -320,7 +489,7 @@ const Agendamento = () => {
                 {consultas.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       Nenhuma consulta agendada.
@@ -336,6 +505,9 @@ const Agendamento = () => {
                         <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                           {c.especialidade}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {c.ubs || "Não informada"}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
