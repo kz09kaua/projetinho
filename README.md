@@ -1,13 +1,6 @@
 # 🏥 Minha UBS
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-success?style=for-the-badge">
-  <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Vite-Latest-purple?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Projeto%20Integrador-SENAI-red?style=for-the-badge">
-</p>
-
-<p align="center">
 Sistema web desenvolvido para modernizar e facilitar o gerenciamento de uma Unidade Básica de Saúde (UBS), oferecendo diferentes níveis de acesso para pacientes, atendentes e administradores.
 </p>
 
