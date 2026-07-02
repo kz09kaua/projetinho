@@ -1,63 +1,41 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiLockClosed } from 'react-icons/hi';
 import { Activity } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const RedefinirSenha = () => {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
-
   const navigate = useNavigate();
+  const { updatePassword } = useAuth();
 
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [tokenValido, setTokenValido] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
 
+  // Supabase envia o usuario de volta com um token no URL hash
+  // O onAuthStateChange detecta o evento PASSWORD_RECOVERY
   useEffect(() => {
-    if (!token) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: 'Token inválido.',
-        confirmButtonColor: '#0057B8',
-      }).then(() => navigate('/login'));
-
-      return;
-    }
-
-    const resetTokens = JSON.parse(
-      localStorage.getItem('reset_tokens') || '{}'
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setSessionReady(true);
+        }
+      }
     );
 
-    const tokenData = resetTokens[token];
+    // Verificar se ja tem sessao ativa (usuario pode ter vindo do link)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      }
+    });
 
-    if (!tokenData) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: 'Link inválido.',
-        confirmButtonColor: '#0057B8',
-      }).then(() => navigate('/esqueceu-senha'));
-
-      return;
-    }
-
-    if (tokenData.expires < Date.now()) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: 'Link expirado.',
-        confirmButtonColor: '#0057B8',
-      }).then(() => navigate('/esqueceu-senha'));
-
-      return;
-    }
-
-    setTokenValido(true);
-  }, [token, navigate]);
+    return () => subscription?.unsubscribe();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +47,6 @@ const RedefinirSenha = () => {
         text: 'Preencha todos os campos.',
         confirmButtonColor: '#0057B8',
       });
-
       return;
     }
 
@@ -77,10 +54,9 @@ const RedefinirSenha = () => {
       Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: 'As senhas não coincidem.',
+        text: 'As senhas nao coincidem.',
         confirmButtonColor: '#0057B8',
       });
-
       return;
     }
 
@@ -88,41 +64,36 @@ const RedefinirSenha = () => {
       Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: 'A senha deve ter no mínimo 6 caracteres.',
+        text: 'A senha deve ter no minimo 6 caracteres.',
         confirmButtonColor: '#0057B8',
       });
-
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Remove token usado
-      const resetTokens = JSON.parse(
-        localStorage.getItem('reset_tokens') || '{}'
-      );
+      const success = await updatePassword(novaSenha);
 
-      delete resetTokens[token];
-
-      localStorage.setItem(
-        'reset_tokens',
-        JSON.stringify(resetTokens)
-      );
-
-      console.log('Nova senha:', novaSenha);
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Senha redefinida!',
-        text: 'Agora você pode fazer login com sua nova senha.',
-        confirmButtonColor: '#0057B8',
-      }).then(() => {
-        navigate('/login');
-      });
+      if (success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Senha redefinida!',
+          text: 'Agora voce pode fazer login com sua nova senha.',
+          confirmButtonColor: '#0057B8',
+        }).then(() => {
+          navigate('/login');
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: 'Erro ao redefinir senha. Tente novamente.',
+          confirmButtonColor: '#0057B8',
+        });
+      }
     } catch (error) {
       console.error(error);
-
       Swal.fire({
         icon: 'error',
         title: 'Erro',
@@ -134,7 +105,7 @@ const RedefinirSenha = () => {
     }
   };
 
-  if (!tokenValido) {
+  if (!sessionReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-on-surface text-lg">
@@ -197,7 +168,7 @@ const RedefinirSenha = () => {
                 value={novaSenha}
                 onChange={(e) => setNovaSenha(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary transition-all text-on-surface"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Minimo 6 caracteres"
                 required
               />
             </div>
@@ -225,7 +196,7 @@ const RedefinirSenha = () => {
             </div>
           </div>
 
-          {/* Botão */}
+          {/* Botao */}
           <button
             type="submit"
             disabled={isLoading}
@@ -252,4 +223,3 @@ const RedefinirSenha = () => {
 };
 
 export default RedefinirSenha;
-

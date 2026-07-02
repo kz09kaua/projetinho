@@ -4,12 +4,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiMail } from 'react-icons/hi';
 import { Activity } from 'lucide-react';
-import emailjs from '@emailjs/browser';
 import Swal from 'sweetalert2';
+import { useAuth } from '../../contexts/AuthContext';
 
 const EsqueceuSenha = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,69 +27,31 @@ const EsqueceuSenha = () => {
 
     setIsLoading(true);
 
- 
-    // Usuário temporário para EmailJS
-    const user = {
-      nome: email.split('@')[0],
-    };
-
-
-
-    // Gera token único
-    const token =
-      Math.random().toString(36).substring(2, 15) +
-      Date.now().toString(36);
-
-    // Salva token no localStorage
-    const resetTokens = JSON.parse(
-      localStorage.getItem('reset_tokens') || '{}'
-    );
-
-    resetTokens[token] = {
-      email,
-      expires: Date.now() + 3600000, // 1 hora
-    };
-
-    localStorage.setItem(
-      'reset_tokens',
-      JSON.stringify(resetTokens)
-    );
-
-    // Link de redefinição
-    const resetLink = `${window.location.origin}/redefinir-senha?token=${token}`;
-
-    // Configuração EmailJS
-    const serviceId = 'service_3cgoxz9';
-    const templateId = 'template_ecv1pf8';
-    const publicKey = 'Zm3QJq1CQCGCUSkRJ';
-
     try {
-      await emailjs.send(
-        serviceId,
-        templateId,
-        {
-          to_email: email,
-          reset_link: resetLink,
-          user_name: user.nome,
-        },
-        publicKey
-      );
+      const success = await resetPassword(email);
 
-      Swal.fire({
-        icon: 'success',
-        title: 'E-mail enviado!',
-        text: 'Verifique sua caixa de entrada para redefinir sua senha.',
-        confirmButtonColor: '#0057B8',
-      });
-
-      setEmail('');
+      if (success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'E-mail enviado!',
+          text: 'Verifique sua caixa de entrada para redefinir sua senha.',
+          confirmButtonColor: '#0057B8',
+        });
+        setEmail('');
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: 'Nao foi possivel enviar o e-mail. Verifique o endereco informado.',
+          confirmButtonColor: '#0057B8',
+        });
+      }
     } catch (error) {
-      console.error('Erro EmailJS:', error);
-
+      console.error('Erro ao enviar reset:', error);
       Swal.fire({
         icon: 'error',
         title: 'Erro ao enviar e-mail',
-        text: 'Verifique suas configurações do EmailJS.',
+        text: 'Tente novamente mais tarde.',
         confirmButtonColor: '#0057B8',
       });
     } finally {
@@ -127,7 +90,7 @@ const EsqueceuSenha = () => {
           </h2>
 
           <p className="text-on-surface-variant mt-2">
-            Informe seu e-mail para receber o link de redefinição
+            Informe seu e-mail para receber o link de redefinicao
           </p>
         </div>
 
@@ -155,7 +118,7 @@ const EsqueceuSenha = () => {
             </div>
           </div>
 
-          {/* Botão */}
+          {/* Botao */}
           <button
             type="submit"
             disabled={isLoading}
@@ -163,7 +126,7 @@ const EsqueceuSenha = () => {
           >
             {isLoading
               ? 'Enviando...'
-              : 'Enviar link de redefinição'}
+              : 'Enviar link de redefinicao'}
           </button>
         </form>
 
@@ -185,4 +148,3 @@ const EsqueceuSenha = () => {
 };
 
 export default EsqueceuSenha;
-

@@ -1,148 +1,273 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
+// Contador de tentativas de login (por sessao)
+const loginAttempts = {};
+const MAX_ATTEMPTS = 5;
+const BLOCK_TIME_MS = 60000; // 1 minuto
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [usersList, setUsersList] = useState([]);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sus_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem("sus_user");
-      }
-    }
-    const storedUsers = localStorage.getItem("sus_users");
-    if (storedUsers) {
-      try {
-        setUsersList(JSON.parse(storedUsers));
-      } catch {
-        localStorage.removeItem("sus_users");
-      }
-    }
-    setLoading(false);
-  }, []);
+  // Busca o perfil do usuario na tabela profiles
+  const fetchProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
-  const login = (email, password) => {
-    let userData = null;
-
-    // ADMIN
-    if (email === "admin@ubs.com" && password === "123456") {
-      userData = { name: "Administrador", role: "admin", email };
+    if (error) {
+      console.error("Erro ao buscar perfil:", error);
+      return null;
     }
-    // ATENDENTE
-    else if (email === "atendente@ubs.com" && password === "123456") {
-      userData = { name: "Carlos Atendente", role: "atendente", email };
-    }
-    // PACIENTE DEMO (acesso garantido, sem depender do localStorage)
-    else if (email === "paciente@email.com" && password === "123456") {
-      userData = {
-        name: "Maria Silva",
-        role: "paciente",
-        email,
-        cpf: "123.456.789-00",
-      };
-    }
-    // PACIENTES CADASTRADOS (apenas se não for o demo)
-    else {
-      try {
-        const users = JSON.parse(localStorage.getItem("sus_users") || "[]");
-        const found = users.find(
-          (u) => u.email === email && u.senha === password,
-        );
-        if (found) {
-          userData = {
-            name: found.nome,
-            role: "paciente",
-            email: found.email,
-            cpf: found.cpf,
-            telefone: found.telefone,
-            dataNascimento: found.dataNascimento,
-            endereco: found.endereco,
-            bio: found.bio,
-            genero: found.genero,
-          };
-        }
-      } catch (e) {
-        // Se o JSON estiver corrompido, simplesmente não encontra o usuário
-        console.warn("Erro ao ler usuários cadastrados, ignorando.", e);
-      }
-    }
-
-    if (userData) {
-      localStorage.setItem("sus_user", JSON.stringify(userData));
-      setUser(userData);
-      return true;
-    }
-    return false;
+    return data;
   };
 
-  const logout = () => {
-    localStorage.removeItem("sus_user");
+  // Monta o objeto user a partir do perfil
+  const buildUser = (profile) => {
+    if (!profile) return null;
+    return {
+      id: profile.id,
+      name: profile.nome,
+      nome: profile.nome,
+      role: profile.role,
+      email: profile.email,
+      cpf: profile.cpf,
+      telefone: profile.telefone,
+      dataNascimento: profile.data_nascimento,
+      endereco: profile.endereco,
+      bio: profile.bio,
+      genero: profile.genero,
+    };
+  };
+
+  // Inicializa o estado do usuario ao carregar
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          setUser(buildUser(profile));
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar auth:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Escuta mudancas de autenticacao
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setUser(buildUser(profile));
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  // Login com email e senha
+  const login = async (email, password) => {
+    // Verificar bloqueio por tentativas
+    const attempt = loginAttempts[email];
+    if (attempt && attempt.count >= MAX_ATTEMPTS) {
+      const elapsed = Date.now() - attempt.lastAttempt;
+      if (elapsed < BLOCK_TIME_MS) {
+        const remaining = Math.ceil((BLOCK_TIME_MS - elapsed) / 1000);
+        throw new Error(
+          `Muitas tentativas. Tente novamente em ${remaining} segundos.`
+        );
+      }
+      // Reset apos o tempo de bloqueio
+      delete loginAttempts[email];
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      // Incrementar contador de tentativas
+      if (!loginAttempts[email]) {
+        loginAttempts[email] = { count: 0, lastAttempt: 0 };
+      }
+      loginAttempts[email].count += 1;
+      loginAttempts[email].lastAttempt = Date.now();
+      return null;
+    }
+
+    // Login bem-sucedido - resetar tentativas
+    delete loginAttempts[email];
+
+    const profile = await fetchProfile(data.user.id);
+    const userData = buildUser(profile);
+    setUser(userData);
+    return userData;
+  };
+
+  // Logout
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 
-  const updateUser = (updatedUser) => {
-    localStorage.setItem("sus_user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    if (updatedUser.role === "paciente") {
-      try {
-        const users = JSON.parse(localStorage.getItem("sus_users") || "[]");
-        const idx = users.findIndex((u) => u.email === updatedUser.email);
-        if (idx !== -1) {
-          users[idx] = {
-            ...users[idx],
-            nome: updatedUser.name,
-            telefone: updatedUser.telefone,
-          };
-          localStorage.setItem("sus_users", JSON.stringify(users));
-          setUsersList(users);
-        }
-      } catch {}
-    }
-  };
+  // Registro de novo usuario
+  const register = async (userData) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.senha,
+      options: {
+        data: {
+          nome: userData.nome,
+          cpf: userData.cpf,
+          telefone: userData.telefone,
+          role: "paciente",
+        },
+      },
+    });
 
-  const updateOtherUser = (email, newData) => {
-    try {
-      const users = JSON.parse(localStorage.getItem("sus_users") || "[]");
-      const idx = users.findIndex((u) => u.email === email);
-      if (idx !== -1) {
-        users[idx] = {
-          ...users[idx],
-          nome: newData.nome,
-          role: newData.role,
-          email: newData.email,
-        };
-        localStorage.setItem("sus_users", JSON.stringify(users));
-        setUsersList(users);
-        if (user?.email === email) {
-          const updatedMe = { ...user, name: newData.nome, role: newData.role };
-          localStorage.setItem("sus_user", JSON.stringify(updatedMe));
-          setUser(updatedMe);
-        }
-      }
-    } catch {}
-  };
-
-  const register = (userData) => {
-    try {
-      const users = JSON.parse(localStorage.getItem("sus_users") || "[]");
-      const exists = users.find(
-        (u) => u.email === userData.email || u.cpf === userData.cpf,
-      );
-      if (exists) return false;
-      users.push(userData);
-      localStorage.setItem("sus_users", JSON.stringify(users));
-      setUsersList(users);
-      return true;
-    } catch {
+    if (error) {
+      console.error("Erro no registro:", error);
       return false;
     }
+
+    return true;
+  };
+
+  // Atualizar perfil do usuario logado
+  const updateUser = async (updatedData) => {
+    if (!user?.id) return;
+
+    const updateFields = {};
+    if (updatedData.name !== undefined) updateFields.nome = updatedData.name;
+    if (updatedData.nome !== undefined) updateFields.nome = updatedData.nome;
+    if (updatedData.telefone !== undefined)
+      updateFields.telefone = updatedData.telefone;
+    if (updatedData.dataNascimento !== undefined)
+      updateFields.data_nascimento = updatedData.dataNascimento;
+    if (updatedData.endereco !== undefined)
+      updateFields.endereco = updatedData.endereco;
+    if (updatedData.bio !== undefined) updateFields.bio = updatedData.bio;
+    if (updatedData.genero !== undefined)
+      updateFields.genero = updatedData.genero;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateFields)
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      return;
+    }
+
+    // Atualiza o state local
+    const updatedUser = {
+      ...user,
+      ...updatedData,
+      name: updatedData.nome || updatedData.name || user.name,
+      nome: updatedData.nome || updatedData.name || user.nome,
+    };
+    setUser(updatedUser);
+  };
+
+  // Atualizar outro usuario (usado pelo admin)
+  const updateOtherUser = async (email, newData) => {
+    const { data: profiles, error: fetchError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .single();
+
+    if (fetchError || !profiles) return;
+
+    const updateFields = {};
+    if (newData.nome !== undefined) updateFields.nome = newData.nome;
+    if (newData.role !== undefined) updateFields.role = newData.role;
+    if (newData.email !== undefined) updateFields.email = newData.email;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateFields)
+      .eq("id", profiles.id);
+
+    if (error) {
+      console.error("Erro ao atualizar outro usuario:", error);
+      return;
+    }
+
+    // Se for o proprio usuario, atualiza o state
+    if (user?.email === email) {
+      setUser((prev) => ({
+        ...prev,
+        name: newData.nome || prev.name,
+        nome: newData.nome || prev.nome,
+        role: newData.role || prev.role,
+      }));
+    }
+  };
+
+  // Buscar lista de usuarios (para admin)
+  const fetchUsersList = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao buscar usuarios:", error);
+      return [];
+    }
+
+    return data.map((p) => ({
+      nome: p.nome,
+      email: p.email,
+      cpf: p.cpf,
+      telefone: p.telefone,
+      role: p.role,
+      dataNascimento: p.data_nascimento,
+    }));
+  };
+
+  // Enviar email de redefinicao de senha
+  const resetPassword = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+    if (error) {
+      console.error("Erro ao enviar reset:", error);
+      return false;
+    }
+    return true;
+  };
+
+  // Atualizar senha
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) {
+      console.error("Erro ao atualizar senha:", error);
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -154,8 +279,10 @@ export const AuthProvider = ({ children }) => {
         loading,
         updateUser,
         updateOtherUser,
-        usersList,
         register,
+        fetchUsersList,
+        resetPassword,
+        updatePassword,
       }}
     >
       {children}

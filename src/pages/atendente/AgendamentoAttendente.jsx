@@ -1,6 +1,9 @@
 // src/pages/AgendamentoAttendente.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { pacientesService } from "../../services/pacientesService";
+import { consultasService } from "../../services/consultasService";
+import { historicoService } from "../../services/historicoService";
 import {
   FaSearch,
   FaPlus,
@@ -48,177 +51,23 @@ const AgendamentoAttendente = () => {
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [pacienteHistorico, setPacienteHistorico] = useState(null);
 
-  // ----- DADOS PERSISTENTES (localStorage) -----
-  const STORAGE_KEY_PACIENTES = "@agendamento_pacientes";
-  const STORAGE_KEY_CONSULTAS = "@agendamento_consultas";
-  const STORAGE_KEY_HISTORICO = "@agendamento_historico";
-
-  // Carrega dados do localStorage ou usa os mockados
-  const carregarDados = () => {
-    const pacientesSalvos = localStorage.getItem(STORAGE_KEY_PACIENTES);
-    const consultasSalvas = localStorage.getItem(STORAGE_KEY_CONSULTAS);
-    const historicoSalvo = localStorage.getItem(STORAGE_KEY_HISTORICO);
-
-    const pacientesIniciais = [
-      {
-        id: 1,
-        nome: "José Souza",
-        cpf: "123.456.789-00",
-        sus: "1234 5678 9012",
-        dataNasc: "15/03/1980",
-        sexo: "Masculino",
-        alergias: ["Nenhuma"],
-        tipoSanguineo: "O+",
-        ultimaConsulta: "10/11/2024",
-      },
-      {
-        id: 2,
-        nome: "Maria Lima",
-        cpf: "987.654.321-00",
-        sus: "9876 5432 1098",
-        dataNasc: "22/07/1990",
-        sexo: "Feminino",
-        alergias: ["Penicilina"],
-        tipoSanguineo: "A-",
-        ultimaConsulta: "05/11/2024",
-      },
-      {
-        id: 3,
-        nome: "Pedro Santos",
-        cpf: "456.789.123-00",
-        sus: "4567 8912 3456",
-        dataNasc: "10/12/1985",
-        sexo: "Masculino",
-        alergias: ["Nenhuma"],
-        tipoSanguineo: "B+",
-        ultimaConsulta: "20/10/2024",
-      },
-      {
-        id: 4,
-        nome: "Ana Oliveira",
-        cpf: "789.123.456-00",
-        sus: "7890 1234 5678",
-        dataNasc: "05/05/1995",
-        sexo: "Feminino",
-        alergias: ["Dipirona"],
-        tipoSanguineo: "AB+",
-        ultimaConsulta: "15/09/2024",
-      },
-      {
-        id: 5,
-        nome: "Carlos Ferreira",
-        cpf: "321.654.987-00",
-        sus: "3216 5498 7012",
-        dataNasc: "18/11/1978",
-        sexo: "Masculino",
-        alergias: ["Nenhuma"],
-        tipoSanguineo: "O-",
-        ultimaConsulta: "25/08/2024",
-      },
-    ];
-
-    const consultasIniciais = [
-      {
-        id: 1,
-        paciente: "José Souza",
-        data: new Date().toLocaleDateString("pt-BR"),
-        horario: "08:30",
-        medico: "Dra. Ana",
-        especialidade: "Clínica Geral",
-        status: "Confirmado",
-        senha: "G-108",
-        ubs: "UBS Central",
-      },
-      {
-        id: 2,
-        paciente: "Maria Lima",
-        data: new Date().toLocaleDateString("pt-BR"),
-        horario: "09:00",
-        medico: "Dr. Carlos",
-        especialidade: "Cardiologia",
-        status: "Aguardando",
-        senha: "G-109",
-        ubs: "UBS Central",
-      },
-      {
-        id: 3,
-        paciente: "Pedro Santos",
-        data: new Date().toLocaleDateString("pt-BR"),
-        horario: "10:30",
-        medico: "Dra. Ana",
-        especialidade: "Clínica Geral",
-        status: "Confirmado",
-        senha: "G-110",
-        ubs: "UBS Central",
-      },
-      {
-        id: 4,
-        paciente: "Ana Oliveira",
-        data: new Date(Date.now() + 86400000).toLocaleDateString("pt-BR"),
-        horario: "14:00",
-        medico: "Dr. Paulo",
-        especialidade: "Pediatria",
-        status: "Cancelado",
-        senha: "-",
-        ubs: "UBS Norte",
-      },
-    ];
-
-    const historicoInicial = {
-      "José Souza": [
-        { data: "10/11/2024", medico: "Dr. Carlos", especialidade: "Cardiologia", status: "Realizada" },
-        { data: "05/10/2024", medico: "Dra. Ana", especialidade: "Clínica Geral", status: "Realizada" },
-      ],
-      "Maria Lima": [
-        { data: "05/11/2024", medico: "Dra. Ana", especialidade: "Clínica Geral", status: "Realizada" },
-      ],
-      "Ana Oliveira": [
-        { data: "20/10/2024", medico: "Dr. Paulo", especialidade: "Pediatria", status: "Realizada" },
-        { data: "15/09/2024", medico: "Dr. Carlos", especialidade: "Cardiologia", status: "Realizada" },
-      ],
-      "Pedro Santos": [],
-      "Carlos Ferreira": [
-        { data: "25/08/2024", medico: "Dr. João", especialidade: "Ortopedia", status: "Realizada" },
-      ],
-    };
-
-    const pacientes = pacientesSalvos ? JSON.parse(pacientesSalvos) : pacientesIniciais;
-    const consultas = consultasSalvas ? JSON.parse(consultasSalvas) : consultasIniciais;
-    const historico = historicoSalvo ? JSON.parse(historicoSalvo) : historicoInicial;
-
-    return { pacientes, consultas, historico };
-  };
-
+  // ----- DADOS DO SUPABASE -----
   const [pacientes, setPacientes] = useState([]);
   const [consultas, setConsultas] = useState([]);
   const [historicoPacientes, setHistoricoPacientes] = useState({});
 
-  // Carrega dados ao montar
+  // Carrega dados do Supabase ao montar
   useEffect(() => {
-    const dados = carregarDados();
-    setPacientes(dados.pacientes);
-    setConsultas(dados.consultas);
-    setHistoricoPacientes(dados.historico);
+    const carregarDados = async () => {
+      const [pacientesData, consultasData] = await Promise.all([
+        pacientesService.listar(),
+        consultasService.listar(),
+      ]);
+      setPacientes(pacientesData);
+      setConsultas(consultasData);
+    };
+    carregarDados();
   }, []);
-
-  // Salva no localStorage sempre que mudar
-  useEffect(() => {
-    if (pacientes.length > 0) {
-      localStorage.setItem(STORAGE_KEY_PACIENTES, JSON.stringify(pacientes));
-    }
-  }, [pacientes]);
-
-  useEffect(() => {
-    if (consultas.length > 0) {
-      localStorage.setItem(STORAGE_KEY_CONSULTAS, JSON.stringify(consultas));
-    }
-  }, [consultas]);
-
-  useEffect(() => {
-    if (Object.keys(historicoPacientes).length > 0) {
-      localStorage.setItem(STORAGE_KEY_HISTORICO, JSON.stringify(historicoPacientes));
-    }
-  }, [historicoPacientes]);
 
   // ----- ESTATÍSTICAS -----
   const totalConsultas = consultas.length;
@@ -345,36 +194,32 @@ const AgendamentoAttendente = () => {
     });
 
     if (formValues) {
-      // Verifica duplicidade
-      const existe = pacientes.some(
-        (p) => p.cpf === formValues.cpf || p.sus === formValues.sus
-      );
+      // Verifica duplicidade no Supabase
+      const existe = await pacientesService.verificarDuplicidade(formValues.cpf, formValues.sus);
       if (existe) {
-        Swal.fire("Erro", "Já existe um paciente com esse CPF ou CNS.", "error");
+        Swal.fire("Erro", "Ja existe um paciente com esse CPF ou CNS.", "error");
         return;
       }
 
-      const novoId = Math.max(0, ...pacientes.map(p => p.id)) + 1;
-      const novoPaciente = {
-        id: novoId,
+      const novoPaciente = await pacientesService.criar({
         ...formValues,
         ultimaConsulta: "Nunca",
-      };
-      setPacientes((prev) => [...prev, novoPaciente]);
+      });
 
-      // Adiciona histórico vazio
-      setHistoricoPacientes((prev) => ({
-        ...prev,
-        [novoPaciente.nome]: [],
-      }));
+      if (!novoPaciente) {
+        Swal.fire("Erro", "Erro ao cadastrar paciente.", "error");
+        return;
+      }
+
+      setPacientes((prev) => [...prev, novoPaciente]);
 
       // CRIA UMA CONSULTA AUTOMATICAMENTE PARA O NOVO PACIENTE
       const hoje = new Date();
       const dataFormatada = hoje.toLocaleDateString("pt-BR");
       const horarioAtual = `${String(hoje.getHours()).padStart(2, "0")}:${String(hoje.getMinutes()).padStart(2, "0")}`;
-      const novaConsulta = {
-        id: consultas.length + 1,
+      const novaConsultaData = {
         paciente: novoPaciente.nome,
+        paciente_id: novoPaciente.id,
         data: dataFormatada,
         horario: horarioAtual,
         medico: "A definir",
@@ -383,7 +228,10 @@ const AgendamentoAttendente = () => {
         senha: `G-${Math.floor(Math.random() * 900) + 100}`,
         ubs: ubsSelecionada,
       };
-      setConsultas((prev) => [...prev, novaConsulta]);
+      const novaConsulta = await consultasService.criar(novaConsultaData);
+      if (novaConsulta) {
+        setConsultas((prev) => [...prev, novaConsulta]);
+      }
 
       // Seleciona o paciente para continuar agendando (opcional)
       setPacienteSelecionado(novoPaciente);
@@ -402,18 +250,21 @@ const AgendamentoAttendente = () => {
   // ============================================================
   // HANDLERS (confirmar, cancelar, histórico, novo agendamento)
   // ============================================================
-  const handleConfirmar = (id) => {
-    setConsultas((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: "Confirmado" } : c))
-    );
-    Swal.fire({
-      icon: "success",
-      title: "Confirmado!",
-      toast: true,
-      position: "top-end",
-      timer: 1500,
-      showConfirmButton: false,
-    });
+  const handleConfirmar = async (id) => {
+    const success = await consultasService.atualizarStatus(id, "Confirmado");
+    if (success) {
+      setConsultas((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: "Confirmado" } : c))
+      );
+      Swal.fire({
+        icon: "success",
+        title: "Confirmado!",
+        toast: true,
+        position: "top-end",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   };
 
   const handleCancelar = (id) => {
@@ -422,45 +273,51 @@ const AgendamentoAttendente = () => {
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sim, cancelar",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        setConsultas((prev) =>
-          prev.map((c) =>
-            c.id === id ? { ...c, status: "Cancelado", senha: "-" } : c
-          )
-        );
-        Swal.fire("Cancelada", "Consulta cancelada com sucesso.", "success");
+        const success = await consultasService.atualizarStatus(id, "Cancelado", "-");
+        if (success) {
+          setConsultas((prev) =>
+            prev.map((c) =>
+              c.id === id ? { ...c, status: "Cancelado", senha: "-" } : c
+            )
+          );
+          Swal.fire("Cancelada", "Consulta cancelada com sucesso.", "success");
+        }
       }
     });
   };
 
-  const abrirHistorico = (nomePaciente) => {
-    const historico = historicoPacientes[nomePaciente] || [];
+  const abrirHistorico = async (nomePaciente) => {
+    const historico = await historicoService.listarPorPaciente(nomePaciente);
     setPacienteHistorico({ nome: nomePaciente, historico });
     setMostrarHistorico(true);
   };
 
-  const handleNovoAgendamento = () => {
+  const handleNovoAgendamento = async () => {
     if (!pacienteSelecionado || !especialidadeSelecionada || !horarioSelecionado) {
-      Swal.fire("Atenção", "Preencha todos os campos!", "warning");
+      Swal.fire("Atencao", "Preencha todos os campos!", "warning");
       return;
     }
     const dataFormatada = `${String(dataSelecionada.getDate()).padStart(2, "0")}/${String(
       dataSelecionada.getMonth() + 1
     ).padStart(2, "0")}/${dataSelecionada.getFullYear()}`;
     const senha = `G-${Math.floor(Math.random() * 900) + 100}`;
-    const novaConsulta = {
-      id: consultas.length + 1,
+    const novaConsultaData = {
       paciente: pacienteSelecionado.nome,
+      paciente_id: pacienteSelecionado.id,
       data: dataFormatada,
       horario: horarioSelecionado,
-      medico: "Dra. Ana", // mock
+      medico: "Dra. Ana",
       especialidade: especialidadeSelecionada,
       status: "Confirmado",
       senha,
       ubs: ubsSelecionada,
     };
-    setConsultas((prev) => [...prev, novaConsulta]);
+    const novaConsulta = await consultasService.criar(novaConsultaData);
+    if (novaConsulta) {
+      setConsultas((prev) => [...prev, novaConsulta]);
+    }
     setMostrarNovoAgendamento(false);
     setPacienteSelecionado(null);
     setEspecialidadeSelecionada("");

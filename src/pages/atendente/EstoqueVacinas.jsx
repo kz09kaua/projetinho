@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
+import { estoqueService } from "../../services/estoqueService";
 import {
   HiBeaker,
   HiSearch,
@@ -15,66 +16,20 @@ import {
   HiPlusCircle,
 } from "react-icons/hi";
 
-const STORAGE_KEY_PACIENTES = "@agendamento_pacientes";
-
 const EstoqueVacinas = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
   const [pacientes, setPacientes] = useState([]);
-  const [vacinas, setVacinas] = useState([
-    {
-      id: 1,
-      nome: "COVID-19",
-      lote: "AB123",
-      quantidade: 45,
-      validade: "2025-12-31",
-    },
-    {
-      id: 2,
-      nome: "Gripe",
-      lote: "GR789",
-      quantidade: 8,
-      validade: "2024-10-15",
-    },
-    {
-      id: 3,
-      nome: "Febre Amarela",
-      lote: "FA456",
-      quantidade: 5,
-      validade: "2026-01-20",
-    },
-    {
-      id: 4,
-      nome: "Hepatite B",
-      lote: "HB321",
-      quantidade: 28,
-      validade: "2025-06-10",
-    },
-  ]);
+  const [vacinas, setVacinas] = useState([]);
 
   const [logUso, setLogUso] = useState([]);
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Carregar pacientes do localStorage
+  // Carregar vacinas do Supabase
   useEffect(() => {
-    const carregarPacientes = () => {
-      const pacientesSalvos = localStorage.getItem(STORAGE_KEY_PACIENTES);
-      if (pacientesSalvos) {
-        setPacientes(JSON.parse(pacientesSalvos));
-      }
-    };
-    carregarPacientes();
-
-    const handleStorageChange = (e) => {
-      if (e.key === STORAGE_KEY_PACIENTES) {
-        const pacientes = JSON.parse(e.newValue || "[]");
-        setPacientes(pacientes);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    estoqueService.listarVacinas().then(setVacinas);
   }, []);
 
   const vacinasFiltradas = useMemo(() => {
@@ -239,10 +194,12 @@ const EstoqueVacinas = () => {
       });
 
       if (confirmar.isConfirmed) {
+        const novaQtd = Math.max(0, vacina.quantidade - 1);
+        await estoqueService.atualizarVacina(vacina.id, { quantidade: novaQtd });
         setVacinas((prev) =>
           prev.map((v) =>
             v.id === vacina.id
-              ? { ...v, quantidade: Math.max(0, v.quantidade - 1) }
+              ? { ...v, quantidade: novaQtd }
               : v,
           ),
         );
@@ -313,10 +270,12 @@ const EstoqueVacinas = () => {
       },
     });
     if (quantidade && quantidade > 0) {
+      const novaQtd = vacina.quantidade + parseInt(quantidade);
+      await estoqueService.atualizarVacina(vacina.id, { quantidade: novaQtd });
       setVacinas((prev) =>
         prev.map((v) =>
           v.id === vacina.id
-            ? { ...v, quantidade: v.quantidade + parseInt(quantidade) }
+            ? { ...v, quantidade: novaQtd }
             : v,
         ),
       );
@@ -363,8 +322,8 @@ const EstoqueVacinas = () => {
       },
     });
     if (formValues) {
-      const newId = Math.max(0, ...vacinas.map((v) => v.id)) + 1;
-      setVacinas([...vacinas, { id: newId, ...formValues }]);
+      const novaVacina = await estoqueService.criarVacina(formValues);
+      setVacinas([...vacinas, novaVacina]);
       Swal.fire({
         icon: "success",
         title: "Adicionada!",
@@ -411,6 +370,7 @@ const EstoqueVacinas = () => {
       },
     });
     if (formValues) {
+      await estoqueService.atualizarVacina(vacina.id, formValues);
       setVacinas((prev) =>
         prev.map((v) => (v.id === vacina.id ? { ...v, ...formValues } : v)),
       );
@@ -428,8 +388,8 @@ const EstoqueVacinas = () => {
     }
   };
 
-  const removerVacina = (id) => {
-    Swal.fire({
+  const removerVacina = async (id) => {
+    const result = await Swal.fire({
       title: "Remover vacina?",
       text: "Esta ação não pode ser desfeita.",
       icon: "warning",
@@ -444,22 +404,22 @@ const EstoqueVacinas = () => {
         cancelButton: 'font-semibold px-6',
         title: 'text-xl font-bold text-gray-800',
       },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setVacinas(vacinas.filter((v) => v.id !== id));
-        Swal.fire({
-          icon: "success",
-          title: "Removida!",
-          text: "Vacina removida do estoque.",
-          confirmButtonColor: "#2563eb",
-          customClass: {
-            popup: 'rounded-2xl',
-            confirmButton: 'font-semibold px-6',
-            title: 'text-xl font-bold text-gray-800',
-          },
-        });
-      }
     });
+    if (result.isConfirmed) {
+      await estoqueService.deletarVacina(id);
+      setVacinas(vacinas.filter((v) => v.id !== id));
+      Swal.fire({
+        icon: "success",
+        title: "Removida!",
+        text: "Vacina removida do estoque.",
+        confirmButtonColor: "#2563eb",
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'font-semibold px-6',
+          title: 'text-xl font-bold text-gray-800',
+        },
+      });
+    }
   };
 
   const exportarCSV = () => {

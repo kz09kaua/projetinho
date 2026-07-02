@@ -1,7 +1,8 @@
 // src/pages/EstoqueMedicamentos.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
+import { estoqueService } from "../../services/estoqueService";
 import {
   HiBeaker,
   HiSearch,
@@ -25,40 +26,16 @@ const EstoqueMedicamentos = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin"; // mantido para outras ações (editar/remover)
 
-  const [medicamentos, setMedicamentos] = useState([
-    {
-      id: 1,
-      nome: "Paracetamol 500mg",
-      lote: "PAR001",
-      quantidade: 120,
-      validade: "2026-05-20",
-    },
-    {
-      id: 2,
-      nome: "Ibuprofeno 400mg",
-      lote: "IBU002",
-      quantidade: 7,
-      validade: "2025-11-15",
-    },
-    {
-      id: 3,
-      nome: "Amoxicilina 500mg",
-      lote: "AMX003",
-      quantidade: 42,
-      validade: "2024-12-10",
-    },
-    {
-      id: 4,
-      nome: "Losartana 50mg",
-      lote: "LOS004",
-      quantidade: 18,
-      validade: "2026-02-28",
-    },
-  ]);
+  const [medicamentos, setMedicamentos] = useState([]);
 
   const [logRetiradas, setLogRetiradas] = useState([]);
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+
+  // Carregar medicamentos do Supabase
+  useEffect(() => {
+    estoqueService.listarMedicamentos().then(setMedicamentos);
+  }, []);
 
   const hoje = new Date().toISOString().split("T")[0];
 
@@ -110,10 +87,12 @@ const EstoqueMedicamentos = () => {
       },
     });
     if (formValues) {
+      const novaQtd = med.quantidade - formValues.qtd;
+      await estoqueService.atualizarMedicamento(med.id, { quantidade: novaQtd });
       setMedicamentos((prev) =>
         prev.map((m) =>
           m.id === med.id
-            ? { ...m, quantidade: m.quantidade - formValues.qtd }
+            ? { ...m, quantidade: novaQtd }
             : m
         )
       );
@@ -146,10 +125,12 @@ const EstoqueMedicamentos = () => {
       confirmButtonText: "Adicionar",
     });
     if (quantidade && quantidade > 0) {
+      const novaQtd = med.quantidade + parseInt(quantidade);
+      await estoqueService.atualizarMedicamento(med.id, { quantidade: novaQtd });
       setMedicamentos((prev) =>
         prev.map((m) =>
           m.id === med.id
-            ? { ...m, quantidade: m.quantidade + parseInt(quantidade) }
+            ? { ...m, quantidade: novaQtd }
             : m
         )
       );
@@ -190,8 +171,8 @@ const EstoqueMedicamentos = () => {
       },
     });
     if (formValues) {
-      const newId = Math.max(0, ...medicamentos.map((m) => m.id)) + 1;
-      setMedicamentos([...medicamentos, { id: newId, ...formValues }]);
+      const novoMedicamento = await estoqueService.criarMedicamento(formValues);
+      setMedicamentos([...medicamentos, novoMedicamento]);
       Swal.fire("Adicionado!", "Medicamento cadastrado.", "success");
     }
   };
@@ -226,6 +207,7 @@ const EstoqueMedicamentos = () => {
       },
     });
     if (formValues) {
+      await estoqueService.atualizarMedicamento(med.id, formValues);
       setMedicamentos((prev) =>
         prev.map((m) => (m.id === med.id ? { ...m, ...formValues } : m))
       );
@@ -234,23 +216,23 @@ const EstoqueMedicamentos = () => {
   };
 
   // Remover (apenas admin)
-  const removerMedicamento = (id) => {
+  const removerMedicamento = async (id) => {
     if (!isAdmin) {
       Swal.fire("Acesso negado", "Apenas administradores podem remover.", "error");
       return;
     }
-    Swal.fire({
+    const result = await Swal.fire({
       title: "Remover medicamento?",
       text: "Esta ação não pode ser desfeita.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sim, remover",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setMedicamentos(medicamentos.filter((m) => m.id !== id));
-        Swal.fire("Removido!", "Medicamento removido do estoque.", "success");
-      }
     });
+    if (result.isConfirmed) {
+      await estoqueService.deletarMedicamento(id);
+      setMedicamentos(medicamentos.filter((m) => m.id !== id));
+      Swal.fire("Removido!", "Medicamento removido do estoque.", "success");
+    }
   };
 
   // ----- FUNÇÕES DE STATUS -----

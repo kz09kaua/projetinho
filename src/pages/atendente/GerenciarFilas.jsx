@@ -1,8 +1,9 @@
 // src/pages/GerenciarFilas.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { HiUserGroup, HiSearch, HiPlus, HiX } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
+import { filasService } from "../../services/filasService";
 
 const GerenciarFilas = () => {
   const { user } = useAuth();
