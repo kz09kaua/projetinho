@@ -240,7 +240,7 @@ const SusConectado = () => {
           <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <HiClipboardList className="text-purple-600" /> Meus Exames
+                <HiClipboardList className="text-blue-600" /> Meus Exames
               </h2>
               <p className="text-sm text-gray-500">
                 Exames solicitados pelos médicos do SUS
