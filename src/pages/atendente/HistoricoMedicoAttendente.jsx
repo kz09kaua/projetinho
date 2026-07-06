@@ -1,6 +1,8 @@
 // src/pages/HistoricoMedicoAttendente.jsx
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { pacientesService } from "../../services/pacientesService";
+import { consultasService } from "../../services/consultasService";
 import {
   HiSearch,
   HiUser,
@@ -8,20 +10,12 @@ import {
   HiLocationMarker,
   HiX,
   HiCalendar,
-  HiClipboardList,
-  HiFilter,
   HiChevronDown,
   HiChevronUp,
-  HiClock,
-  HiHeart,
-  HiBeaker,
   HiDocumentDownload,
+  HiRefresh,
 } from "react-icons/hi";
 import Swal from "sweetalert2";
-
-// Chaves do localStorage (mesmas usadas no Agendamento)
-const STORAGE_KEY_PACIENTES = "@agendamento_pacientes";
-const STORAGE_KEY_CONSULTAS = "@agendamento_consultas";
 
 const HistoricoMedicoAttendente = () => {
   const { user } = useAuth();
@@ -41,58 +35,67 @@ const HistoricoMedicoAttendente = () => {
   const [ordenacao, setOrdenacao] = useState("recente");
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const [buscando, setBuscando] = useState(false);
+  const [carregando, setCarregando] = useState(false);
   const sugestoesRef = useRef(null);
 
-  // Dados reais vindos do localStorage
   const [pacientesReais, setPacientesReais] = useState([]);
   const [consultasReais, setConsultasReais] = useState([]);
 
-  // Carrega dados do localStorage
-  const carregarDados = () => {
-    const pacientesSalvos = localStorage.getItem(STORAGE_KEY_PACIENTES);
-    const consultasSalvas = localStorage.getItem(STORAGE_KEY_CONSULTAS);
-
-    const pacientes = pacientesSalvos ? JSON.parse(pacientesSalvos) : [];
-    const consultas = consultasSalvas ? JSON.parse(consultasSalvas) : [];
-
-    setPacientesReais(pacientes);
-    setConsultasReais(consultas);
+  // Carrega dados usando os serviços (garante consistência)
+  const carregarDados = async () => {
+    setCarregando(true);
+    try {
+      const [pacientes, consultas] = await Promise.all([
+        pacientesService.listar(),
+        consultasService.listar(),
+      ]);
+      setPacientesReais(Array.isArray(pacientes) ? pacientes : []);
+      setConsultasReais(Array.isArray(consultas) ? consultas : []);
+      return { pacientes, consultas };
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      Swal.fire("Erro", "Não foi possível carregar os dados.", "error");
+      return { pacientes: [], consultas: [] };
+    } finally {
+      setCarregando(false);
+    }
   };
 
-  // Recarrega ao montar e sempre que os dados mudarem no localStorage (para outras abas)
+  // Recarrega ao montar
   useEffect(() => {
     carregarDados();
-
-    // Escuta mudanças no localStorage (para sincronizar entre abas)
-    const handleStorageChange = (e) => {
-      if (e.key === STORAGE_KEY_PACIENTES || e.key === STORAGE_KEY_CONSULTAS) {
-        carregarDados();
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Constrói o histórico de um paciente a partir das consultas confirmadas
-  const construirHistorico = (nomePaciente) => {
-    const consultasDoPaciente = consultasReais.filter(
-      (c) => c.paciente === nomePaciente && c.status === "Confirmado"
-    );
-    return consultasDoPaciente.map((c) => ({
-      id: c.id,
-      data: c.data,
-      medico: c.medico,
-      especialidade: c.especialidade,
-      ubs: c.ubs,
-      diagnostico: c.especialidade === "A agendar" ? "Aguardando agendamento" : "Consulta confirmada",
-      prescricao: "Pendente",
-      exames: "Pendente",
-      observacoes: c.especialidade === "A agendar" ? "Paciente aguarda definição de especialidade" : "Consulta registrada",
-      status: "Realizada",
-    }));
+  // Constrói histórico com todas as consultas (exceto Cancelado)
+  const construirHistorico = (nomePaciente, consultas) => {
+    return consultas
+      .filter(
+        (c) =>
+          c.paciente?.trim().toLowerCase() === nomePaciente.trim().toLowerCase() &&
+          c.status !== "Cancelado"
+      )
+      .map((c) => ({
+        id: c.id,
+        data: c.data,
+        horario: c.horario,
+        medico: c.medico,
+        especialidade: c.especialidade,
+        ubs: c.ubs,
+        status: c.status,
+        diagnostico:
+          c.status === "Confirmado"
+            ? "Consulta confirmada"
+            : "Aguardando agendamento",
+        prescricao: c.status === "Confirmado" ? "Pendente" : "A definir",
+        exames: c.status === "Confirmado" ? "Pendente" : "A definir",
+        observacoes:
+          c.status === "Confirmado"
+            ? "Consulta registrada"
+            : "Paciente aguarda atendimento",
+      }));
   };
 
-  // --- Funções auxiliares (CPF, etc.) ---
+  // --- Funções auxiliares (CPF) ---
   const apenasNumeros = (str) => str.replace(/\D/g, "");
   const formatarCPF = (valor) => {
     const nums = apenasNumeros(valor);
@@ -103,12 +106,11 @@ const HistoricoMedicoAttendente = () => {
   };
   const isCPF = (texto) => /^[\d.\- ]+$/.test(texto) && apenasNumeros(texto).length >= 11;
 
-  // --- Manipuladores do input ---
+  // --- Input ---
   const handleBuscaChange = (e) => {
     const raw = e.target.value;
     if (isCPF(raw) || apenasNumeros(raw).length > 0) {
-      const formatado = formatarCPF(raw);
-      setBusca(formatado);
+      setBusca(formatarCPF(raw));
       setMostrarSugestoes(false);
     } else {
       setBusca(raw);
@@ -126,20 +128,20 @@ const HistoricoMedicoAttendente = () => {
     return () => document.removeEventListener("mousedown", handleClickFora);
   }, []);
 
-  // Sugestões baseadas nos pacientes reais
+  // Sugestões
   const sugestoes = (() => {
     const termo = busca.trim();
     if (!termo || isCPF(termo) || termo.length < 2) return [];
     return pacientesReais.filter((p) =>
-      p.nome.toLowerCase().includes(termo.toLowerCase())
+      p.nome?.toLowerCase().includes(termo.toLowerCase())
     );
   })();
 
-  const selecionarSugestao = (pacienteSug) => {
+  const selecionarSugestao = async (pacienteSug) => {
     setBusca(pacienteSug.nome);
     setMostrarSugestoes(false);
-    // Monta o objeto paciente com histórico real
-    const historico = construirHistorico(pacienteSug.nome);
+    const { consultas } = await carregarDados();
+    const historico = construirHistorico(pacienteSug.nome, consultas);
     setPaciente({
       ...pacienteSug,
       historico,
@@ -155,6 +157,9 @@ const HistoricoMedicoAttendente = () => {
       return;
     }
 
+    // Carrega dados frescos
+    const { pacientes, consultas } = await carregarDados();
+
     setBuscando(true);
     await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -162,17 +167,27 @@ const HistoricoMedicoAttendente = () => {
     let encontrado = null;
 
     if (cpfLimpo.length === 11) {
-      encontrado = pacientesReais.find((p) => apenasNumeros(p.cpf) === cpfLimpo);
+      encontrado = pacientes.find(
+        (p) => apenasNumeros(p.cpf) === cpfLimpo
+      );
     } else {
-      encontrado = pacientesReais.find((p) =>
-        p.nome.toLowerCase().includes(termo.toLowerCase())
+      const termoLower = termo.toLowerCase();
+      encontrado = pacientes.find((p) =>
+        p.nome?.toLowerCase().includes(termoLower)
       );
     }
 
     setBuscando(false);
 
     if (encontrado) {
-      const historico = construirHistorico(encontrado.nome);
+      const historico = construirHistorico(encontrado.nome, consultas);
+      if (historico.length === 0) {
+        Swal.fire({
+          icon: "info",
+          title: "Paciente encontrado",
+          text: `${encontrado.nome} não possui consultas agendadas ou confirmadas.`,
+        });
+      }
       setPaciente({
         ...encontrado,
         historico,
@@ -191,21 +206,24 @@ const HistoricoMedicoAttendente = () => {
     setExpandedConsulta(null);
   };
 
-  // --- Expandir/contrair consulta ---
+  // --- Expandir ---
   const toggleExpandir = (id) => {
     setExpandedConsulta(expandedConsulta === id ? null : id);
   };
 
-  // --- Exportar CSV (agora com dados reais) ---
+  // --- Exportar CSV ---
   const exportarHistorico = () => {
     if (!paciente) return;
-    const cabecalho = "Data;Médico;Especialidade;UBS;Diagnóstico;Prescrição;Exames;Observações";
+    const cabecalho =
+      "Data;Horário;Médico;Especialidade;UBS;Status;Diagnóstico;Prescrição;Exames;Observações";
     const linhas = paciente.historico.map((c) =>
       [
         c.data,
+        c.horario || "",
         c.medico,
         c.especialidade,
         c.ubs,
+        c.status,
         c.diagnostico,
         c.prescricao,
         c.exames,
@@ -254,13 +272,16 @@ const HistoricoMedicoAttendente = () => {
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-            <HiDocumentText className="text-blue-600" /> Histórico de Consultas
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Busque por nome ou CPF e acesse o prontuário completo.
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <HiDocumentText className="text-blue-600" /> Histórico de Consultas
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Busque por nome ou CPF e acesse o prontuário completo.
+            </p>
+          </div>
+
         </div>
 
         {/* Barra de busca */}
@@ -356,7 +377,8 @@ const HistoricoMedicoAttendente = () => {
                 </div>
                 <button
                   onClick={exportarHistorico}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold transition shrink-0"
+                  disabled={paciente.historico.length === 0}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2.5 rounded-xl font-semibold transition shrink-0"
                 >
                   <HiDocumentDownload size={18} /> Exportar
                 </button>
@@ -413,9 +435,16 @@ const HistoricoMedicoAttendente = () => {
                               {c.especialidade} – {c.medico}
                             </p>
                             <p className="text-sm text-gray-500 flex items-center gap-1">
-                              <HiLocationMarker size={14} /> {c.ubs} – {c.data}
+                              <HiLocationMarker size={14} /> {c.ubs} – {c.data} {c.horario && `• ${c.horario}`}
                             </p>
-                            <div className="mt-1">
+                            <div className="mt-1 flex gap-2 flex-wrap">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                c.status === "Confirmado"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {c.status}
+                              </span>
                               <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium">
                                 {c.diagnostico}
                               </span>

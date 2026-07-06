@@ -21,6 +21,8 @@ import {
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
+import { pacientesService } from "../../services/pacientesService";
+import { consultasService } from "../../services/consultasService";
 
 const SusConectadoAtendente = () => {
   const { user } = useAuth();
@@ -47,231 +49,37 @@ const SusConectadoAtendente = () => {
   const [syncing, setSyncing] = useState(false);
   const [busca, setBusca] = useState("");
   const [pacienteEncontrado, setPacienteEncontrado] = useState(null);
+  const [pacientesReais, setPacientesReais] = useState([]);
+  const [consultasReais, setConsultasReais] = useState([]);
+  const [carregando, setCarregando] = useState(false);
 
-  // Mock de dados SUS – exames e vacinas vitalícias
-  const pacientesSusMock = [
-    {
-      id: 1,
-      nome: "Maria Silva",
-      cpf: "123.456.789-00",
-      sus: "1234 5678 9012",
-      exames: [
-        {
-          id: 1,
-          tipo: "Radiografia de Tórax",
-          data: "12/05/2024",
-          resultado: "Sem alterações",
-          unidade: "UPA Central",
-        },
-        {
-          id: 2,
-          tipo: "Canal Dentário (Endodontia)",
-          data: "03/03/2024",
-          resultado: "Concluído – dente 26",
-          unidade: "CEO Centro",
-        },
-        {
-          id: 3,
-          tipo: "Mamografia",
-          data: "10/11/2023",
-          resultado: "BI-RADS 1 (normal)",
-          unidade: "Hospital das Clínicas",
-        },
-        {
-          id: 4,
-          tipo: "Ultrassonografia Abdominal",
-          data: "22/09/2023",
-          resultado: "Fígado e vias biliares normais",
-          unidade: "UBS Central Lapa",
-        },
-        {
-          id: 5,
-          tipo: "Hemograma Completo",
-          data: "05/06/2023",
-          resultado: "Dentro dos padrões",
-          unidade: "UBS Central Lapa",
-        },
-      ],
-      vacinas: [
-        {
-          id: 1,
-          vacina: "BCG",
-          dose: "Dose única",
-          data: "15/03/1980",
-          lote: "BCG8001",
-        },
-        {
-          id: 2,
-          vacina: "Hepatite B",
-          dose: "1ª dose",
-          data: "16/04/1980",
-          lote: "HP0001",
-        },
-        {
-          id: 3,
-          vacina: "Hepatite B",
-          dose: "2ª dose",
-          data: "16/05/1980",
-          lote: "HP0002",
-        },
-        {
-          id: 4,
-          vacina: "Hepatite B",
-          dose: "3ª dose",
-          data: "16/11/1980",
-          lote: "HP0003",
-        },
-        {
-          id: 5,
-          vacina: "Poliomielite",
-          dose: "1ª dose",
-          data: "01/06/1980",
-          lote: "POLIO01",
-        },
-        {
-          id: 6,
-          vacina: "Poliomielite",
-          dose: "2ª dose",
-          data: "01/08/1980",
-          lote: "POLIO02",
-        },
-        {
-          id: 7,
-          vacina: "Poliomielite",
-          dose: "3ª dose",
-          data: "01/12/1980",
-          lote: "POLIO03",
-        },
-        {
-          id: 8,
-          vacina: "Tríplice Viral",
-          dose: "Dose única",
-          data: "15/03/1981",
-          lote: "TV0001",
-        },
-        {
-          id: 9,
-          vacina: "Febre Amarela",
-          dose: "Dose única",
-          data: "22/10/1990",
-          lote: "FA008",
-        },
-        {
-          id: 10,
-          vacina: "Antitetânica",
-          dose: "Reforço",
-          data: "15/07/2005",
-          lote: "TET2005",
-        },
-        {
-          id: 11,
-          vacina: "COVID-19",
-          dose: "1ª dose",
-          data: "10/01/2021",
-          lote: "CV2101",
-        },
-        {
-          id: 12,
-          vacina: "COVID-19",
-          dose: "2ª dose",
-          data: "10/04/2021",
-          lote: "CV2102",
-        },
-        {
-          id: 13,
-          vacina: "COVID-19",
-          dose: "3ª dose",
-          data: "10/10/2021",
-          lote: "CV2103",
-        },
-        {
-          id: 14,
-          vacina: "COVID-19",
-          dose: "4ª dose",
-          data: "12/05/2024",
-          lote: "AB9023",
-        },
-      ],
-    },
-    {
-      id: 2,
-      nome: "José Santos",
-      cpf: "987.654.321-00",
-      sus: "9876 5432 1098",
-      exames: [],
-      vacinas: [],
-    },
-  ];
-
-  // Máscara de CPF
-  const handleBuscaChange = (e) => {
-    let valor = e.target.value.replace(/\D/g, "");
-    if (valor.length > 11) valor = valor.slice(0, 11);
-    if (valor.length <= 3) setBusca(valor);
-    else if (valor.length <= 6)
-      setBusca(valor.replace(/(\d{3})(\d{1,3})/, "$1.$2"));
-    else if (valor.length <= 9)
-      setBusca(valor.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3"));
-    else
-      setBusca(valor.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4"));
-  };
-
-  const buscarPaciente = () => {
-    const termoLimpo = busca.trim();
-    if (termoLimpo === "") {
-      Swal.fire("Campo vazio", "Digite um nome ou CPF.", "warning");
-      return;
-    }
-    const cpfNumerico = termoLimpo.replace(/\D/g, "");
-    const encontrado = pacientesSusMock.find((p) => {
-      if (cpfNumerico.length === 11)
-        return p.cpf.replace(/\D/g, "") === cpfNumerico;
-      return p.nome.toLowerCase().includes(termoLimpo.toLowerCase());
-    });
-    if (encontrado) {
-      setPacienteEncontrado(encontrado);
-    } else {
-      Swal.fire(
-        "Não encontrado",
-        "Nenhum paciente com esse nome ou CPF.",
-        "error",
-      );
-      setPacienteEncontrado(null);
+  // Carrega dados usando os serviços e ATUALIZA os estados
+  const carregarDados = async () => {
+    setCarregando(true);
+    try {
+      const [pacientes, consultas] = await Promise.all([
+        pacientesService.listar(),
+        consultasService.listar(),
+      ]);
+      const pacientesArr = Array.isArray(pacientes) ? pacientes : [];
+      const consultasArr = Array.isArray(consultas) ? consultas : [];
+      setPacientesReais(pacientesArr);
+      setConsultasReais(consultasArr);
+      return { pacientes: pacientesArr, consultas: consultasArr };
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      Swal.fire("Erro", "Não foi possível carregar os dados.", "error");
+      return { pacientes: [], consultas: [] };
+    } finally {
+      setCarregando(false);
     }
   };
 
-  const limparBusca = () => {
-    setBusca("");
-    setPacienteEncontrado(null);
-  };
-
-  const fetchDados = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        setIndicadores({
-          coberturaVacinal: Math.floor(70 + Math.random() * 20),
-          mediaEspera: Math.floor(30 + Math.random() * 30),
-          leitosOcupados: Math.floor(70 + Math.random() * 25),
-        });
-        setUbsData((prev) => ({
-          ...prev,
-          producaoMensal: Math.floor(900 + Math.random() * 200),
-          ultimaSincronizacao: `Hoje, ${new Date().getHours().toString().padStart(2, "0")}:${new Date().getMinutes().toString().padStart(2, "0")}`,
-        }));
-        setResumoFilas({
-          clinicaGeral: Math.floor(Math.random() * 15) + 5,
-          pediatria: Math.floor(Math.random() * 5) + 1,
-          vacinacao: Math.floor(Math.random() * 10) + 2,
-          totalPacientes: Math.floor(Math.random() * 30) + 10,
-        });
-        resolve();
-      }, 800);
-    });
-  };
-
+  // Sincronização (simulada e recarrega dados)
   const sincronizar = async () => {
     setSyncing(true);
-    await fetchDados();
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await carregarDados();
     setSyncing(false);
     Swal.fire({
       icon: "success",
@@ -285,10 +93,86 @@ const SusConectadoAtendente = () => {
     });
   };
 
+  // Carrega dados ao montar
   useEffect(() => {
-    fetchDados();
+    carregarDados();
   }, []);
 
+  // --- Funções auxiliares ---
+  const apenasNumeros = (str) => str.replace(/\D/g, "");
+  const formatarCPF = (valor) => {
+    const nums = apenasNumeros(valor);
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 6) return nums.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (nums.length <= 9) return nums.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return nums.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+
+  const handleBuscaChange = (e) => {
+    const raw = e.target.value;
+    const cpfLimpo = apenasNumeros(raw);
+    if (cpfLimpo.length > 0) {
+      setBusca(formatarCPF(raw));
+    } else {
+      setBusca(raw);
+    }
+  };
+
+  const buscarPaciente = async () => {
+    const termo = busca.trim();
+    if (termo === "") {
+      Swal.fire("Campo vazio", "Digite um nome ou CPF.", "warning");
+      return;
+    }
+
+    // 🔁 Recarrega dados frescos antes de buscar
+    const { pacientes, consultas } = await carregarDados();
+
+    const cpfLimpo = apenasNumeros(termo);
+    let encontrado = null;
+
+    if (cpfLimpo.length === 11) {
+      encontrado = pacientes.find((p) => apenasNumeros(p.cpf) === cpfLimpo);
+    } else {
+      encontrado = pacientes.find((p) =>
+        p.nome.toLowerCase().includes(termo.toLowerCase())
+      );
+    }
+
+    if (encontrado) {
+      // Filtra consultas do paciente para exibir
+      const consultasPaciente = consultas.filter(
+        (c) =>
+          c.paciente?.toLowerCase() === encontrado.nome.toLowerCase() &&
+          c.status !== "Cancelado"
+      );
+
+      // Constrói objeto com dados reais + adaptação para SUS
+      const pacienteComSus = {
+        ...encontrado,
+        exames: consultasPaciente.map((c, idx) => ({
+          id: idx + 1,
+          tipo: c.especialidade || "Consulta",
+          data: c.data,
+          resultado: c.status === "Confirmado" ? "Consulta realizada" : "Agendado",
+          unidade: c.ubs || "UBS",
+        })),
+        // Se tiver vacinas, pode buscar de outro serviço
+        vacinas: [],
+      };
+      setPacienteEncontrado(pacienteComSus);
+    } else {
+      Swal.fire("Não encontrado", "Nenhum paciente com esse nome ou CPF.", "error");
+      setPacienteEncontrado(null);
+    }
+  };
+
+  const limparBusca = () => {
+    setBusca("");
+    setPacienteEncontrado(null);
+  };
+
+  // Verifica permissão
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
@@ -336,7 +220,7 @@ const SusConectadoAtendente = () => {
           </div>
           <button
             onClick={sincronizar}
-            disabled={syncing}
+            disabled={syncing || carregando}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50"
           >
             <HiRefresh className={syncing ? "animate-spin" : ""} />
@@ -375,13 +259,12 @@ const SusConectadoAtendente = () => {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Exemplo: 123.456.789-00 (Maria Silva) – veja exames e vacinas do SUS
+            Exemplo: 123.456.789-00 – veja histórico de consultas e vacinas.
           </p>
 
-          {/* Resultado da busca – Exames e Vacinas do DataSUS */}
+          {/* Resultado da busca – Exames e Vacinas (adaptado) */}
           {pacienteEncontrado && (
             <div className="mt-6 space-y-6">
-              {/* Identificação */}
               <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-xl">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
                   {pacienteEncontrado.nome.charAt(0)}
@@ -392,38 +275,28 @@ const SusConectadoAtendente = () => {
                   </p>
                   <p className="text-sm text-gray-600">
                     CPF: {pacienteEncontrado.cpf} | CNS:{" "}
-                    {pacienteEncontrado.sus}
+                    {pacienteEncontrado.sus || "Não informado"}
                   </p>
                 </div>
               </div>
 
-              {/* Bloco de Exames */}
               <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-3">
-                  <HiPhotograph className="text-purple-600" /> Exames realizados
-                  na rede SUS
+                  <HiPhotograph className="text-purple-600" /> Consultas registradas
                 </h3>
                 {pacienteEncontrado.exames.length === 0 ? (
                   <p className="text-gray-500 text-sm">
-                    Nenhum exame registrado na base nacional.
+                    Nenhum registro de consulta encontrado.
                   </p>
                 ) : (
                   <div className="overflow-x-auto border rounded-xl">
                     <table className="w-full text-sm">
                       <thead className="bg-purple-50">
                         <tr>
-                          <th className="p-3 text-left font-medium text-purple-700">
-                            Tipo
-                          </th>
-                          <th className="p-3 text-left font-medium text-purple-700">
-                            Data
-                          </th>
-                          <th className="p-3 text-left font-medium text-purple-700">
-                            Resultado
-                          </th>
-                          <th className="p-3 text-left font-medium text-purple-700">
-                            Unidade
-                          </th>
+                          <th className="p-3 text-left font-medium text-purple-700">Tipo</th>
+                          <th className="p-3 text-left font-medium text-purple-700">Data</th>
+                          <th className="p-3 text-left font-medium text-purple-700">Resultado</th>
+                          <th className="p-3 text-left font-medium text-purple-700">Unidade</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -433,10 +306,7 @@ const SusConectadoAtendente = () => {
                             <td className="p-3">{exame.data}</td>
                             <td className="p-3">{exame.resultado}</td>
                             <td className="p-3 flex items-center gap-1">
-                              <HiLocationMarker
-                                size={14}
-                                className="text-gray-400"
-                              />
+                              <HiLocationMarker size={14} className="text-gray-400" />
                               {exame.unidade}
                             </td>
                           </tr>
@@ -447,54 +317,19 @@ const SusConectadoAtendente = () => {
                 )}
               </div>
 
-              {/* Bloco de Vacinas */}
               <div>
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-3">
                   <HiShieldCheck className="text-emerald-600" /> Carteira de
-                  Vacinação (Registro Nacional)
+                  Vacinação
                 </h3>
-                {pacienteEncontrado.vacinas.length === 0 ? (
-                  <p className="text-gray-500 text-sm">
-                    Nenhuma vacina encontrada na base nacional.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto border rounded-xl">
-                    <table className="w-full text-sm">
-                      <thead className="bg-emerald-50">
-                        <tr>
-                          <th className="p-3 text-left font-medium text-emerald-700">
-                            Vacina
-                          </th>
-                          <th className="p-3 text-left font-medium text-emerald-700">
-                            Dose
-                          </th>
-                          <th className="p-3 text-left font-medium text-emerald-700">
-                            Data
-                          </th>
-                          <th className="p-3 text-left font-medium text-emerald-700">
-                            Lote
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {pacienteEncontrado.vacinas.map((v) => (
-                          <tr key={v.id} className="hover:bg-gray-50">
-                            <td className="p-3 font-medium">{v.vacina}</td>
-                            <td className="p-3">{v.dose}</td>
-                            <td className="p-3">{v.data}</td>
-                            <td className="p-3">{v.lote}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <p className="text-gray-500 text-sm">
+                  Nenhum dado de vacinação disponível no momento.
+                </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Indicadores nacionais (permanece) */}
         <div className="bg-white border rounded-2xl p-4 flex items-center gap-4 shadow-sm">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
             <HiCloud className="text-white text-xl" />
@@ -515,17 +350,13 @@ const SusConectadoAtendente = () => {
               <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                 <HiDatabase size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">
-                Indicadores Nacionais
-              </h3>
+              <h3 className="text-xl font-bold text-gray-800">Indicadores Nacionais</h3>
             </div>
             <div className="space-y-5">
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-gray-600">Cobertura vacinal (BR)</span>
-                  <span className="font-bold text-gray-800">
-                    {indicadores.coberturaVacinal}%
-                  </span>
+                  <span className="font-bold text-gray-800">{indicadores.coberturaVacinal}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
@@ -535,18 +366,12 @@ const SusConectadoAtendente = () => {
                 </div>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                <span className="text-gray-600">
-                  Média de espera por especialista
-                </span>
-                <span className="font-bold text-gray-800">
-                  {indicadores.mediaEspera} dias
-                </span>
+                <span className="text-gray-600">Média de espera por especialista</span>
+                <span className="font-bold text-gray-800">{indicadores.mediaEspera} dias</span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                 <span className="text-gray-600">Leitos SUS ocupados</span>
-                <span className="font-bold text-gray-800">
-                  {indicadores.leitosOcupados}%
-                </span>
+                <span className="font-bold text-gray-800">{indicadores.leitosOcupados}%</span>
               </div>
             </div>
           </div>
@@ -556,58 +381,31 @@ const SusConectadoAtendente = () => {
               <div className="p-2 rounded-xl bg-gradient-to-br from-green-500 to-green-600 text-white">
                 <HiUsers size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">
-                Resumo da Unidade
-              </h3>
+              <h3 className="text-xl font-bold text-gray-800">Resumo da Unidade</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                 <span className="text-gray-600">Código SUS</span>
-                <span className="font-mono font-bold text-gray-800">
-                  {ubsData.codigoSUS}
-                </span>
+                <span className="font-mono font-bold text-gray-800">{ubsData.codigoSUS}</span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                 <span className="text-gray-600">Produção mensal</span>
-                <span className="font-bold text-gray-800">
-                  {ubsData.producaoMensal} atendimentos
-                </span>
+                <span className="font-bold text-gray-800">{ubsData.producaoMensal} atendimentos</span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                 <span className="text-gray-600">Pacientes na fila hoje</span>
-                <span className="font-bold text-gray-800">
-                  {resumoFilas.totalPacientes}
-                </span>
+                <span className="font-bold text-gray-800">{resumoFilas.totalPacientes}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 pt-2">
                 {[
-                  {
-                    label: "Clínica",
-                    value: resumoFilas.clinicaGeral,
-                    color: "from-blue-400 to-blue-500",
-                  },
-                  {
-                    label: "Pediatria",
-                    value: resumoFilas.pediatria,
-                    color: "from-green-400 to-green-500",
-                  },
-                  {
-                    label: "Vacinação",
-                    value: resumoFilas.vacinacao,
-                    color: "from-purple-400 to-purple-500",
-                  },
+                  { label: "Clínica", value: resumoFilas.clinicaGeral, color: "from-blue-400 to-blue-500" },
+                  { label: "Pediatria", value: resumoFilas.pediatria, color: "from-green-400 to-green-500" },
+                  { label: "Vacinação", value: resumoFilas.vacinacao, color: "from-purple-400 to-purple-500" },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-gray-50 p-3 rounded-xl text-center border hover:shadow-sm transition"
-                  >
+                  <div key={item.label} className="bg-gray-50 p-3 rounded-xl text-center border hover:shadow-sm transition">
                     <p className="text-xs text-gray-500">{item.label}</p>
-                    <p className="font-bold text-lg text-gray-800">
-                      {item.value}
-                    </p>
-                    <div
-                      className={`w-full h-1 mt-1 rounded-full bg-gradient-to-r ${item.color}`}
-                    />
+                    <p className="font-bold text-lg text-gray-800">{item.value}</p>
+                    <div className={`w-full h-1 mt-1 rounded-full bg-gradient-to-r ${item.color}`} />
                   </div>
                 ))}
               </div>
@@ -617,11 +415,7 @@ const SusConectadoAtendente = () => {
 
         <div className="grid md:grid-cols-3 gap-5">
           {quickLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="bg-white rounded-2xl p-5 border hover:shadow-md transition flex items-center gap-4 group"
-            >
+            <Link key={link.to} to={link.to} className="bg-white rounded-2xl p-5 border hover:shadow-md transition flex items-center gap-4 group">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <link.icon className="text-white text-2xl" />
               </div>
@@ -643,26 +437,18 @@ const SusConectadoAtendente = () => {
               <div className="flex items-center gap-3">
                 <HiClock className="text-gray-400" />
                 <div>
-                  <p className="font-medium text-gray-800">
-                    Sincronização completa
-                  </p>
+                  <p className="font-medium text-gray-800">Sincronização completa</p>
                   <p className="text-xs text-gray-500">DataSUS + UBS Central</p>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">
-                {ubsData.ultimaSincronizacao}
-              </span>
+              <span className="text-sm text-gray-500">{ubsData.ultimaSincronizacao}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
               <div className="flex items-center gap-3">
                 <HiLocationMarker className="text-gray-400" />
                 <div>
-                  <p className="font-medium text-gray-800">
-                    Atualização de estoque
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Envio para base nacional
-                  </p>
+                  <p className="font-medium text-gray-800">Atualização de estoque</p>
+                  <p className="text-xs text-gray-500">Envio para base nacional</p>
                 </div>
               </div>
               <span className="text-sm text-gray-500">Hoje, 07:45</span>
@@ -671,8 +457,7 @@ const SusConectadoAtendente = () => {
         </div>
 
         <p className="text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-          Dados simulados para demonstração. Em produção, integre com a API
-          oficial do DataSUS.
+          Dados simulados para demonstração. Em produção, integre com a API oficial do DataSUS.
         </p>
       </div>
     </div>

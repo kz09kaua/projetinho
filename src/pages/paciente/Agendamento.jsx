@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // src/pages/paciente/Agendamento.jsx
+=======
+// src/pages/Agendamento.jsx
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
 import { useState, useEffect } from "react";
 import {
   HiCalendar, HiClock, HiCheckCircle, HiChevronLeft, HiChevronRight, HiEye,
@@ -8,17 +12,29 @@ import { useAuth } from "../../contexts/AuthContext";
 import { consultasService } from "../../services/consultasService";
 import { filasService } from "../../services/filasService";
 
+// Chave para armazenar no localStorage
+const STORAGE_KEY = "@agendamento_consultas";
+
 const Agendamento = () => {
+<<<<<<< HEAD
   const { user } = useAuth();
   const [consultas, setConsultas] = useState([]);
   const [todasConsultas, setTodasConsultas] = useState([]);
   const [especialidadeSelecionada, setEspecialidadeSelecionada] = useState(null);
+=======
+  const [consultas, setConsultas] = useState([]);
+
+  // Estados do formulário
+  const [especialidadeSelecionada, setEspecialidadeSelecionada] =
+    useState(null);
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
   const [dataSelecionada, setDataSelecionada] = useState(null);
   const [horarioSelecionado, setHorarioSelecionado] = useState(null);
   const [unidadeSelecionada, setUnidadeSelecionada] = useState("UBS Central");
   const [mesAtual, setMesAtual] = useState(new Date().getMonth());
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
 
+<<<<<<< HEAD
   const especialidades = [
     "Clínica Geral", "Ginecologia", "Pediatria", "Psicologia", "Cardiologia", "Dermatologia",
   ];
@@ -39,6 +55,50 @@ const Agendamento = () => {
   }, [user]);
 
   // ==================== FUNÇÕES DO CALENDÁRIO (COM BLOQUEIO DE FDS) ====================
+=======
+  // ===== CARREGAR DO LOCALSTORAGE AO MONTAR =====
+  useEffect(() => {
+    const dadosSalvos = localStorage.getItem(STORAGE_KEY);
+    if (dadosSalvos) {
+      try {
+        const consultasSalvas = JSON.parse(dadosSalvos);
+        // Ordena por data mais recente
+        consultasSalvas.sort((a, b) => {
+          const [dA, mA, yA] = a.data.split("/").map(Number);
+          const [dB, mB, yB] = b.data.split("/").map(Number);
+          const dateA = new Date(yA, mA - 1, dA);
+          const dateB = new Date(yB, mB - 1, dB);
+          return dateB - dateA;
+        });
+        setConsultas(consultasSalvas);
+      } catch {
+        setConsultas([]);
+      }
+    }
+  }, []);
+
+  // ===== SALVAR NO LOCALSTORAGE SEMPRE QUE CONSULTAS MUDAR =====
+  useEffect(() => {
+    if (consultas.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(consultas));
+    } else {
+      // Se estiver vazio, remove do localStorage (opcional)
+      // localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [consultas]);
+
+  // ===== FUNÇÃO PARA VERIFICAR SE UM HORÁRIO ESTÁ DISPONÍVEL =====
+  const isHorarioDisponivel = (data, horario) => {
+    return !consultas.some(
+      (c) => c.data === data && c.horario === horario
+    );
+  };
+
+  // ===== DIAS LOTADOS FIXOS (COMO ESTAVA ANTES) =====
+  const diasLotados = [2, 5, 8, 12, 15, 18, 22, 25, 28, 30];
+
+  // ===== GERADOR DE DIAS DO CALENDÁRIO =====
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
   const gerarDiasCalendario = (mes, ano) => {
     const primeiroDia = new Date(ano, mes, 1).getDay(); // 0=Dom, 6=Sáb
     const diasNoMes = new Date(ano, mes + 1, 0).getDate();
@@ -55,6 +115,7 @@ const Agendamento = () => {
 
     for (let i = 1; i <= diasNoMes; i++) {
       const data = new Date(ano, mes, i);
+<<<<<<< HEAD
       const diaSemana = data.getDay(); // 0=Dom, 6=Sáb
       const ehFimDeSemana = diaSemana === 0 || diaSemana === 6; // sábado ou domingo
       const dataPassada = data < hoje;
@@ -64,15 +125,25 @@ const Agendamento = () => {
       const consultasNesseDia = todasConsultas.filter(c => c.data === dataStr && c.status !== "Cancelado");
       const lotado = disponivel && consultasNesseDia.length >= horarios.length;
 
+=======
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const disponivel = data >= hoje;
+      const lotado = diasLotados.includes(i);
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
       dias.push({
         dia: i,
         mes,
         ano,
         isMesAtual: true,
         disponivel: disponivel && !lotado,
+<<<<<<< HEAD
         lotado,
         fds: ehFimDeSemana,
         passado: dataPassada,
+=======
+        lotado: lotado,
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
       });
     }
 
@@ -120,11 +191,20 @@ const Agendamento = () => {
     if (!disponivel || lotado) return;
     const dataFormatada = `${String(dia).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
     setDataSelecionada(dataFormatada);
+<<<<<<< HEAD
     setHorarioSelecionado(null);
   };
 
   // ==================== CONFIRMAR AGENDAMENTO ====================
   const handleConfirmarAgendamento = async () => {
+=======
+    // Limpa horário selecionado ao mudar a data
+    setHorarioSelecionado(null);
+  };
+
+  // ===== CONFIRMAR AGENDAMENTO COM PERSISTÊNCIA IMEDIATA =====
+  const handleConfirmarAgendamento = () => {
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
     if (!especialidadeSelecionada || !dataSelecionada || !horarioSelecionado) {
       Swal.fire("Campos incompletos", "Selecione especialidade, data e horário.", "warning");
       return;
@@ -134,11 +214,34 @@ const Agendamento = () => {
       return;
     }
 
+<<<<<<< HEAD
     // Verificação extra de segurança: não permite agendar em fim de semana
     const [diaStr, mesStr, anoStr] = dataSelecionada.split("/");
     const dataObj = new Date(parseInt(anoStr), parseInt(mesStr) - 1, parseInt(diaStr));
     if (dataObj.getDay() === 0 || dataObj.getDay() === 6) {
       Swal.fire("Indisponível", "Não é possível agendar aos sábados ou domingos.", "error");
+=======
+    // Verifica se já existe consulta para essa data/horário
+    if (!isHorarioDisponivel(dataSelecionada, horarioSelecionado)) {
+      Swal.fire({
+        icon: "error",
+        title: "Horário indisponível",
+        text: "Já existe uma consulta agendada para esta data e horário.",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
+    }
+
+    // Verifica se o dia está na lista de lotados
+    const [dia, mes, ano] = dataSelecionada.split("/").map(Number);
+    if (diasLotados.includes(dia)) {
+      Swal.fire({
+        icon: "error",
+        title: "Dia lotado",
+        text: "Não há mais vagas disponíveis para esta data.",
+        confirmButtonColor: "#2563eb",
+      });
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
       return;
     }
 
@@ -149,6 +252,7 @@ const Agendamento = () => {
       showCancelButton: true,
       confirmButtonColor: "#2563eb",
       cancelButtonColor: "#d33",
+<<<<<<< HEAD
       confirmButtonText: "Confirmar",
     });
 
@@ -190,6 +294,40 @@ const Agendamento = () => {
 
         setConsultas(prev => [novaConsulta, ...prev]);
         setTodasConsultas(prev => [...prev, novaConsulta]);
+=======
+      confirmButtonText: "Confirmar Agendamento",
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Verifica novamente para evitar race condition
+        if (!isHorarioDisponivel(dataSelecionada, horarioSelecionado)) {
+          Swal.fire({
+            icon: "error",
+            title: "Horário indisponível",
+            text: "Infelizmente esse horário foi preenchido enquanto você confirmava.",
+            confirmButtonColor: "#2563eb",
+          });
+          return;
+        }
+
+        const novaConsulta = {
+          id: Date.now() + Math.random(),
+          data: dataSelecionada,
+          horario: horarioSelecionado,
+          medico: "Médico designado",
+          especialidade: especialidadeSelecionada,
+          ubs: unidadeSelecionada,
+        };
+
+        // ===== ATUALIZA ESTADO E SALVA LOCALMENTE =====
+        setConsultas((prev) => {
+          const novasConsultas = [novaConsulta, ...prev];
+          // Salva imediatamente no localStorage
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(novasConsultas));
+          return novasConsultas;
+        });
+
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
         Swal.fire({
           icon: "success",
           title: "Agendamento confirmado!",
@@ -197,6 +335,11 @@ const Agendamento = () => {
           confirmButtonColor: "#2563eb",
           timer: 3500,
         });
+<<<<<<< HEAD
+=======
+
+        // Reset do formulário
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
         setEspecialidadeSelecionada(null);
         setDataSelecionada(null);
         setHorarioSelecionado(null);
@@ -206,7 +349,41 @@ const Agendamento = () => {
     }
   };
 
+<<<<<<< HEAD
   // ==================== RENDERIZAÇÃO ====================
+=======
+  // ===== ESPECIALIDADES E HORÁRIOS =====
+  const especialidades = [
+    "Clínica Geral",
+    "Ginecologia",
+    "Pediatria",
+    "Psicologia",
+    "Cardiologia",
+    "Dermatologia",
+  ];
+
+  const horarios = [
+    "08:00",
+    "08:30",
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+  ];
+
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -299,6 +476,7 @@ const Agendamento = () => {
             <div className="bg-white p-6 rounded-2xl shadow-sm border">
               <label className="block font-bold text-gray-700 mb-3">Horários Disponíveis</label>
               <div className="grid grid-cols-4 gap-2">
+<<<<<<< HEAD
                 {horarios.map(h => {
                   const disponivel = horarioDisponivel(h);
                   return (
@@ -314,10 +492,37 @@ const Agendamento = () => {
                       }`}>
                       <HiClock className="inline mr-1" size={14} /> {h}
                       {!disponivel && <span className="block text-[10px] text-red-500">indisponível</span>}
+=======
+                {horarios.map((h) => {
+                  const disponivel = dataSelecionada
+                    ? isHorarioDisponivel(dataSelecionada, h)
+                    : true;
+                  return (
+                    <button
+                      key={h}
+                      onClick={() => {
+                        if (disponivel) setHorarioSelecionado(h);
+                      }}
+                      disabled={!disponivel || !dataSelecionada}
+                      className={`p-2 border rounded-lg text-sm font-medium transition ${
+                        horarioSelecionado === h
+                          ? "bg-blue-700 text-white border-blue-700"
+                          : disponivel && dataSelecionada
+                          ? "border-gray-200 hover:bg-blue-50 hover:border-blue-300"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <HiClock className="inline mr-1" size={14} /> {h}
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
                     </button>
                   );
                 })}
               </div>
+              {!dataSelecionada && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Selecione uma data primeiro.
+                </p>
+              )}
             </div>
           </div>
         </div>

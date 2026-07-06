@@ -7,6 +7,7 @@ import {
   HiQrcode,
   HiExclamation,
   HiEye,
+  HiRefresh,
 } from "react-icons/hi";
 import { FaSyringe } from "react-icons/fa";
 import Swal from "sweetalert2";
@@ -16,7 +17,6 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const MySwal = withReactContent(Swal);
 
-// Lista de UBS fixa como fallback
 const UBS_FALLBACK = [
   { id: 0, nome: "UBS Santa Cecília - Central", distance: 1.2 },
   { id: 1, nome: "UBS Vila Mariana", distance: 2.5 },
@@ -67,31 +67,28 @@ const Vacinacao = () => {
   const aplicadas = historico.filter((h) => h.status === "aplicada");
   const vacinaPendente = pendentes[0];
 
-  const [ubsProximas, setUbsProximas] = useState([]);
+  const [ubsProximas, setUbsProximas] = useState(UBS_FALLBACK);
   const [ubsEscolhida, setUbsEscolhida] = useState("");
   const [carregandoUbs, setCarregandoUbs] = useState(false);
   const [notificacaoPermitida, setNotificacaoPermitida] = useState(false);
   const [erroLocalizacao, setErroLocalizacao] = useState(false);
 
-  // Verifica permissão de notificação já concedida
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "granted") {
       setNotificacaoPermitida(true);
     }
   }, []);
 
-  // Carregar UBS escolhida do localStorage
   useEffect(() => {
     const saved = localStorage.getItem("ubsVacinaPendente");
     if (saved) setUbsEscolhida(saved);
+    else setUbsEscolhida(UBS_FALLBACK[0].nome);
   }, []);
 
-  // Persistir escolha
   useEffect(() => {
     if (ubsEscolhida) localStorage.setItem("ubsVacinaPendente", ubsEscolhida);
   }, [ubsEscolhida]);
 
-  // Função para distância (Haversine)
   const haversineDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -104,7 +101,6 @@ const Vacinacao = () => {
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-  // Buscar UBS reais via Overpass
   const buscarUbsProximas = async (lat, lng) => {
     setCarregandoUbs(true);
     setErroLocalizacao(false);
@@ -121,7 +117,7 @@ const Vacinacao = () => {
     `;
     try {
       const response = await fetch(
-        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`
       );
       if (!response.ok) throw new Error("API indisponível");
       const data = await response.json();
@@ -138,7 +134,6 @@ const Vacinacao = () => {
           };
         })
         .filter(Boolean);
-      // Remover duplicatas por nome
       const nomes = new Set();
       const unicas = ubs.filter((u) => {
         if (nomes.has(u.nome)) return false;
@@ -154,15 +149,12 @@ const Vacinacao = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar UBS:", error);
-      // Usa fallback
       setUbsProximas(UBS_FALLBACK);
       if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
       Swal.fire({
         icon: "warning",
         title: "UBS offline?",
         text: "Não foi possível buscar UBS online. Exibindo unidades padrão.",
-        timer: 3000,
-        showConfirmButton: true,
         confirmButtonColor: "#2563eb",
       });
     } finally {
@@ -170,10 +162,8 @@ const Vacinacao = () => {
     }
   };
 
-  // Obter localização e acionar busca
   const obterLocalizacaoEBuscarUBS = () => {
     if (!navigator.geolocation) {
-      // Sem API de geolocalização: usa fallback direto
       setUbsProximas(UBS_FALLBACK);
       if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
       setCarregandoUbs(false);
@@ -186,13 +176,13 @@ const Vacinacao = () => {
       return;
     }
 
+    setCarregandoUbs(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         buscarUbsProximas(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
         console.error("Erro de geolocalização:", error);
-        // Se negado ou erro, usa fallback
         setUbsProximas(UBS_FALLBACK);
         if (!ubsEscolhida) setUbsEscolhida(UBS_FALLBACK[0].nome);
         setCarregandoUbs(false);
@@ -204,15 +194,10 @@ const Vacinacao = () => {
           confirmButtonColor: "#2563eb",
         });
       },
-      { enableHighAccuracy: false, timeout: 10000 },
+      { enableHighAccuracy: false, timeout: 10000 }
     );
   };
 
-  useEffect(() => {
-    obterLocalizacaoEBuscarUBS();
-  }, []);
-
-  // Notificações
   const pedirPermissaoNotificacao = async () => {
     if ("Notification" in window) {
       const permission = await Notification.requestPermission();
@@ -238,7 +223,6 @@ const Vacinacao = () => {
       return;
     }
 
-    // Mostra resumo
     Swal.fire({
       icon: "info",
       title: "Lembrete ativado",
@@ -253,7 +237,6 @@ const Vacinacao = () => {
       confirmButtonColor: "#2563eb",
     });
 
-    // Tenta enviar notificação nativa
     if (notificacaoPermitida) {
       try {
         const notification = new Notification("Lembrete de Vacinação", {
@@ -265,7 +248,6 @@ const Vacinacao = () => {
         console.error(err);
       }
     } else {
-      // Se não permitida, oferece ativar
       const result = await Swal.fire({
         title: "Deseja ativar notificações?",
         icon: "question",
@@ -276,42 +258,51 @@ const Vacinacao = () => {
       if (result.isConfirmed) {
         const permitiu = await pedirPermissaoNotificacao();
         if (permitiu) {
-          // Tenta novamente
           enviarNotificacaoLocal();
         }
       }
     }
   };
 
-  // QR Code
   const gerarDadosRelatorio = () => {
     const textoAplicadas = aplicadas
       .map((v) => `- ${v.vacina} (${v.data})`)
       .join("\n");
     const textoPendentes = pendentes.map((v) => `- ${v.vacina}`).join("\n");
-    return `RELATÓRIO DE VACINAÇÃO\nPaciente: ${user?.name || "Maria Silva"}\n\nTOMADAS:\n${textoAplicadas}\n\nPENDENTES:\n${textoPendentes}`;
+    return `RELATÓRIO DE VACINAÇÃO\n\nTOMADAS:\n${textoAplicadas}\n\nPENDENTES:\n${textoPendentes}`;
   };
 
+  // === QR Code melhorado sem dados pessoais ===
   const handleExibirCarteira = () => {
     MySwal.fire({
-      title: "Carteira Digital Oficial",
+      title: "Carteira Digital de Vacinação",
       html: (
-        <div className="text-center p-2">
-          <div className="bg-gray-100 p-4 rounded-2xl mb-6">
-            <p className="font-bold text-lg">{user?.name || "Maria Silva"}</p>
-            <p className="text-sm font-semibold">CNS: 700 0000 0000 0000</p>
+        <div className="text-center p-4">
+          <div className="mb-6">
+            <p className="text-sm text-gray-500">Apresente este QR Code na unidade de saúde</p>
+            <p className="text-xs text-gray-400 mt-1">Dados válidos conforme sistema nacional</p>
           </div>
-          <div className="flex justify-center p-6">
+          <div className="flex justify-center p-4 bg-white rounded-2xl shadow-inner">
             <QRCodeSVG
               value={gerarDadosRelatorio()}
-              size={180}
+              size={220}
               level="H"
               includeMargin
+              bgColor="#ffffff"
+              fgColor="#1a1a1a"
             />
           </div>
+          <p className="text-xs text-gray-400 mt-4">Aponte a câmera para ler o código</p>
         </div>
       ),
       confirmButtonText: "Fechar",
+      confirmButtonColor: "#2563eb",
+      width: 420,
+      padding: '1.5rem',
+      customClass: {
+        popup: 'rounded-3xl',
+        title: 'text-2xl font-bold text-gray-800',
+      },
     });
   };
 
@@ -335,12 +326,10 @@ const Vacinacao = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <FaSyringe className="text-blue-600" /> Minha Carteira de
-              Vacinação
+              <FaSyringe className="text-blue-600" /> Minha Carteira de Vacinação
             </h1>
             <p className="text-gray-500">Controle oficial de imunização.</p>
           </div>
@@ -352,7 +341,6 @@ const Vacinacao = () => {
           </button>
         </div>
 
-        {/* Alerta de vacina pendente */}
         {pendentes.length > 0 && (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -362,9 +350,7 @@ const Vacinacao = () => {
             <div className="flex items-center gap-4">
               <HiExclamation size={28} className="text-red-600" />
               <div>
-                <p className="font-bold text-lg text-red-800">
-                  Vacinação Incompleta
-                </p>
+                <p className="font-bold text-lg text-red-800">Vacinação Incompleta</p>
                 <p className="text-red-700">
                   Dose de <strong>{vacinaPendente?.vacina}</strong> pendente.
                 </p>
@@ -373,16 +359,11 @@ const Vacinacao = () => {
           </motion.div>
         )}
 
-        {/* Cards de resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-6 rounded-2xl shadow-lg">
             <p className="text-sm opacity-80">Certificado de Imunização</p>
-            <p className="text-2xl font-bold mt-1">
-              {user?.name || "Maria Silva"}
-            </p>
-            <p className="text-3xl font-black mt-4">
-              {aplicadas.length} doses aplicadas
-            </p>
+            <p className="text-2xl font-bold mt-1">{user?.name || "Maria Silva"}</p>
+            <p className="text-3xl font-black mt-4">{aplicadas.length} doses aplicadas</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition">
             <p className="text-sm text-gray-400">Próximo Registro</p>
@@ -392,25 +373,31 @@ const Vacinacao = () => {
             <p className="text-sm text-gray-500">Reforço necessário</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition">
-            <p className="text-sm text-gray-400 flex items-center gap-1">
-              <HiLocationMarker /> Unidade mais próxima
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-400 flex items-center gap-1">
+                <HiLocationMarker /> Unidade
+              </p>
+              <button
+                onClick={obterLocalizacaoEBuscarUBS}
+                disabled={carregandoUbs}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1 disabled:opacity-50"
+              >
+                <HiRefresh className={carregandoUbs ? "animate-spin" : ""} size={14} />
+                {carregandoUbs ? "Buscando..." : "Atualizar"}
+              </button>
+            </div>
             <div className="mt-2">
-              {carregandoUbs ? (
-                <p className="text-gray-500">Buscando...</p>
-              ) : (
-                <select
-                  value={ubsEscolhida}
-                  onChange={(e) => setUbsEscolhida(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {ubsProximas.map((ubs) => (
-                    <option key={ubs.id} value={ubs.nome}>
-                      {ubs.nome} - {ubs.distance.toFixed(1)} km
-                    </option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={ubsEscolhida}
+                onChange={(e) => setUbsEscolhida(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                {ubsProximas.map((ubs) => (
+                  <option key={ubs.id} value={ubs.nome}>
+                    {ubs.nome} - {ubs.distance.toFixed(1)} km
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               onClick={enviarNotificacaoLocal}
@@ -426,35 +413,20 @@ const Vacinacao = () => {
           </div>
         </div>
 
-        {/* Histórico de aplicações */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800">
-              Histórico de Aplicações
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">Histórico de Aplicações</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Vacina
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Dose
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Lote
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Ações
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vacina</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dose</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -464,14 +436,10 @@ const Vacinacao = () => {
                     className="hover:bg-blue-50 transition cursor-pointer"
                     onClick={() => verDetalhesVacina(v)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">
-                      {v.vacina}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{v.vacina}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{v.dose}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{v.data}</td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
-                      {v.lote}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{v.lote}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${

@@ -3,6 +3,8 @@ import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
 import { estoqueService } from "../../services/estoqueService";
+import { pacientesService } from "../../services/pacientesService";
+import { aplicacoesService } from "../../services/aplicacoesService"; // <-- novo serviço
 import {
   HiBeaker,
   HiSearch,
@@ -17,20 +19,34 @@ import {
 } from "react-icons/hi";
 
 const EstoqueVacinas = () => {
-  const { user } = useAuth();
+  const { user, ubsSelecionada } = useAuth();
   const isAdmin = user?.role === "admin";
 
   const [pacientes, setPacientes] = useState([]);
   const [vacinas, setVacinas] = useState([]);
-
   const [logUso, setLogUso] = useState([]);
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Carregar vacinas do banco local
+  // Carregar vacinas, pacientes e log de aplicações
   useEffect(() => {
-    estoqueService.listarVacinas().then(setVacinas);
-  }, []);
+    const carregarDados = async () => {
+      try {
+        const [vacinasData, pacientesData, logData] = await Promise.all([
+          estoqueService.listarVacinas(),
+          pacientesService.listar(),
+          aplicacoesService.listar(), // <-- carrega o log salvo
+        ]);
+        setVacinas(Array.isArray(vacinasData) ? vacinasData : []);
+        setPacientes(Array.isArray(pacientesData) ? pacientesData : []);
+        setLogUso(Array.isArray(logData) ? logData : []);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        Swal.fire("Erro", "Não foi possível carregar os dados.", "error");
+      }
+    };
+    carregarDados();
+  }, [ubsSelecionada]);
 
   const vacinasFiltradas = useMemo(() => {
     let resultado = vacinas;
@@ -194,26 +210,30 @@ const EstoqueVacinas = () => {
       });
 
       if (confirmar.isConfirmed) {
+        // 1. Atualizar estoque
         const novaQtd = Math.max(0, vacina.quantidade - 1);
         await estoqueService.atualizarVacina(vacina.id, { quantidade: novaQtd });
         setVacinas((prev) =>
           prev.map((v) =>
-            v.id === vacina.id
-              ? { ...v, quantidade: novaQtd }
-              : v,
+            v.id === vacina.id ? { ...v, quantidade: novaQtd } : v,
           ),
         );
 
-        setLogUso((prev) => [
-          ...prev,
-          {
-            data: new Date().toLocaleString(),
-            vacina: vacina.nome,
-            paciente: paciente.nome,
-            cpf: paciente.cpf,
-            observacao: observacao || "Sem observação",
-          },
-        ]);
+        // 2. Registrar aplicação no serviço de log
+        const novaAplicacao = {
+          data: new Date().toLocaleString(),
+          vacina: vacina.nome,
+          vacinaId: vacina.id,
+          lote: vacina.lote,
+          paciente: paciente.nome,
+          pacienteId: paciente.id,
+          cpf: paciente.cpf,
+          observacao: observacao || "Sem observação",
+        };
+        const logSalvo = aplicacoesService.adicionar(novaAplicacao);
+        
+        // 3. Atualizar estado local
+        setLogUso((prev) => [logSalvo, ...prev]); // coloca o mais recente no topo
 
         await Swal.fire({
           icon: "success",
@@ -274,9 +294,7 @@ const EstoqueVacinas = () => {
       await estoqueService.atualizarVacina(vacina.id, { quantidade: novaQtd });
       setVacinas((prev) =>
         prev.map((v) =>
-          v.id === vacina.id
-            ? { ...v, quantidade: novaQtd }
-            : v,
+          v.id === vacina.id ? { ...v, quantidade: novaQtd } : v,
         ),
       );
       Swal.fire({
@@ -448,8 +466,7 @@ const EstoqueVacinas = () => {
 
   const getStatusEstoque = (qtd) => {
     if (qtd <= 5) return { cor: "bg-red-100 text-red-700", texto: "Crítico" };
-    if (qtd <= 15)
-      return { cor: "bg-yellow-100 text-yellow-700", texto: "Baixo" };
+    if (qtd <= 15) return { cor: "bg-yellow-100 text-yellow-700", texto: "Baixo" };
     return { cor: "bg-blue-100 text-blue-700", texto: "Normal" };
   };
 
@@ -458,17 +475,9 @@ const EstoqueVacinas = () => {
     const data = new Date(validade);
     const diff = Math.ceil((data - hoje) / (1000 * 60 * 60 * 24));
     if (diff < 0)
-      return {
-        cor: "text-red-600",
-        icone: HiExclamationCircle,
-        label: "Vencida",
-      };
+      return { cor: "text-red-600", icone: HiExclamationCircle, label: "Vencida" };
     if (diff <= 30)
-      return {
-        cor: "text-yellow-600",
-        icone: HiExclamationCircle,
-        label: "Vence em breve",
-      };
+      return { cor: "text-yellow-600", icone: HiExclamationCircle, label: "Vence em breve" };
     return { cor: "text-blue-600", icone: HiCheckCircle, label: "Válida" };
   };
 
@@ -485,7 +494,20 @@ const EstoqueVacinas = () => {
             </p>
           </div>
           <div className="flex gap-3">
-           
+            {isAdmin && (
+              <button
+                onClick={adicionarNovaVacina}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-2"
+              >
+                <HiPlusCircle size={18} /> Nova Vacina
+              </button>
+            )}
+            <button
+              onClick={exportarCSV}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2"
+            >
+              <HiDownload size={18} /> Exportar CSV
+            </button>
           </div>
         </div>
 
@@ -562,31 +584,19 @@ const EstoqueVacinas = () => {
 
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div>
-                      <p className="text-xs text-gray-400 font-medium">
-                        Quantidade
-                      </p>
-                      <p className="text-2xl font-bold text-gray-800">
-                        {v.quantidade}
-                      </p>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusEstoque.cor}`}
-                      >
+                      <p className="text-xs text-gray-400 font-medium">Quantidade</p>
+                      <p className="text-2xl font-bold text-gray-800">{v.quantidade}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusEstoque.cor}`}>
                         {statusEstoque.texto}
                       </span>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 font-medium">
-                        Validade
-                      </p>
+                      <p className="text-xs text-gray-400 font-medium">Validade</p>
                       <div className="flex items-center gap-1">
                         <ValIcon className={`${statusVal.cor} text-sm`} />
-                        <span className={`${statusVal.cor} font-medium`}>
-                          {v.validade}
-                        </span>
+                        <span className={`${statusVal.cor} font-medium`}>{v.validade}</span>
                       </div>
-                      <span className="text-xs text-gray-400">
-                        {statusVal.label}
-                      </span>
+                      <span className="text-xs text-gray-400">{statusVal.label}</span>
                     </div>
                   </div>
 
@@ -614,8 +624,7 @@ const EstoqueVacinas = () => {
         {logUso.length > 0 && (
           <div className="bg-white rounded-2xl border p-6 shadow-sm">
             <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <HiClipboardList className="text-blue-600" /> Registro de
-              aplicações recentes
+              <HiClipboardList className="text-blue-600" /> Registro de aplicações recentes
             </h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {logUso.map((l, i) => (
@@ -629,14 +638,10 @@ const EstoqueVacinas = () => {
                     </p>
                     <p className="text-xs text-gray-500">CPF: {l.cpf}</p>
                     {l.observacao && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        {l.observacao}
-                      </p>
+                      <p className="text-xs text-gray-400 mt-1">{l.observacao}</p>
                     )}
                   </div>
-                  <span className="text-xs text-blue-600 font-medium">
-                    {l.data}
-                  </span>
+                  <span className="text-xs text-blue-600 font-medium">{l.data}</span>
                 </div>
               ))}
             </div>

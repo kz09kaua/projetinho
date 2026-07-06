@@ -4,7 +4,11 @@ import Swal from "sweetalert2";
 import { HiUserGroup, HiSearch, HiPlus, HiX, HiRefresh } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
 import { filasService } from "../../services/filasService";
+<<<<<<< HEAD
 import ChatAtendimento from "../../components/ChatAtendimento";
+=======
+import { pacientesService } from "../../services/pacientesService";
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
 
 const GerenciarFilas = () => {
   const { user, ubsSelecionada } = useAuth();
@@ -24,6 +28,7 @@ const GerenciarFilas = () => {
   const [filas, setFilas] = useState([]);
   const [searchTerms, setSearchTerms] = useState({});
   const [logRemocoes, setLogRemocoes] = useState([]);
+<<<<<<< HEAD
   const [loading, setLoading] = useState(false);
 
   // Função para carregar e agrupar filas por especialidade (apenas da UBS do atendente)
@@ -80,7 +85,76 @@ const GerenciarFilas = () => {
       console.error("Erro ao carregar filas:", error);
     } finally {
       setLoading(false);
+=======
+  const [pacientesCadastrados, setPacientesCadastrados] = useState([]);
+  const [carregando, setCarregando] = useState(false);
+
+  // Carrega todos os pacientes cadastrados (para sugestões)
+  const carregarPacientes = async () => {
+    try {
+      const data = await pacientesService.listar();
+      setPacientesCadastrados(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Erro ao carregar pacientes:", error);
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
     }
+  };
+
+  // Carrega as filas da UBS e agrupa por especialidade
+  const carregarFilas = async () => {
+    if (!ubsSelecionada) return;
+    setCarregando(true);
+    try {
+      const data = await filasService.listar();
+      const filasDaUbs = data.filter(f => f.ubs === ubsSelecionada);
+      const grouped = {};
+      filasDaUbs.forEach(f => {
+        const key = f.especialidade || "Geral";
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: key,
+            especialidade: key,
+            pacientes: [],
+          };
+        }
+        grouped[key].pacientes.push({
+          nome: f.paciente,
+          cpf: f.cpf || "Não informado",
+          dataNasc: f.dataNasc || "Não informado",
+          id: f.id,
+        });
+      });
+      // Ordenar por especialidade
+      const filasArray = Object.values(grouped).sort((a, b) => a.especialidade.localeCompare(b.especialidade));
+      setFilas(filasArray);
+      // Inicializar searchTerms
+      const initialTerms = {};
+      filasArray.forEach((_, idx) => {
+        initialTerms[idx] = "";
+      });
+      setSearchTerms(initialTerms);
+    } catch (error) {
+      console.error("Erro ao carregar filas:", error);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Carrega dados iniciais
+  useEffect(() => {
+    carregarPacientes();
+    carregarFilas();
+  }, [ubsSelecionada]);
+
+  // Escuta eventos de atualização da fila
+  useEffect(() => {
+    const handleFilaAtualizada = () => {
+      carregarFilas();
+    };
+    window.addEventListener('filaAtualizada', handleFilaAtualizada);
+    return () => {
+      window.removeEventListener('filaAtualizada', handleFilaAtualizada);
+    };
   }, [ubsSelecionada]);
 
   // Carregar filas inicialmente e a cada 5 segundos (polling)
@@ -126,6 +200,20 @@ const GerenciarFilas = () => {
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Chamar",
+<<<<<<< HEAD
+=======
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
+        const novasFilas = [...filas];
+        novasFilas[idx].pacientes.shift();
+        setFilas(novasFilas);
+        window.dispatchEvent(new Event('filaAtualizada'));
+        Swal.fire("Chamado!", `${paciente.nome} foi chamado(a).`, "success");
+      }
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
     });
 
     if (result.isConfirmed) {
@@ -150,6 +238,7 @@ const GerenciarFilas = () => {
       confirmButtonText: "Sim, chamar agora",
       input: "text",
       inputPlaceholder: "Justificativa (opcional)",
+<<<<<<< HEAD
     });
 
     if (result.isConfirmed) {
@@ -157,6 +246,24 @@ const GerenciarFilas = () => {
       try {
         await filasService.atualizarStatus(paciente.id, "Em Atendimento");
         setLogRemocoes(prev => [
+=======
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const justificativa = result.value || "Não informada";
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
+        const novasFilas = [...filas];
+        novasFilas[idx].pacientes.splice(pacienteIndex, 1);
+        setFilas(novasFilas);
+        window.dispatchEvent(new Event('filaAtualizada'));
+        Swal.fire(
+          "Chamado!",
+          `${paciente.nome} chamado(a). Justificativa: ${justificativa}`,
+          "success",
+        );
+        setLogRemocoes((prev) => [
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
           ...prev,
           {
             data: new Date().toLocaleString(),
@@ -187,12 +294,30 @@ const GerenciarFilas = () => {
       inputValidator: (value) => {
         if (!value) return "A justificativa é obrigatória!";
       },
+<<<<<<< HEAD
     });
 
     if (result.isConfirmed) {
       try {
         await filasService.remover(paciente.id);
         setLogRemocoes(prev => [
+=======
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
+        const novasFilas = [...filas];
+        const removido = novasFilas[idx].pacientes.splice(pacienteIndex, 1)[0];
+        setFilas(novasFilas);
+        window.dispatchEvent(new Event('filaAtualizada'));
+        Swal.fire(
+          "Removido!",
+          `${removido.nome} removido. Justificativa: ${result.value}`,
+          "info",
+        );
+        setLogRemocoes((prev) => [
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
           ...prev,
           {
             data: new Date().toLocaleString(),
@@ -210,6 +335,7 @@ const GerenciarFilas = () => {
     }
   };
 
+<<<<<<< HEAD
   // Adicionar paciente manualmente a uma especialidade
   const adicionarPaciente = async (idx) => {
     const fila = filas[idx];
@@ -217,31 +343,55 @@ const GerenciarFilas = () => {
 
     const { value: formValues } = await Swal.fire({
       title: "Adicionar paciente",
+=======
+  // Adicionar paciente com seleção dos cadastrados
+  const adicionarPaciente = async (idx) => {
+    const especialidade = filas[idx].especialidade;
+
+    // Mostra lista de pacientes cadastrados para seleção
+    if (pacientesCadastrados.length === 0) {
+      await carregarPacientes();
+      if (pacientesCadastrados.length === 0) {
+        Swal.fire("Nenhum paciente", "Cadastre um paciente primeiro no agendamento.", "warning");
+        return;
+      }
+    }
+
+    const opcoes = pacientesCadastrados.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      cpf: p.cpf,
+      dataNasc: p.dataNasc,
+    }));
+
+    const { value: pacienteSelecionado } = await Swal.fire({
+      title: `Adicionar paciente - ${especialidade}`,
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
       html: `
-        <input id="nome" class="swal2-input" placeholder="Nome completo" required>
-        <input id="cpf" class="swal2-input" placeholder="CPF (000.000.000-00)" required>
-        <input id="dataNasc" type="date" class="swal2-input" required>
+        <div style="text-align:left;max-width:100%;">
+          <label style="display:block;font-weight:600;margin-bottom:8px;">Selecione o paciente</label>
+          <select id="pacienteSelect" class="swal2-select" style="width:100%;padding:10px;border-radius:10px;">
+            <option value="">Selecione...</option>
+            ${opcoes.map(p => `
+              <option value="${p.id}">${p.nome} - CPF: ${p.cpf}</option>
+            `).join('')}
+          </select>
+        </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "Adicionar",
       preConfirm: () => {
-        const nome = document.getElementById("nome").value;
-        const cpf = document.getElementById("cpf").value;
-        const dataNasc = document.getElementById("dataNasc").value;
-        if (!nome || !cpf || !dataNasc) {
-          Swal.showValidationMessage("Preencha todos os campos");
+        const id = document.getElementById("pacienteSelect").value;
+        if (!id) {
+          Swal.showValidationMessage("Selecione um paciente");
           return false;
         }
-        const cpfLimpo = cpf.replace(/\D/g, "");
-        if (cpfLimpo.length !== 11) {
-          Swal.showValidationMessage("CPF inválido (11 dígitos)");
-          return false;
-        }
-        return { nome, cpf, dataNasc };
+        return pacientesCadastrados.find(p => p.id === parseInt(id));
       },
     });
 
+<<<<<<< HEAD
     if (formValues) {
       // Verifica duplicidade de CPF na mesma especialidade
       const cpfExiste = fila.pacientes.some(p => p.cpf === formValues.cpf);
@@ -268,22 +418,82 @@ const GerenciarFilas = () => {
         carregarFilas();
       } catch (error) {
         Swal.fire("Erro", "Não foi possível adicionar o paciente.", "error");
+=======
+    if (pacienteSelecionado) {
+      // Verifica se já está na fila
+      const jaNaFila = filas[idx].pacientes.some(p => p.cpf === pacienteSelecionado.cpf);
+      if (jaNaFila) {
+        Swal.fire("Erro", "Este paciente já está na fila.", "error");
+        return;
+      }
+
+      const senha = `G-${Math.floor(Math.random() * 900) + 100}`;
+      const novoItem = {
+        paciente: pacienteSelecionado.nome,
+        cpf: pacienteSelecionado.cpf,
+        dataNasc: pacienteSelecionado.dataNasc,
+        prioridade: "Normal",
+        tempo: "10 min",
+        senha: senha,
+        especialidade: especialidade,
+        status: "Aguardando",
+        posicao: filas[idx].pacientes.length + 1,
+        ubs: ubsSelecionada,
+      };
+
+      try {
+        const novoPacienteFila = await filasService.adicionar(novoItem);
+        const novasFilas = [...filas];
+        novasFilas[idx].pacientes.push({
+          nome: pacienteSelecionado.nome,
+          cpf: pacienteSelecionado.cpf,
+          dataNasc: pacienteSelecionado.dataNasc,
+          id: novoPacienteFila.id,
+        });
+        setFilas(novasFilas);
+        window.dispatchEvent(new Event('filaAtualizada'));
+        Swal.fire(
+          "Adicionado!",
+          `${pacienteSelecionado.nome} adicionado à fila. Senha: ${senha}`,
+          "success",
+        );
+      } catch (error) {
+        console.error("Erro ao adicionar:", error);
+        Swal.fire("Erro", "Não foi possível adicionar à fila.", "error");
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
       }
     }
+  };
+
+  // Recarregar dados
+  const recarregar = () => {
+    carregarFilas();
+    carregarPacientes();
   };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-            <HiUserGroup className="text-blue-600" /> Gerenciar Filas
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Chame o próximo paciente, adicione manualmente ou pesquise por nome/CPF – {ubsSelecionada}
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <HiUserGroup className="text-blue-600" /> Gerenciar Filas
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Chame o próximo paciente, adicione manualmente ou pesquise por nome/CPF – {ubsSelecionada}
+            </p>
+          </div>
+          <button
+            onClick={recarregar}
+            disabled={carregando}
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-semibold transition"
+          >
+            <HiRefresh className={carregando ? "animate-spin" : ""} size={18} />
+            Atualizar
+          </button>
         </div>
 
+<<<<<<< HEAD
         {loading && filas.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-gray-500">Carregando filas...</p>
@@ -308,6 +518,28 @@ const GerenciarFilas = () => {
                     <span className="w-3 h-3 rounded-full bg-blue-500"></span>
                     {fila.especialidade}
                   </h2>
+=======
+        <div className="grid md:grid-cols-3 gap-6">
+          {filas.length === 0 && (
+            <div className="col-span-full text-center text-gray-500 py-12 bg-white rounded-2xl border">
+              Nenhuma fila encontrada para esta UBS.
+            </div>
+          )}
+          {filas.map((fila, idx) => {
+            const pacientesFiltrados = filtrarPacientes(
+              fila.pacientes,
+              searchTerms[idx] || "",
+            );
+            return (
+              <div
+                key={fila.id}
+                className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col hover:shadow-md transition"
+              >
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                  {fila.especialidade}
+                </h2>
+>>>>>>> a9da0a4f84efcdc7f0a82c3b7ef5ae932a2d2571
 
                   <div className="relative mb-4">
                     <HiSearch className="absolute left-3 top-2.5 text-gray-400" />
