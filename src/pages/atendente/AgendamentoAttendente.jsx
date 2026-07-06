@@ -1,9 +1,10 @@
-// src/pages/atendente/AgendamentoAttendente.jsx
-import { useState, useEffect } from "react";
+// src/pages/atendente/AgendamentoAtendente.jsx
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { pacientesService } from "../../services/pacientesService";
 import { consultasService } from "../../services/consultasService";
 import { historicoService } from "../../services/historicoService";
+import { filasService } from "../../services/filasService";
 import {
   FaSearch,
   FaPlus,
@@ -18,13 +19,13 @@ import {
   FaBan,
   FaHistory,
   FaUserPlus,
-  FaFilter,
   FaTrashAlt,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 
-const AgendamentoAttendente = () => {
+const AgendamentoAtendente = () => {
   const { user, ubsSelecionada } = useAuth();
+
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
@@ -33,7 +34,6 @@ const AgendamentoAttendente = () => {
     );
   }
 
-  // ----- ESTADOS -----
   const [mostrarNovoAgendamento, setMostrarNovoAgendamento] = useState(false);
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
@@ -41,51 +41,55 @@ const AgendamentoAttendente = () => {
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
 
-  // Filtros da tabela
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
-
-  // Histórico (modal)
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [pacienteHistorico, setPacienteHistorico] = useState(null);
 
-  // ----- DADOS DO BANCO LOCAL -----
   const [pacientes, setPacientes] = useState([]);
   const [consultas, setConsultas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
 
-  // Carrega dados do banco local ao montar
+  // Carrega pacientes e consultas
   useEffect(() => {
     const carregarDados = async () => {
-      const [pacientesData, consultasData] = await Promise.all([
-        pacientesService.listar(),
-        consultasService.listar(),
-      ]);
-      setPacientes(pacientesData);
-      // Filtra consultas pela UBS do atendente
-      const consultasFiltradas = consultasData.filter(c => c.ubs === ubsSelecionada);
-      setConsultas(consultasFiltradas);
+      try {
+        setCarregando(true);
+        const [pacientesData, consultasData] = await Promise.all([
+          pacientesService.listar(),
+          consultasService.listar(),
+        ]);
+        setPacientes(Array.isArray(pacientesData) ? pacientesData : []);
+        const consultasFiltradas = Array.isArray(consultasData)
+          ? consultasData.filter((c) => c.ubs === ubsSelecionada)
+          : [];
+        setConsultas(consultasFiltradas);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        Swal.fire("Erro", "Não foi possível carregar os dados.", "error");
+      } finally {
+        setCarregando(false);
+      }
     };
     if (ubsSelecionada) carregarDados();
   }, [ubsSelecionada]);
 
-  // ----- ESTATÍSTICAS -----
   const totalConsultas = consultas.length;
   const confirmadas = consultas.filter((c) => c.status === "Confirmado").length;
   const aguardando = consultas.filter((c) => c.status === "Aguardando").length;
   const canceladas = consultas.filter((c) => c.status === "Cancelado").length;
 
-  // ----- FILTROS -----
   const consultasFiltradas = consultas.filter((consulta) => {
-    const matchTexto = consulta.paciente.toLowerCase().includes(filtroTexto.toLowerCase());
+    const matchTexto = consulta.paciente?.toLowerCase().includes(filtroTexto.toLowerCase()) ?? false;
     const matchStatus = filtroStatus === "Todos" || consulta.status === filtroStatus;
     return matchTexto && matchStatus;
   });
 
-  // ============================================================
-  // FUNÇÃO PARA CADASTRAR NOVO PACIENTE
-  // ============================================================
+  // ========== CADASTRO DE PACIENTE (com fila) ==========
   const cadastrarNovoPaciente = async () => {
-    const { value: formValues } = await Swal.fire({
+    console.log("===== CADASTRO DE PACIENTE =====");
+
+    const { value: formValues, isDismissed } = await Swal.fire({
       title: "Cadastrar Novo Paciente",
       html: `
         <div style="text-align: left; max-width: 400px; margin: 0 auto;">
@@ -125,55 +129,61 @@ const AgendamentoAttendente = () => {
       `,
       focusConfirm: false,
       preConfirm: () => {
-        const nome = document.getElementById("nome").value.trim();
-        const cpf = document.getElementById("cpf").value.trim();
-        const sus = document.getElementById("sus").value.trim();
-        const dataNasc = document.getElementById("dataNasc").value.trim();
-        const sexo = document.getElementById("sexo").value;
-        const alergias = document.getElementById("alergias").value.trim();
-        const tipoSanguineo = document.getElementById("tipoSanguineo").value.trim();
+        try {
+          const nome = document.getElementById("nome")?.value?.trim() || "";
+          const cpf = document.getElementById("cpf")?.value?.trim() || "";
+          const sus = document.getElementById("sus")?.value?.trim() || "";
+          const dataNasc = document.getElementById("dataNasc")?.value?.trim() || "";
+          const sexo = document.getElementById("sexo")?.value || "";
+          const alergias = document.getElementById("alergias")?.value?.trim() || "";
+          const tipoSanguineo = document.getElementById("tipoSanguineo")?.value?.trim() || "";
 
-        if (!nome || nome.length < 3) {
-          Swal.showValidationMessage("Nome obrigatório (mínimo 3 caracteres).");
-          return false;
-        }
-        const cpfLimpo = cpf.replace(/\D/g, "");
-        if (cpfLimpo.length !== 11) {
-          Swal.showValidationMessage("CPF deve ter 11 dígitos.");
-          return false;
-        }
-        const susLimpo = sus.replace(/\D/g, "");
-        if (susLimpo.length !== 15) {
-          Swal.showValidationMessage("CNS deve ter 15 dígitos.");
-          return false;
-        }
-        const dataLimpa = dataNasc.replace(/\D/g, "");
-        if (dataLimpa.length !== 8) {
-          Swal.showValidationMessage("Data de nascimento deve ter 8 dígitos.");
-          return false;
-        }
-        const dia = parseInt(dataLimpa.substring(0, 2), 10);
-        const mes = parseInt(dataLimpa.substring(2, 4), 10) - 1;
-        const ano = parseInt(dataLimpa.substring(4, 8), 10);
-        const dataObj = new Date(ano, mes, dia);
-        if (dataObj.getFullYear() !== ano || dataObj.getMonth() !== mes || dataObj.getDate() !== dia) {
-          Swal.showValidationMessage("Data de nascimento inválida.");
-          return false;
-        }
-        if (!sexo) {
-          Swal.showValidationMessage("Selecione o sexo.");
-          return false;
-        }
+          if (!nome || nome.length < 3) {
+            Swal.showValidationMessage("Nome obrigatório (mínimo 3 caracteres).");
+            return false;
+          }
+          const cpfLimpo = cpf.replace(/\D/g, "");
+          if (cpfLimpo.length !== 11) {
+            Swal.showValidationMessage("CPF deve ter 11 dígitos.");
+            return false;
+          }
+          const susLimpo = sus.replace(/\D/g, "");
+          if (susLimpo.length !== 15) {
+            Swal.showValidationMessage("CNS deve ter 15 dígitos.");
+            return false;
+          }
+          const dataLimpa = dataNasc.replace(/\D/g, "");
+          if (dataLimpa.length !== 8) {
+            Swal.showValidationMessage("Data de nascimento deve ter 8 dígitos.");
+            return false;
+          }
+          const dia = parseInt(dataLimpa.substring(0, 2), 10);
+          const mes = parseInt(dataLimpa.substring(2, 4), 10) - 1;
+          const ano = parseInt(dataLimpa.substring(4, 8), 10);
+          const dataObj = new Date(ano, mes, dia);
+          if (dataObj.getFullYear() !== ano || dataObj.getMonth() !== mes || dataObj.getDate() !== dia) {
+            Swal.showValidationMessage("Data de nascimento inválida.");
+            return false;
+          }
+          if (!sexo) {
+            Swal.showValidationMessage("Selecione o sexo.");
+            return false;
+          }
 
-        return {
-          nome,
-          cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4"),
-          sus: susLimpo.replace(/(\d{4})(\d{4})(\d{4})(\d{3})/, "$1 $2 $3 $4"),
-          dataNasc: dataLimpa.replace(/(\d{2})(\d{2})(\d{4})/, "$1/$2/$3"),
-          sexo,
-          alergias: alergias ? alergias.split(",").map(a => a.trim()).filter(a => a) : ["Nenhuma"],
-          tipoSanguineo: tipoSanguineo || "Não informado",
-        };
+          return {
+            nome,
+            cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4"),
+            sus: susLimpo.replace(/(\d{4})(\d{4})(\d{4})(\d{3})/, "$1 $2 $3 $4"),
+            dataNasc: dataLimpa.replace(/(\d{2})(\d{2})(\d{4})/, "$1/$2/$3"),
+            sexo,
+            alergias: alergias ? alergias.split(",").map((a) => a.trim()).filter((a) => a) : ["Nenhuma"],
+            tipoSanguineo: tipoSanguineo || "Não informado",
+          };
+        } catch (err) {
+          console.error("Erro no preConfirm:", err);
+          Swal.showValidationMessage("Erro ao processar os dados. Tente novamente.");
+          return false;
+        }
       },
       confirmButtonText: "Cadastrar",
       confirmButtonColor: "#2563eb",
@@ -181,29 +191,36 @@ const AgendamentoAttendente = () => {
       showCancelButton: true,
     });
 
-    if (formValues) {
+    if (isDismissed || !formValues) return;
+
+    try {
+      // Verificar duplicidade
       const existe = await pacientesService.verificarDuplicidade(formValues.cpf, formValues.sus);
       if (existe) {
         Swal.fire("Erro", "Já existe um paciente com esse CPF ou CNS.", "error");
         return;
       }
 
+      // Criar paciente
       const novoPaciente = await pacientesService.criar({
         ...formValues,
         ultimaConsulta: "Nunca",
       });
 
-      if (!novoPaciente) {
-        Swal.fire("Erro", "Erro ao cadastrar paciente.", "error");
-        return;
+      if (!novoPaciente || !novoPaciente.id) {
+        throw new Error("Paciente criado sem ID.");
       }
 
       setPacientes((prev) => [...prev, novoPaciente]);
 
-      // CRIA UMA CONSULTA AUTOMATICAMENTE PARA O NOVO PACIENTE
+      // ===== GERA CONSULTA E FILA =====
       const hoje = new Date();
       const dataFormatada = hoje.toLocaleDateString("pt-BR");
       const horarioAtual = `${String(hoje.getHours()).padStart(2, "0")}:${String(hoje.getMinutes()).padStart(2, "0")}`;
+      const ubs = ubsSelecionada || "UBS Padrão";
+      const senha = `G-${Math.floor(Math.random() * 900) + 100}`;
+
+      // Criar consulta
       const novaConsultaData = {
         paciente: novoPaciente.nome,
         paciente_id: novoPaciente.id,
@@ -212,12 +229,36 @@ const AgendamentoAttendente = () => {
         medico: "A definir",
         especialidade: "A agendar",
         status: "Aguardando",
-        senha: `G-${Math.floor(Math.random() * 900) + 100}`,
-        ubs: ubsSelecionada,
+        senha,
+        ubs,
       };
+
       const novaConsulta = await consultasService.criar(novaConsultaData);
       if (novaConsulta) {
         setConsultas((prev) => [...prev, novaConsulta]);
+      }
+
+      // ===== ADICIONA À FILA =====
+      try {
+        await filasService.adicionar({
+          paciente: novoPaciente.nome,
+          paciente_id: novoPaciente.id,
+          prioridade: "Normal",
+          tempo: "10 min",
+          senha: senha,
+          status: "Aguardando",
+          especialidade: "A agendar",
+          ubs: ubs,
+        });
+        window.dispatchEvent(new Event('filaAtualizada'));
+        console.log("Paciente adicionado à fila com sucesso.");
+      } catch (errorFila) {
+        console.error("Erro ao adicionar à fila:", errorFila);
+        Swal.fire(
+          "Aviso",
+          "Paciente cadastrado, mas houve um erro ao adicionar à fila. Verifique os logs.",
+          "warning"
+        );
       }
 
       setPacienteSelecionado(novoPaciente);
@@ -225,31 +266,93 @@ const AgendamentoAttendente = () => {
 
       Swal.fire({
         icon: "success",
-        title: "Paciente cadastrado e consulta criada!",
+        title: "Paciente cadastrado e adicionado à fila!",
         text: `${novoPaciente.nome} foi adicionado à fila de espera.`,
         timer: 3000,
         showConfirmButton: false,
       });
+    } catch (error) {
+      console.error("Erro no cadastro:", error);
+      Swal.fire("Erro", "Ocorreu um erro inesperado. Tente novamente.", "error");
     }
   };
 
-  // ============================================================
-  // HANDLERS (confirmar, cancelar, histórico, novo agendamento)
-  // ============================================================
+  // ========== NOVO AGENDAMENTO ==========
+  const handleNovoAgendamento = async () => {
+    if (!pacienteSelecionado || !especialidadeSelecionada || !horarioSelecionado) {
+      Swal.fire("Atenção", "Preencha todos os campos!", "warning");
+      return;
+    }
+    try {
+      const dataFormatada = `${String(dataSelecionada.getDate()).padStart(2, "0")}/${String(
+        dataSelecionada.getMonth() + 1
+      ).padStart(2, "0")}/${dataSelecionada.getFullYear()}`;
+      const senha = `G-${Math.floor(Math.random() * 900) + 100}`;
+      const ubs = ubsSelecionada || "UBS Padrão";
+
+      const novaConsultaData = {
+        paciente: pacienteSelecionado.nome,
+        paciente_id: pacienteSelecionado.id,
+        data: dataFormatada,
+        horario: horarioSelecionado,
+        medico: "Dra. Ana",
+        especialidade: especialidadeSelecionada,
+        status: "Confirmado",
+        senha,
+        ubs,
+      };
+
+      const novaConsulta = await consultasService.criar(novaConsultaData);
+      if (novaConsulta) {
+        setConsultas((prev) => [...prev, novaConsulta]);
+      }
+
+      // Adiciona à fila
+      try {
+        await filasService.adicionar({
+          paciente: pacienteSelecionado.nome,
+          paciente_id: pacienteSelecionado.id,
+          prioridade: "Normal",
+          tempo: "10 min",
+          senha: senha,
+          status: "Aguardando",
+          especialidade: especialidadeSelecionada,
+          ubs: ubs,
+        });
+        window.dispatchEvent(new Event('filaAtualizada'));
+      } catch (errorFila) {
+        console.error("Erro ao adicionar à fila:", errorFila);
+        Swal.fire(
+          "Aviso",
+          "Agendamento criado, mas houve um erro ao adicionar à fila.",
+          "warning"
+        );
+      }
+
+      setMostrarNovoAgendamento(false);
+      setPacienteSelecionado(null);
+      setEspecialidadeSelecionada("");
+      setHorarioSelecionado("");
+      Swal.fire("Agendado!", "Paciente adicionado à fila com sucesso.", "success");
+    } catch (error) {
+      console.error("Erro ao criar agendamento:", error);
+      Swal.fire("Erro", "Não foi possível criar o agendamento.", "error");
+    }
+  };
+
+  // ========== HANDLERS ==========
   const handleConfirmar = async (id) => {
-    const success = await consultasService.atualizarStatus(id, "Confirmado");
-    if (success) {
-      setConsultas((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, status: "Confirmado" } : c))
-      );
-      Swal.fire({
-        icon: "success",
-        title: "Confirmado!",
-        toast: true,
-        position: "top-end",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+    try {
+      const success = await consultasService.atualizarStatus(id, "Confirmado");
+      if (success) {
+        setConsultas((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, status: "Confirmado" } : c))
+        );
+        Swal.fire({ icon: "success", title: "Confirmado!", toast: true, position: "top-end", timer: 1500, showConfirmButton: false });
+      }
+    } catch (error) {
+      console.error("Erro ao confirmar:", error);
+      Swal.fire("Erro", "Não foi possível confirmar a consulta.", "error");
     }
   };
 
@@ -261,57 +364,36 @@ const AgendamentoAttendente = () => {
       confirmButtonText: "Sim, cancelar",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const success = await consultasService.atualizarStatus(id, "Cancelado", "-");
-        if (success) {
-          setConsultas((prev) =>
-            prev.map((c) =>
-              c.id === id ? { ...c, status: "Cancelado", senha: "-" } : c
-            )
-          );
-          Swal.fire("Cancelada", "Consulta cancelada com sucesso.", "success");
+        try {
+          const success = await consultasService.atualizarStatus(id, "Cancelado", "-");
+          if (success) {
+            setConsultas((prev) =>
+              prev.map((c) =>
+                c.id === id ? { ...c, status: "Cancelado", senha: "-" } : c
+              )
+            );
+            Swal.fire("Cancelada", "Consulta cancelada com sucesso.", "success");
+          }
+        } catch (error) {
+          console.error("Erro ao cancelar:", error);
+          Swal.fire("Erro", "Não foi possível cancelar a consulta.", "error");
         }
       }
     });
   };
 
   const abrirHistorico = async (nomePaciente) => {
-    const historico = await historicoService.listarPorPaciente(nomePaciente);
-    setPacienteHistorico({ nome: nomePaciente, historico });
-    setMostrarHistorico(true);
+    try {
+      const historico = await historicoService.listarPorPaciente(nomePaciente);
+      setPacienteHistorico({ nome: nomePaciente, historico: Array.isArray(historico) ? historico : [] });
+      setMostrarHistorico(true);
+    } catch (error) {
+      console.error("Erro ao buscar histórico:", error);
+      Swal.fire("Erro", "Não foi possível carregar o histórico.", "error");
+    }
   };
 
-  const handleNovoAgendamento = async () => {
-    if (!pacienteSelecionado || !especialidadeSelecionada || !horarioSelecionado) {
-      Swal.fire("Atenção", "Preencha todos os campos!", "warning");
-      return;
-    }
-    const dataFormatada = `${String(dataSelecionada.getDate()).padStart(2, "0")}/${String(
-      dataSelecionada.getMonth() + 1
-    ).padStart(2, "0")}/${dataSelecionada.getFullYear()}`;
-    const senha = `G-${Math.floor(Math.random() * 900) + 100}`;
-    const novaConsultaData = {
-      paciente: pacienteSelecionado.nome,
-      paciente_id: pacienteSelecionado.id,
-      data: dataFormatada,
-      horario: horarioSelecionado,
-      medico: "Dra. Ana",
-      especialidade: especialidadeSelecionada,
-      status: "Confirmado",
-      senha,
-      ubs: ubsSelecionada,
-    };
-    const novaConsulta = await consultasService.criar(novaConsultaData);
-    if (novaConsulta) {
-      setConsultas((prev) => [...prev, novaConsulta]);
-    }
-    setMostrarNovoAgendamento(false);
-    setPacienteSelecionado(null);
-    setEspecialidadeSelecionada("");
-    setHorarioSelecionado("");
-    Swal.fire("Agendado!", "Nova consulta registrada com sucesso.", "success");
-  };
-
-  // ----- NAVEGAÇÃO DE DATAS -----
+  // ========== NAVEGAÇÃO DE DATAS ==========
   const mudarData = (dias) => {
     const novaData = new Date(dataSelecionada);
     novaData.setDate(novaData.getDate() + dias);
@@ -336,40 +418,32 @@ const AgendamentoAttendente = () => {
     d1.getMonth() === d2.getMonth() &&
     d1.getFullYear() === d2.getFullYear();
 
-  // ----- LIMPAR FILTROS -----
   const limparFiltros = () => {
     setFiltroTexto("");
     setFiltroStatus("Todos");
   };
 
-  // ----- CORES DE STATUS -----
   const getStatusColor = (status) => {
     switch (status) {
-      case "Confirmado":
-        return "bg-green-100 text-green-700";
-      case "Aguardando":
-        return "bg-yellow-100 text-yellow-700";
-      case "Cancelado":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+      case "Confirmado": return "bg-green-100 text-green-700";
+      case "Aguardando": return "bg-yellow-100 text-yellow-700";
+      case "Cancelado": return "bg-red-100 text-red-700";
+      default: return "bg-gray-100 text-gray-700";
     }
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  // ========== RENDER ==========
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* CABEÇALHO */}
+        {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <FaCalendarCheck className="text-blue-600" /> Central de Agendamentos
             </h1>
             <p className="text-gray-500 mt-1">
-              Gerencie consultas e cadastre novos pacientes – {ubsSelecionada}
+              Gerencie consultas e cadastre novos pacientes – {ubsSelecionada || "Carregando..."}
             </p>
           </div>
           <button
@@ -380,7 +454,7 @@ const AgendamentoAttendente = () => {
           </button>
         </div>
 
-        {/* CARDS ESTATÍSTICAS */}
+        {/* Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Hoje", value: totalConsultas, icon: FaCalendarCheck, color: "from-blue-500 to-blue-600" },
@@ -403,7 +477,7 @@ const AgendamentoAttendente = () => {
           ))}
         </div>
 
-        {/* ===== MODAL NOVO AGENDAMENTO ===== */}
+        {/* Modal Novo Agendamento */}
         {mostrarNovoAgendamento && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -418,7 +492,7 @@ const AgendamentoAttendente = () => {
               </div>
 
               <div className="p-6">
-                {/* Busca de Paciente + Botão Novo Paciente */}
+                {/* Busca de Paciente */}
                 <div className="mb-6">
                   <label className="block font-semibold mb-2">Paciente</label>
                   <div className="flex gap-3">
@@ -436,16 +510,16 @@ const AgendamentoAttendente = () => {
                           {pacientes
                             .filter(
                               (p) =>
-                                p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
-                                p.cpf.includes(buscaPaciente) ||
-                                p.sus.includes(buscaPaciente)
+                                p.nome?.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
+                                p.cpf?.includes(buscaPaciente) ||
+                                p.sus?.includes(buscaPaciente)
                             )
                             .map((paciente) => (
                               <div
                                 key={paciente.id}
                                 onClick={() => {
                                   setPacienteSelecionado(paciente);
-                                  setBuscaPaciente(paciente.nome);
+                                  setBuscaPaciente(paciente.nome || "");
                                 }}
                                 className={`p-3 hover:bg-blue-50 cursor-pointer transition ${
                                   pacienteSelecionado?.id === paciente.id
@@ -456,17 +530,17 @@ const AgendamentoAttendente = () => {
                                 <div className="flex items-center gap-3">
                                   <FaUser className="text-gray-400" />
                                   <div>
-                                    <p className="font-semibold">{paciente.nome}</p>
-                                    <p className="text-xs text-gray-500">CPF: {paciente.cpf} | CNS: {paciente.sus}</p>
+                                    <p className="font-semibold">{paciente.nome || "Sem nome"}</p>
+                                    <p className="text-xs text-gray-500">CPF: {paciente.cpf || "-"} | CNS: {paciente.sus || "-"}</p>
                                   </div>
                                 </div>
                               </div>
                             ))}
                           {pacientes.filter(
                             (p) =>
-                              p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
-                              p.cpf.includes(buscaPaciente) ||
-                              p.sus.includes(buscaPaciente)
+                              p.nome?.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
+                              p.cpf?.includes(buscaPaciente) ||
+                              p.sus?.includes(buscaPaciente)
                           ).length === 0 && buscaPaciente.length > 0 && (
                             <div className="p-3 text-center text-gray-500">
                               Nenhum paciente encontrado.
@@ -486,8 +560,8 @@ const AgendamentoAttendente = () => {
                     <div className="mt-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-lg">{pacienteSelecionado.nome}</p>
-                          <p className="text-sm text-gray-600">CPF: {pacienteSelecionado.cpf} | CNS: {pacienteSelecionado.sus}</p>
+                          <p className="font-bold text-lg">{pacienteSelecionado.nome || "Nome não informado"}</p>
+                          <p className="text-sm text-gray-600">CPF: {pacienteSelecionado.cpf || "-"} | CNS: {pacienteSelecionado.sus || "-"}</p>
                           <p className="text-xs text-gray-500 mt-1">Última consulta: {pacienteSelecionado.ultimaConsulta || "Nunca"}</p>
                         </div>
                         <button
@@ -529,7 +603,7 @@ const AgendamentoAttendente = () => {
                   <div>
                     <div className="mb-4 p-3 bg-gray-50 rounded-xl">
                       <p className="text-sm font-medium text-gray-500">Unidade de Saúde</p>
-                      <p className="font-bold text-gray-800">{ubsSelecionada}</p>
+                      <p className="font-bold text-gray-800">{ubsSelecionada || "Não definida"}</p>
                     </div>
 
                     <div>
@@ -607,7 +681,7 @@ const AgendamentoAttendente = () => {
           </div>
         )}
 
-        {/* MODAL HISTÓRICO */}
+        {/* Modal Histórico */}
         {mostrarHistorico && pacienteHistorico && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -654,7 +728,7 @@ const AgendamentoAttendente = () => {
           </div>
         )}
 
-        {/* FILTROS DA TABELA */}
+        {/* Filtros e Tabela */}
         <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
@@ -684,7 +758,6 @@ const AgendamentoAttendente = () => {
           </button>
         </div>
 
-        {/* TABELA DE CONSULTAS */}
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           <div className="p-6 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold">Consultas Agendadas</h2>
@@ -716,10 +789,10 @@ const AgendamentoAttendente = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                            {consulta.paciente.charAt(0)}
+                            {consulta.paciente?.charAt(0) || "?"}
                           </div>
                           <div>
-                            <p className="font-semibold">{consulta.paciente}</p>
+                            <p className="font-semibold">{consulta.paciente || "Sem nome"}</p>
                           </div>
                         </div>
                       </td>
@@ -727,16 +800,16 @@ const AgendamentoAttendente = () => {
                         <p className="font-medium">{consulta.data}</p>
                         <p className="text-sm text-gray-500">{consulta.horario}</p>
                       </td>
-                      <td className="px-6 py-4">{consulta.medico}</td>
+                      <td className="px-6 py-4">{consulta.medico || "-"}</td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1">
                           <FaStethoscope className="text-gray-400" size={12} />
-                          {consulta.especialidade}
+                          {consulta.especialidade || "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">
-                          {consulta.senha}
+                          {consulta.senha || "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -745,7 +818,7 @@ const AgendamentoAttendente = () => {
                             consulta.status
                           )}`}
                         >
-                          {consulta.status}
+                          {consulta.status || "Indefinido"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -789,4 +862,4 @@ const AgendamentoAttendente = () => {
   );
 };
 
-export default AgendamentoAttendente;
+export default AgendamentoAtendente;

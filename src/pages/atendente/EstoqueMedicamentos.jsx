@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
 import { estoqueService } from "../../services/estoqueService";
+import { dispensacoesService } from "../../services/dispensacoesService";
 import {
   HiBeaker,
   HiSearch,
@@ -24,17 +25,23 @@ const compararDatas = (data1, data2) => {
 
 const EstoqueMedicamentos = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin"; // mantido para outras ações (editar/remover)
+  const isAdmin = user?.role === "admin";
 
   const [medicamentos, setMedicamentos] = useState([]);
-
   const [logRetiradas, setLogRetiradas] = useState([]);
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Carregar medicamentos do banco local
+  // Carregar medicamentos e log de dispensações
   useEffect(() => {
-    estoqueService.listarMedicamentos().then(setMedicamentos);
+    const carregarDados = async () => {
+      const medicamentosData = await estoqueService.listarMedicamentos();
+      setMedicamentos(medicamentosData);
+      
+      const logData = await dispensacoesService.listar();
+      setLogRetiradas(logData);
+    };
+    carregarDados();
   }, []);
 
   const hoje = new Date().toISOString().split("T")[0];
@@ -63,7 +70,7 @@ const EstoqueMedicamentos = () => {
     return resultado;
   }, [medicamentos, termoBusca, filtroStatus, hoje]);
 
-  // ----- DISPENSAR (sem CPF e sem justificativa) -----
+  // ----- DISPENSAR -----
   const retirarMedicamento = async (med) => {
     const { value: formValues } = await Swal.fire({
       title: `Dispensar – ${med.nome}`,
@@ -91,20 +98,23 @@ const EstoqueMedicamentos = () => {
       await estoqueService.atualizarMedicamento(med.id, { quantidade: novaQtd });
       setMedicamentos((prev) =>
         prev.map((m) =>
-          m.id === med.id
-            ? { ...m, quantidade: novaQtd }
-            : m
+          m.id === med.id ? { ...m, quantidade: novaQtd } : m
         )
       );
-      setLogRetiradas((prev) => [
-        ...prev,
-        {
-          data: new Date().toLocaleString(),
-          medicamento: med.nome,
-          paciente: formValues.nome,
-          quantidade: formValues.qtd,
-        },
-      ]);
+
+      // Salva no histórico persistente
+      const novaDispensacao = {
+        data: new Date().toLocaleString(),
+        medicamento: med.nome,
+        paciente: formValues.nome,
+        quantidade: formValues.qtd,
+      };
+      await dispensacoesService.adicionar(novaDispensacao);
+      
+      // Atualiza o estado local com o log completo
+      const logAtualizado = await dispensacoesService.listar();
+      setLogRetiradas(logAtualizado);
+
       Swal.fire(
         "Retirado!",
         `${formValues.qtd} unidade(s) dispensada(s) para ${formValues.nome}.`,
@@ -129,9 +139,7 @@ const EstoqueMedicamentos = () => {
       await estoqueService.atualizarMedicamento(med.id, { quantidade: novaQtd });
       setMedicamentos((prev) =>
         prev.map((m) =>
-          m.id === med.id
-            ? { ...m, quantidade: novaQtd }
-            : m
+          m.id === med.id ? { ...m, quantidade: novaQtd } : m
         )
       );
       Swal.fire({
@@ -145,7 +153,7 @@ const EstoqueMedicamentos = () => {
     }
   };
 
-  // Adicionar novo medicamento (agora visível para todos)
+  // Adicionar novo medicamento
   const adicionarNovoMedicamento = async () => {
     const { value: formValues } = await Swal.fire({
       title: "Novo medicamento",
@@ -238,8 +246,7 @@ const EstoqueMedicamentos = () => {
   // ----- FUNÇÕES DE STATUS -----
   const getStatusEstoque = (qtd) => {
     if (qtd <= 5) return { cor: "bg-red-100 text-red-700", texto: "Crítico" };
-    if (qtd <= 15)
-      return { cor: "bg-yellow-100 text-yellow-700", texto: "Baixo" };
+    if (qtd <= 15) return { cor: "bg-yellow-100 text-yellow-700", texto: "Baixo" };
     return { cor: "bg-green-100 text-green-700", texto: "Normal" };
   };
 
@@ -274,7 +281,6 @@ const EstoqueMedicamentos = () => {
               Dispensação controlada e gestão de lotes.
             </p>
           </div>
-          {/* BOTÃO ADICIONAR MEDICAMENTO - AGORA VISÍVEL PARA TODOS */}
           <button
             onClick={adicionarNovoMedicamento}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-all hover:shadow-lg"
@@ -487,18 +493,17 @@ const EstoqueMedicamentos = () => {
           </div>
         </div>
 
-        {/* HISTÓRICO DE DISPENSAÇÕES */}
+        {/* HISTÓRICO DE DISPENSAÇÕES - PERSISTENTE */}
         {logRetiradas.length > 0 && (
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
             <div className="p-6 border-b bg-blue-50/50">
               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <HiClipboardList className="text-blue-600" /> Últimas
-                dispensações
+                <HiClipboardList className="text-blue-600" /> Últimas dispensações
               </h3>
             </div>
             <div className="p-6 divide-y divide-gray-100 max-h-60 overflow-y-auto">
-              {logRetiradas.map((l, i) => (
-                <div key={i} className="py-3 flex justify-between items-center">
+              {logRetiradas.slice(0, 30).map((l, i) => (
+                <div key={l.id || i} className="py-3 flex justify-between items-center">
                   <div>
                     <p className="font-medium">
                       {l.medicamento} ({l.quantidade} un.) → {l.paciente}

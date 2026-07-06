@@ -13,19 +13,50 @@ const FilasAtendimento = () => {
   const auth = useAuth();
   const user = auth?.user;
 
-  const [outrasFilas, setOutrasFilas] = useState([]);
+  const [filasAgrupadas, setFilasAgrupadas] = useState([]);
   const [suaFila, setSuaFila] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Carrega e agrupa as filas por especialidade
   const carregarFilas = useCallback(async () => {
     try {
       setError(null);
-      const filas = await filasService.listar();
-      const minha = filas.find(f => f.paciente === user?.name);
-      const restante = filas.filter(f => f.paciente !== user?.name);
+      const todas = await filasService.listar();
+      
+      // Fila do usuário (se existir)
+      const minha = todas.find(f => f.paciente === user?.name);
       setSuaFila(minha || null);
-      setOutrasFilas(restante);
+
+      // Fila dos outros pacientes
+      const outras = todas.filter(f => f.paciente !== user?.name);
+
+      // Agrupa por especialidade
+      const grupos = {};
+      outras.forEach(f => {
+        if (!grupos[f.especialidade]) {
+          grupos[f.especialidade] = [];
+        }
+        grupos[f.especialidade].push(f);
+      });
+
+      // Converte para array de objetos com metadados
+      const agrupadas = Object.keys(grupos).map(esp => {
+        const lista = grupos[esp];
+        // Ordena por posição (se existir) ou por ordem de chegada
+        lista.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
+        const primeiro = lista[0];
+        return {
+          especialidade: esp,
+          total: lista.length,
+          senhaAtual: primeiro?.senha || "---",
+          tempoMedio: primeiro?.tempo || "5 min",
+          prioridade: lista.some(p => p.prioridade === "Alta") ? "Alta" : "Normal",
+          pacientes: lista,
+        };
+      });
+
+      setFilasAgrupadas(agrupadas);
     } catch (err) {
       console.error("Erro ao carregar filas:", err);
       setError("Erro ao carregar filas. Tente novamente.");
@@ -36,20 +67,32 @@ const FilasAtendimento = () => {
     if (user) {
       carregarFilas();
     } else {
-      setOutrasFilas([]);
+      setFilasAgrupadas([]);
       setSuaFila(null);
     }
   }, [user, carregarFilas]);
 
-  const handleEntrarFila = async (fila) => {
+  // Entrar em uma fila (por especialidade)
+  const handleEntrarFila = async (grupo) => {
     if (!user) {
       Swal.fire("Erro", "Usuário não autenticado.", "error");
       return;
     }
+    if (loading) return;
+
+    const especialidade = grupo.especialidade;
+
+    // Se já está na mesma especialidade
+    if (suaFila && suaFila.especialidade === especialidade) {
+      Swal.fire("Aviso", "Você já está nesta fila.", "info");
+      return;
+    }
+
+    // Se está em outra fila, pergunta se quer trocar
     if (suaFila) {
       const result = await Swal.fire({
-        title: "Você já está em uma fila",
-        text: "Deseja sair da fila atual e entrar nesta?",
+        title: "Trocar de fila?",
+        text: `Você está na fila de ${suaFila.especialidade}. Deseja ir para ${especialidade}?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#2563eb",
@@ -57,94 +100,113 @@ const FilasAtendimento = () => {
         confirmButtonText: "Sim, trocar",
         cancelButtonText: "Cancelar",
       });
-      if (result.isConfirmed) {
-        setLoading(true);
-        try {
-          await filasService.remover(suaFila.id);
-          const filasEspecialidade = outrasFilas.filter(f => f.especialidade === fila.especialidade);
-          const novaPosicao = filasEspecialidade.length + 1;
-          const nova = await filasService.adicionar({
-            paciente: user.name,
-            prioridade: "Normal",
-            tempo: "5 min",
-            senha: `P-${Math.floor(Math.random() * 900) + 100}`,
-            especialidade: fila.especialidade,
-            status: "Aguardando",
-            posicao: novaPosicao,
-          });
-          setSuaFila(nova);
-          Swal.fire({ icon: "success", title: "Fila atualizada!", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
-          await carregarFilas();
-        } catch (err) {
-          console.error(err);
-          Swal.fire("Erro", "Não foi possível entrar na fila.", "error");
-        } finally {
-          setLoading(false);
-        }
-      }
-    } else {
+      if (!result.isConfirmed) return;
+
       setLoading(true);
       try {
-        const filasEspecialidade = outrasFilas.filter(f => f.especialidade === fila.especialidade);
-        const novaPosicao = filasEspecialidade.length + 1;
-        const nova = await filasService.adicionar({
-          paciente: user.name,
-          prioridade: "Normal",
-          tempo: "5 min",
-          senha: `P-${Math.floor(Math.random() * 900) + 100}`,
-          especialidade: fila.especialidade,
-          status: "Aguardando",
-          posicao: novaPosicao,
-        });
-        setSuaFila(nova);
-        Swal.fire({ icon: "success", title: "Você entrou na fila!", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
+        // Remove da fila atual
+        await filasService.remover(suaFila.id);
+        setSuaFila(null);
+        // Recarrega para sincronizar
         await carregarFilas();
       } catch (err) {
         console.error(err);
-        Swal.fire("Erro", "Não foi possível entrar na fila.", "error");
-      } finally {
+        Swal.fire("Erro", "Não foi possível sair da fila atual.", "error");
         setLoading(false);
+        return;
       }
+    }
+
+    // Entra na nova fila
+    setLoading(true);
+    try {
+      // Recarrega as filas para obter posição correta
+      const todas = await filasService.listar();
+      const daEspecialidade = todas.filter(f => f.especialidade === especialidade && f.paciente !== user.name);
+      const novaPosicao = daEspecialidade.length + 1;
+
+      const nova = await filasService.adicionar({
+        paciente: user.name,
+        prioridade: "Normal",
+        tempo: grupo.tempoMedio || "5 min",
+        senha: `P-${Math.floor(Math.random() * 900) + 100}`,
+        especialidade: especialidade,
+        status: "Aguardando",
+        posicao: novaPosicao,
+      });
+
+      setSuaFila(nova);
+      await carregarFilas(); // recarrega tudo
+
+      Swal.fire({
+        icon: "success",
+        title: "Entrou na fila!",
+        text: `Posição ${novaPosicao} na fila de ${especialidade}.`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Erro", "Não foi possível entrar na fila.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSairFila = async () => {
     if (!suaFila) return;
+    if (loading) return;
+
     const result = await Swal.fire({
       title: "Sair da fila?",
-      text: "Você perderá sua posição atual.",
+      text: `Você sairá da fila de ${suaFila.especialidade}.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       confirmButtonText: "Sim, sair",
     });
     if (result.isConfirmed) {
+      setLoading(true);
       try {
         await filasService.remover(suaFila.id);
         setSuaFila(null);
-        Swal.fire({ icon: "info", title: "Fila cancelada", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
         await carregarFilas();
+        Swal.fire({
+          icon: "info",
+          title: "Fila cancelada",
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 1500,
+        });
       } catch (err) {
         console.error(err);
         Swal.fire("Erro", "Não foi possível sair da fila.", "error");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const verDetalhesFila = (fila) => {
+  const verDetalhesGrupo = (grupo) => {
+    const pacientesList = grupo.pacientes.map(p => 
+      `• ${p.paciente} (Senha: ${p.senha})`
+    ).join('<br>');
     Swal.fire({
-      title: `Detalhes - ${fila.especialidade}`,
-      html: `<div style="text-align:left; line-height:1.8;">
-        <p><strong>Especialidade:</strong> ${fila.especialidade}</p>
-        <p><strong>Prioridade:</strong> ${fila.prioridade}</p>
-        <p><strong>Senha atual:</strong> ${fila.senha}</p>
-        <p><strong>Tempo estimado:</strong> ${fila.tempo}</p>
-        <p><strong>Posição:</strong> ${fila.posicao ?? "—"}</p>
-        <p><strong>Status:</strong> ${fila.status}</p>
-      </div>`,
+      title: `Fila - ${grupo.especialidade}`,
+      html: `
+        <div style="text-align:left; line-height:1.8;">
+          <p><strong>Total de pacientes:</strong> ${grupo.total}</p>
+          <p><strong>Senha atual:</strong> ${grupo.senhaAtual}</p>
+          <p><strong>Tempo médio:</strong> ${grupo.tempoMedio}</p>
+          <p><strong>Prioridade:</strong> ${grupo.prioridade}</p>
+          <hr>
+          <p><strong>Pacientes na fila:</strong></p>
+          <div style="font-size:0.9rem;">${pacientesList || "Nenhum"}</div>
+        </div>
+      `,
       icon: "info",
       confirmButtonColor: "#2563eb",
-      confirmButtonText: "Fechar",
     });
   };
 
@@ -184,11 +246,16 @@ const FilasAtendimento = () => {
               <FaUserMd className="text-blue-400" /> Acompanhe seu status e as senhas atuais da unidade.
             </p>
           </div>
-          <button onClick={carregarFilas} className="flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-700 px-5 py-2.5 rounded-xl border border-blue-200 shadow-sm transition-all">
-            <HiRefresh /> Atualizar Filas
+          <button
+            onClick={carregarFilas}
+            disabled={loading}
+            className="flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-700 px-5 py-2.5 rounded-xl border border-blue-200 shadow-sm transition-all disabled:opacity-50"
+          >
+            <HiRefresh className={loading ? "animate-spin" : ""} /> Atualizar Filas
           </button>
         </div>
 
+        {/* Minha Fila */}
         {suaFila ? (
           <div className="relative bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 mb-10 text-white shadow-xl overflow-hidden">
             <div className="absolute right-0 top-0 opacity-10"><FaHospitalAlt size={160} /></div>
@@ -204,7 +271,7 @@ const FilasAtendimento = () => {
                   <button onClick={verDetalhesSuaFila} className="bg-white text-blue-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-md flex items-center gap-2">
                     <HiInformationCircle /> Detalhes
                   </button>
-                  <button onClick={handleSairFila} className="border border-white/60 hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2">
+                  <button onClick={handleSairFila} disabled={loading} className="border border-white/60 hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2 disabled:opacity-50">
                     <HiLogout /> Sair da Fila
                   </button>
                 </div>
@@ -216,7 +283,7 @@ const FilasAtendimento = () => {
                   <div className="h-2 bg-white/30 rounded-full">
                     <div className="h-full bg-green-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, 100 - ((suaFila.posicao - 1) * 20))}%` }} />
                   </div>
-                  <p className="text-sm mt-2 opacity-80">Faltam {suaFila.posicao} pessoa(s) na sua frente</p>
+                  <p className="text-sm mt-2 opacity-80">Faltam {suaFila.posicao - 1} pessoa(s) na sua frente</p>
                 </div>
               </div>
             </div>
@@ -229,41 +296,57 @@ const FilasAtendimento = () => {
           </div>
         )}
 
+        {/* Filas Disponíveis (agrupadas) */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <FaStethoscope className="text-blue-600" /> Filas Disponíveis
           </h3>
-          <span className="text-sm text-gray-400 bg-white px-4 py-1.5 rounded-full shadow-sm">{outrasFilas.length} filas ativas</span>
+          <span className="text-sm text-gray-400 bg-white px-4 py-1.5 rounded-full shadow-sm">{filasAgrupadas.length} especialidades</span>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {outrasFilas.map((fila) => {
-            const isActive = suaFila && suaFila.especialidade === fila.especialidade;
-            return (
-              <div key={fila.id} className={`group bg-white rounded-2xl p-5 border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isActive ? "border-blue-400 shadow-md ring-1 ring-blue-200" : "border-gray-200 hover:border-blue-300"}`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3 rounded-xl ${fila.prioridade === "Alta" ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-700"}`}>
-                    <FaStethoscope size={24} />
+          {filasAgrupadas.length === 0 ? (
+            <div className="col-span-full text-center text-gray-400 bg-white rounded-2xl p-8 border">
+              <p>Não há filas disponíveis no momento.</p>
+            </div>
+          ) : (
+            filasAgrupadas.map((grupo) => {
+              const isActive = suaFila && suaFila.especialidade === grupo.especialidade;
+              const isFull = grupo.total >= 20; // exemplo
+              return (
+                <div key={grupo.especialidade} className={`group bg-white rounded-2xl p-5 border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isActive ? "border-blue-400 shadow-md ring-1 ring-blue-200" : isFull ? "border-red-200" : "border-gray-200 hover:border-blue-300"}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`p-3 rounded-xl ${grupo.prioridade === "Alta" ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+                      <FaStethoscope size={24} />
+                    </div>
+                    <div className="flex gap-2">
+                      {isActive && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Você está aqui</span>}
+                      {isFull && <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-semibold">Fila cheia</span>}
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">{grupo.total} pacientes</span>
+                    </div>
                   </div>
-                  {isActive && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Você está aqui</span>}
+                  <h4 className="font-bold text-lg">{grupo.especialidade}</h4>
+                  <div className="grid grid-cols-2 gap-3 my-4">
+                    <div><p className="text-xs text-gray-400">Senha Atual</p><p className="text-xl font-bold text-blue-700">{grupo.senhaAtual}</p></div>
+                    <div><p className="text-xs text-gray-400">Espera Méd.</p><p className="text-xl font-bold flex items-center gap-1"><HiClock className="text-blue-500" /> {grupo.tempoMedio}</p></div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEntrarFila(grupo)}
+                      disabled={loading || isFull}
+                      className={`flex-1 py-2.5 rounded-xl font-semibold transition shadow-sm flex items-center justify-center gap-2 ${isActive ? "bg-green-100 text-green-700 cursor-default" : isFull ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
+                    >
+                      {loading ? "..." : isActive ? <HiCheckCircle className="text-green-600" /> : <HiArrowRight />}
+                      {isActive ? "Na Fila" : isFull ? "Lotada" : "Entrar"}
+                    </button>
+                    <button onClick={() => verDetalhesGrupo(grupo)} className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition" title="Ver detalhes">
+                      <HiEye size={18} />
+                    </button>
+                  </div>
                 </div>
-                <h4 className="font-bold text-lg">{fila.especialidade}</h4>
-                <div className="grid grid-cols-2 gap-3 my-4">
-                  <div><p className="text-xs text-gray-400">Senha Atual</p><p className="text-xl font-bold text-blue-700">{fila.senha}</p></div>
-                  <div><p className="text-xs text-gray-400">Espera Méd.</p><p className="text-xl font-bold flex items-center gap-1"><HiClock className="text-blue-500" /> {fila.tempo}</p></div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleEntrarFila(fila)} disabled={loading} className={`flex-1 py-2.5 rounded-xl font-semibold transition shadow-sm flex items-center justify-center gap-2 ${isActive ? "bg-green-100 text-green-700" : "bg-blue-600 hover:bg-blue-700 text-white"}`}>
-                    {loading ? "..." : isActive ? <HiCheckCircle className="text-green-600" /> : <HiArrowRight />}
-                    {isActive ? "Na Fila" : "Entrar"}
-                  </button>
-                  <button onClick={() => verDetalhesFila(fila)} className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition" title="Ver detalhes">
-                    <HiEye size={18} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

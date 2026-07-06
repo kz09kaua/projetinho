@@ -1,6 +1,8 @@
 // src/pages/VacinaçãoAttendente.jsx
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { pacientesService } from "../../services/pacientesService";
+import { vacinasService } from "../../services/vacinasService";
 import {
   HiSearch,
   HiUser,
@@ -15,12 +17,9 @@ import {
   HiChevronDown,
   HiChevronUp,
   HiFilter,
+  HiRefresh,
 } from "react-icons/hi";
 import Swal from "sweetalert2";
-
-// Chaves do localStorage
-const STORAGE_KEY_PACIENTES = "@agendamento_pacientes";
-const STORAGE_KEY_VACINAS = "@vacinas_pacientes";
 
 const VacinaçãoAttendente = () => {
   const { user } = useAuth();
@@ -38,53 +37,36 @@ const VacinaçãoAttendente = () => {
   const [expandedVacina, setExpandedVacina] = useState(null);
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const [carregando, setCarregando] = useState(false);
   const sugestoesRef = useRef(null);
 
-  // Dados reais vindos do localStorage
+  // Dados reais vindos dos serviços
   const [pacientesReais, setPacientesReais] = useState([]);
   const [vacinasPorPaciente, setVacinasPorPaciente] = useState({});
 
-  // Carrega dados do localStorage
-  const carregarDados = () => {
-    const pacientesSalvos = localStorage.getItem(STORAGE_KEY_PACIENTES);
-    const vacinasSalvas = localStorage.getItem(STORAGE_KEY_VACINAS);
-
-    const pacientes = pacientesSalvos ? JSON.parse(pacientesSalvos) : [];
-    const vacinas = vacinasSalvas ? JSON.parse(vacinasSalvas) : {};
-
-    setPacientesReais(pacientes);
-    setVacinasPorPaciente(vacinas);
+  // Carrega dados usando os serviços (garante consistência)
+  const carregarDados = async () => {
+    setCarregando(true);
+    try {
+      const [pacientes, vacinas] = await Promise.all([
+        pacientesService.listar(),
+        vacinasService.listar(),
+      ]);
+      setPacientesReais(Array.isArray(pacientes) ? pacientes : []);
+      setVacinasPorPaciente(vacinas || {});
+      return { pacientes, vacinas };
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      Swal.fire("Erro", "Não foi possível carregar os dados.", "error");
+      return { pacientes: [], vacinas: {} };
+    } finally {
+      setCarregando(false);
+    }
   };
 
-  // Salva vacinas no localStorage
-  const salvarVacinas = (novasVacinas) => {
-    localStorage.setItem(STORAGE_KEY_VACINAS, JSON.stringify(novasVacinas));
-    setVacinasPorPaciente(novasVacinas);
-  };
-
-  // Recarrega ao montar e escuta mudanças no localStorage
+  // Recarrega ao montar
   useEffect(() => {
     carregarDados();
-
-    const handleStorageChange = (e) => {
-      if (e.key === STORAGE_KEY_PACIENTES) {
-        carregarDados();
-      }
-      if (e.key === STORAGE_KEY_VACINAS) {
-        const vacinas = JSON.parse(e.newValue || "{}");
-        setVacinasPorPaciente(vacinas);
-        // Se o paciente atual estiver selecionado, atualiza suas vacinas
-        if (paciente) {
-          const vacinasPaciente = vacinas[paciente.nome] || [];
-          setPaciente((prev) => ({
-            ...prev,
-            vacinas: vacinasPaciente,
-          }));
-        }
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   // Atualiza paciente quando as vacinas mudam
@@ -96,7 +78,7 @@ const VacinaçãoAttendente = () => {
         vacinas,
       }));
     }
-  }, [vacinasPorPaciente]);
+  }, [vacinasPorPaciente, paciente]);
 
   // --- Funções auxiliares ---
   const apenasNumeros = (str) => str.replace(/\D/g, "");
@@ -136,46 +118,50 @@ const VacinaçãoAttendente = () => {
     const termo = busca.trim();
     if (!termo || isCPF(termo) || termo.length < 2) return [];
     return pacientesReais.filter((p) =>
-      p.nome.toLowerCase().includes(termo.toLowerCase())
+      p.nome?.toLowerCase().includes(termo.toLowerCase())
     );
   })();
 
-  const selecionarSugestao = (pacienteSug) => {
+  const selecionarSugestao = async (pacienteSug) => {
     setBusca(pacienteSug.nome);
     setMostrarSugestoes(false);
-    const vacinas = vacinasPorPaciente[pacienteSug.nome] || [];
+    const { vacinas } = await carregarDados();
+    const vacinasPaciente = vacinas[pacienteSug.nome] || [];
     setPaciente({
       ...pacienteSug,
-      vacinas,
+      vacinas: vacinasPaciente,
     });
     setExpandedVacina(null);
     setFiltroStatus("todos");
   };
 
   // --- Busca principal ---
-  const buscarPaciente = () => {
+  const buscarPaciente = async () => {
     const termoLimpo = busca.trim();
     if (termoLimpo === "") {
       Swal.fire("Campo vazio", "Digite um nome ou CPF.", "warning");
       return;
     }
 
+    // Carrega dados frescos
+    const { pacientes, vacinas } = await carregarDados();
+
     const cpfNumerico = apenasNumeros(termoLimpo);
     let encontrado = null;
 
     if (cpfNumerico.length === 11) {
-      encontrado = pacientesReais.find((p) => apenasNumeros(p.cpf) === cpfNumerico);
+      encontrado = pacientes.find((p) => apenasNumeros(p.cpf) === cpfNumerico);
     } else {
-      encontrado = pacientesReais.find((p) =>
-        p.nome.toLowerCase().includes(termoLimpo.toLowerCase())
+      encontrado = pacientes.find((p) =>
+        p.nome?.toLowerCase().includes(termoLimpo.toLowerCase())
       );
     }
 
     if (encontrado) {
-      const vacinas = vacinasPorPaciente[encontrado.nome] || [];
+      const vacinasPaciente = vacinas[encontrado.nome] || [];
       setPaciente({
         ...encontrado,
-        vacinas,
+        vacinas: vacinasPaciente,
       });
       setExpandedVacina(null);
       setFiltroStatus("todos");
@@ -280,26 +266,21 @@ const VacinaçãoAttendente = () => {
     });
 
     if (formValues) {
-      // Atualiza as vacinas do paciente
       let vacinasAtuais = vacinasPorPaciente[paciente.nome] || [];
 
       if (vacinaExistente) {
         // Atualiza uma vacina pendente
-        vacinasAtuais = vacinasAtuais.map((v) =>
-          v.id === vacinaExistente.id
-            ? {
-                ...v,
-                status: "aplicada",
-                lote: formValues.lote,
-                data: formValues.data,
-                proximaDose: formValues.proximaDose || v.proximaDose,
-              }
-            : v
-        );
+        const updated = await vacinasService.atualizar(paciente.nome, vacinaExistente.id, {
+          status: "aplicada",
+          lote: formValues.lote,
+          data: formValues.data,
+          proximaDose: formValues.proximaDose || vacinaExistente.proximaDose,
+        });
+        vacinasAtuais = updated;
       } else {
         // Nova vacina
         const newId = Math.max(0, ...vacinasAtuais.map((v) => v.id), 0) + 1;
-        vacinasAtuais.push({
+        const novaVacina = {
           id: newId,
           vacina: formValues.vacina,
           dose: formValues.dose,
@@ -307,16 +288,15 @@ const VacinaçãoAttendente = () => {
           lote: formValues.lote,
           status: "aplicada",
           proximaDose: formValues.proximaDose,
-        });
+        };
+        vacinasAtuais = await vacinasService.adicionar(paciente.nome, novaVacina);
       }
 
-      // Salva no localStorage
-      salvarVacinas({
-        ...vacinasPorPaciente,
+      // Atualiza o estado local
+      setVacinasPorPaciente((prev) => ({
+        ...prev,
         [paciente.nome]: vacinasAtuais,
-      });
-
-      // Atualiza o paciente atual
+      }));
       setPaciente((prev) => ({
         ...prev,
         vacinas: vacinasAtuais,
@@ -389,14 +369,17 @@ const VacinaçãoAttendente = () => {
               Busque por nome ou CPF e gerencie o histórico vacinal.
             </p>
           </div>
-          {paciente && (
-            <button
-              onClick={exportarCarteira}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition"
-            >
-              <HiDocumentDownload size={18} /> Exportar Carteira
-            </button>
-          )}
+          <div className="flex gap-2">
+
+            {paciente && (
+              <button
+                onClick={exportarCarteira}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition"
+              >
+                <HiDocumentDownload size={18} /> Exportar Carteira
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Barra de busca */}

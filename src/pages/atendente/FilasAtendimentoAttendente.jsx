@@ -1,4 +1,4 @@
-// src/pages/atendente/FilasAtendimentoAttendente.jsx
+// src/pages/atendente/FilasAtendimentoAtendente.jsx
 import { useState, useEffect } from "react";
 import { HiUserGroup, HiClock, HiUsers, HiExclamation, HiSearch, HiX, HiCheck, HiBan } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
@@ -42,17 +42,35 @@ const FilasAtendimentoAttendente = () => {
   const [filtro, setFiltro] = useState("");
   const [filtroPrioridade, setFiltroPrioridade] = useState("todas");
 
-  useEffect(() => {
-    if (ubsSelecionada) {
-      filasService.listar().then(data => {
-        // Filtra apenas pacientes da UBS do atendente
-        const filaFiltrada = data.filter(f => f.ubs === ubsSelecionada);
-        setFila(filaFiltrada);
-      });
-    } else {
+  const carregarFila = async () => {
+    if (!ubsSelecionada) {
       setFila([]);
+      return;
     }
+    try {
+      const data = await filasService.listar();
+      const filaFiltrada = data.filter(f => f.ubs === ubsSelecionada);
+      filaFiltrada.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
+      setFila(filaFiltrada);
+    } catch (error) {
+      console.error("Erro ao carregar fila:", error);
+    }
+  };
+
+  useEffect(() => {
+    carregarFila();
   }, [ubsSelecionada]);
+
+  // Escuta o evento de atualização da fila com dependência em ubsSelecionada
+  useEffect(() => {
+    const handleFilaAtualizada = () => {
+      carregarFila();
+    };
+    window.addEventListener('filaAtualizada', handleFilaAtualizada);
+    return () => {
+      window.removeEventListener('filaAtualizada', handleFilaAtualizada);
+    };
+  }, [ubsSelecionada]); // <- dependência adicionada
 
   const totalPacientes = fila.length + (emAtendimento ? 1 : 0);
   const emAtendimentoCount = emAtendimento ? 1 : 0;
@@ -164,35 +182,33 @@ const FilasAtendimentoAttendente = () => {
     }
   };
 
+  // ===== FUNÇÃO NOVA FILA DESATIVADA PARA EVITAR SOBRESCRITA =====
+  // Mantida apenas para não quebrar referências, mas com aviso e sem ação.
   const novaFila = async () => {
-    const result = await Swal.fire({
-      title: "Criar nova fila?",
-      text: "Isso irá reiniciar a fila com base nos pacientes aguardando.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Sim, criar nova",
+    Swal.fire({
+      icon: "info",
+      title: "Função desativada",
+      text: "Esta ação não está disponível no momento para evitar perda de dados.",
+      timer: 3000,
+      showConfirmButton: true,
     });
-    if (result.isConfirmed) {
-      // Remove todas as entradas atuais da UBS e cria novas
+    // Comente ou remova o código abaixo se desejar que não faça nada.
+    /*
+    try {
       const filasAtuais = await filasService.listar();
       const filasDaUbs = filasAtuais.filter(f => f.ubs === ubsSelecionada);
       for (const f of filasDaUbs) {
         await filasService.remover(f.id);
       }
-
       const novas = [
-        { paciente: "José Souza", prioridade: "Normal", tempo: "10 min", senha: "G-108", status: "Aguardando", especialidade: "Clínica Geral", posicao: 1, ubs: ubsSelecionada },
-        { paciente: "Maria Lima", prioridade: "Alta", tempo: "5 min", senha: "P-042", status: "Aguardando", especialidade: "Cardiologia", posicao: 2, ubs: ubsSelecionada },
-        { paciente: "Pedro Santos", prioridade: "Normal", tempo: "15 min", senha: "G-110", status: "Aguardando", especialidade: "Clínica Geral", posicao: 3, ubs: ubsSelecionada },
+        { paciente: "José Souza", prioridade: "Normal", tempo: "10 min", senha: "G-108", status: "Aguardando", especialidade: "Clínica Geral", ubs: ubsSelecionada },
+        { paciente: "Maria Lima", prioridade: "Alta", tempo: "5 min", senha: "P-042", status: "Aguardando", especialidade: "Cardiologia", ubs: ubsSelecionada },
+        { paciente: "Pedro Santos", prioridade: "Normal", tempo: "15 min", senha: "G-110", status: "Aguardando", especialidade: "Clínica Geral", ubs: ubsSelecionada },
       ];
-
       for (const item of novas) {
         await filasService.adicionar(item);
       }
-
-      const novaLista = await filasService.listar();
-      const filaFiltrada = novaLista.filter(f => f.ubs === ubsSelecionada);
-      setFila(filaFiltrada);
+      await carregarFila();
       setEmAtendimento(null);
       Swal.fire({
         icon: "success",
@@ -201,7 +217,11 @@ const FilasAtendimentoAttendente = () => {
         timer: 2000,
         showConfirmButton: false,
       });
+    } catch (error) {
+      console.error("Erro ao criar nova fila:", error);
+      Swal.fire("Erro", "Não foi possível criar nova fila.", "error");
     }
+    */
   };
 
   const filaFiltrada = fila.filter(p => {
@@ -248,7 +268,7 @@ const FilasAtendimentoAttendente = () => {
           </div>
         </div>
 
-        {/* Cards de estatísticas */}
+        {/* Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard title="Total Pacientes" value={totalPacientes} icon={HiUsers} color="blue" />
           <MetricCard title="Em Atendimento" value={emAtendimentoCount} icon={HiUserGroup} color="green" />
@@ -280,7 +300,7 @@ const FilasAtendimentoAttendente = () => {
           </div>
         )}
 
-        {/* Filtros e busca */}
+        {/* Filtros */}
         <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -309,7 +329,7 @@ const FilasAtendimentoAttendente = () => {
           </button>
         </div>
 
-        {/* Lista de pacientes */}
+        {/* Lista */}
         <div>
           <h3 className="text-lg font-bold text-gray-800 mb-4">
             Pacientes na Fila ({filaFiltrada.length})
