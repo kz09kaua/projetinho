@@ -1,34 +1,32 @@
 // src/pages/atendente/AgendamentoAttendente.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { pacientesService } from "../../services/pacientesService";
 import { consultasService } from "../../services/consultasService";
 import { historicoService } from "../../services/historicoService";
 import {
-  FaSearch,
-  FaPlus,
-  FaCalendarCheck,
-  FaTimes,
-  FaUser,
-  FaClock,
-  FaStethoscope,
-  FaChevronLeft,
-  FaChevronRight,
-  FaCheck,
-  FaBan,
-  FaHistory,
-  FaUserPlus,
-  FaFilter,
-  FaTrashAlt,
+  FaSearch, FaPlus, FaCalendarCheck, FaTimes, FaUser, FaClock,
+  FaStethoscope, FaChevronLeft, FaChevronRight, FaCheck, FaBan,
+  FaHistory, FaUserPlus, FaFilter, FaTrashAlt,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const AgendamentoAttendente = () => {
   const { user, ubsSelecionada } = useAuth();
-  if (user?.role !== "atendente") {
+  const navigate = useNavigate();
+
+  // Redireciona se for atendente e não tiver UBS selecionada
+  useEffect(() => {
+    if (user?.role === "atendente" && !ubsSelecionada) {
+      navigate("/selecionar-ubs", { replace: true });
+    }
+  }, [user, ubsSelecionada, navigate]);
+
+  if (user?.role !== "atendente" || !ubsSelecionada) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-xl text-red-500">Acesso restrito a atendentes.</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <p className="text-xl text-gray-500">Carregando... Selecione uma UBS para continuar.</p>
       </div>
     );
   }
@@ -53,20 +51,29 @@ const AgendamentoAttendente = () => {
   const [pacientes, setPacientes] = useState([]);
   const [consultas, setConsultas] = useState([]);
 
-  // Carrega dados do banco local ao montar
-  useEffect(() => {
-    const carregarDados = async () => {
+  // Carrega dados do banco local e mantém atualizado
+  const carregarDados = useCallback(async () => {
+    if (!ubsSelecionada) return;
+    try {
       const [pacientesData, consultasData] = await Promise.all([
         pacientesService.listar(),
         consultasService.listar(),
       ]);
-      setPacientes(pacientesData);
-      // Filtra consultas pela UBS do atendente
-      const consultasFiltradas = consultasData.filter(c => c.ubs === ubsSelecionada);
+      setPacientes(pacientesData || []);
+      const consultasFiltradas = (consultasData || []).filter(c => c.ubs === ubsSelecionada);
       setConsultas(consultasFiltradas);
-    };
-    if (ubsSelecionada) carregarDados();
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      setPacientes([]);
+      setConsultas([]);
+    }
   }, [ubsSelecionada]);
+
+  useEffect(() => {
+    carregarDados();
+    const interval = setInterval(carregarDados, 5000);
+    return () => clearInterval(interval);
+  }, [carregarDados]);
 
   // ----- ESTATÍSTICAS -----
   const totalConsultas = consultas.length;
@@ -74,9 +81,10 @@ const AgendamentoAttendente = () => {
   const aguardando = consultas.filter((c) => c.status === "Aguardando").length;
   const canceladas = consultas.filter((c) => c.status === "Cancelado").length;
 
-  // ----- FILTROS -----
+  // ----- FILTROS (protegidos contra undefined) -----
   const consultasFiltradas = consultas.filter((consulta) => {
-    const matchTexto = consulta.paciente.toLowerCase().includes(filtroTexto.toLowerCase());
+    const paciente = consulta.paciente || "";
+    const matchTexto = paciente.toLowerCase().includes((filtroTexto || "").toLowerCase());
     const matchStatus = filtroStatus === "Todos" || consulta.status === filtroStatus;
     return matchTexto && matchStatus;
   });
@@ -200,7 +208,6 @@ const AgendamentoAttendente = () => {
 
       setPacientes((prev) => [...prev, novoPaciente]);
 
-      // CRIA UMA CONSULTA AUTOMATICAMENTE PARA O NOVO PACIENTE
       const hoje = new Date();
       const dataFormatada = hoje.toLocaleDateString("pt-BR");
       const horarioAtual = `${String(hoje.getHours()).padStart(2, "0")}:${String(hoje.getMinutes()).padStart(2, "0")}`;
@@ -356,6 +363,12 @@ const AgendamentoAttendente = () => {
     }
   };
 
+  // ----- FUNÇÃO SEGURA PARA PRIMEIRA LETRA -----
+  const getInicial = (nome) => {
+    if (!nome || typeof nome !== "string" || nome.trim().length === 0) return "P";
+    return nome.trim().charAt(0).toUpperCase();
+  };
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -433,19 +446,19 @@ const AgendamentoAttendente = () => {
                       />
                       {buscaPaciente && (
                         <div className="absolute z-20 left-0 right-0 mt-1 border rounded-xl divide-y max-h-48 overflow-y-auto bg-white shadow-lg">
-                          {pacientes
+                          {(pacientes || [])
                             .filter(
                               (p) =>
-                                p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
-                                p.cpf.includes(buscaPaciente) ||
-                                p.sus.includes(buscaPaciente)
+                                (p.nome || "").toLowerCase().includes((buscaPaciente || "").toLowerCase()) ||
+                                (p.cpf || "").includes(buscaPaciente) ||
+                                (p.sus || "").includes(buscaPaciente)
                             )
                             .map((paciente) => (
                               <div
                                 key={paciente.id}
                                 onClick={() => {
                                   setPacienteSelecionado(paciente);
-                                  setBuscaPaciente(paciente.nome);
+                                  setBuscaPaciente(paciente.nome || "");
                                 }}
                                 className={`p-3 hover:bg-blue-50 cursor-pointer transition ${
                                   pacienteSelecionado?.id === paciente.id
@@ -456,17 +469,19 @@ const AgendamentoAttendente = () => {
                                 <div className="flex items-center gap-3">
                                   <FaUser className="text-gray-400" />
                                   <div>
-                                    <p className="font-semibold">{paciente.nome}</p>
-                                    <p className="text-xs text-gray-500">CPF: {paciente.cpf} | CNS: {paciente.sus}</p>
+                                    <p className="font-semibold">{paciente.nome || "Sem nome"}</p>
+                                    <p className="text-xs text-gray-500">
+                                      CPF: {paciente.cpf || "N/A"} | CNS: {paciente.sus || "N/A"}
+                                    </p>
                                   </div>
                                 </div>
                               </div>
                             ))}
-                          {pacientes.filter(
+                          {(pacientes || []).filter(
                             (p) =>
-                              p.nome.toLowerCase().includes(buscaPaciente.toLowerCase()) ||
-                              p.cpf.includes(buscaPaciente) ||
-                              p.sus.includes(buscaPaciente)
+                              (p.nome || "").toLowerCase().includes((buscaPaciente || "").toLowerCase()) ||
+                              (p.cpf || "").includes(buscaPaciente) ||
+                              (p.sus || "").includes(buscaPaciente)
                           ).length === 0 && buscaPaciente.length > 0 && (
                             <div className="p-3 text-center text-gray-500">
                               Nenhum paciente encontrado.
@@ -486,9 +501,13 @@ const AgendamentoAttendente = () => {
                     <div className="mt-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-lg">{pacienteSelecionado.nome}</p>
-                          <p className="text-sm text-gray-600">CPF: {pacienteSelecionado.cpf} | CNS: {pacienteSelecionado.sus}</p>
-                          <p className="text-xs text-gray-500 mt-1">Última consulta: {pacienteSelecionado.ultimaConsulta || "Nunca"}</p>
+                          <p className="font-bold text-lg">{pacienteSelecionado.nome || "Sem nome"}</p>
+                          <p className="text-sm text-gray-600">
+                            CPF: {pacienteSelecionado.cpf || "N/A"} | CNS: {pacienteSelecionado.sus || "N/A"}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Última consulta: {pacienteSelecionado.ultimaConsulta || "Nunca"}
+                          </p>
                         </div>
                         <button
                           onClick={() => {
@@ -716,10 +735,10 @@ const AgendamentoAttendente = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                            {consulta.paciente.charAt(0)}
+                            {getInicial(consulta.paciente)}
                           </div>
                           <div>
-                            <p className="font-semibold">{consulta.paciente}</p>
+                            <p className="font-semibold">{consulta.paciente || "Sem nome"}</p>
                           </div>
                         </div>
                       </td>

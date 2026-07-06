@@ -1,4 +1,4 @@
-// src/pages/EstoqueMedicamentos.jsx
+// src/pages/atendente/EstoqueMedicamentos.jsx
 import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
@@ -63,24 +63,49 @@ const EstoqueMedicamentos = () => {
     return resultado;
   }, [medicamentos, termoBusca, filtroStatus, hoje]);
 
-  // ----- DISPENSAR (sem CPF e sem justificativa) -----
+  // ----- DISPENSAR (com opção de quantidade ou %) -----
   const retirarMedicamento = async (med) => {
     const { value: formValues } = await Swal.fire({
       title: `Dispensar – ${med.nome}`,
       html: `
-        <input id="nomePaciente" class="swal2-input" placeholder="Nome do paciente" required>
-        <input id="qtd" type="number" class="swal2-input" placeholder="Quantidade a retirar" value="1" min="1" max="${med.quantidade}" required>
+        <div style="text-align:left;">
+          <label style="font-weight:600;">Nome do paciente <span style="color:#ef4444;">*</span></label>
+          <input id="nomePaciente" class="swal2-input" placeholder="Nome do paciente" style="width:100%; box-sizing:border-box;" required>
+          <div style="margin-top:12px;">
+            <label style="font-weight:600;">Quantidade</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="qtd" type="number" class="swal2-input" placeholder="Quantidade" value="1" min="1" max="${med.quantidade}" style="flex:1;" required>
+              <span style="font-weight:600;">ou</span>
+              <select id="percentual" class="swal2-input" style="flex:1;">
+                <option value="">Selecione %</option>
+                <option value="10">10%</option>
+                <option value="25">25%</option>
+                <option value="50">50%</option>
+                <option value="75">75%</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
+            <small style="color:#888;">Estoque atual: ${med.quantidade} unidade(s)</small>
+          </div>
+        </div>
       `,
       focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Dispensar",
+      confirmButtonColor: "#2563eb",
       preConfirm: () => {
         const nome = document.getElementById("nomePaciente").value.trim();
-        const qtd = parseInt(document.getElementById("qtd").value);
         if (!nome) {
           Swal.showValidationMessage("Informe o nome do paciente");
           return false;
         }
-        if (!qtd || qtd < 1 || qtd > med.quantidade) {
-          Swal.showValidationMessage("Quantidade inválida");
+        let qtd = parseInt(document.getElementById("qtd").value) || 0;
+        const percentual = document.getElementById("percentual").value;
+        if (percentual) {
+          qtd = Math.ceil((parseInt(percentual) / 100) * med.quantidade);
+        }
+        if (qtd < 1 || qtd > med.quantidade) {
+          Swal.showValidationMessage(`Quantidade inválida (1 a ${med.quantidade})`);
           return false;
         }
         return { nome, qtd };
@@ -113,19 +138,47 @@ const EstoqueMedicamentos = () => {
     }
   };
 
-  // Adicionar estoque
+  // ----- ADICIONAR ESTOQUE (com opção de quantidade ou %) -----
   const adicionarEstoque = async (med) => {
-    const { value: quantidade } = await Swal.fire({
+    const { value: result } = await Swal.fire({
       title: `Adicionar ao estoque de ${med.nome}`,
-      input: "number",
-      inputLabel: "Quantidade a adicionar",
-      inputValue: 1,
-      inputAttributes: { min: 1 },
+      html: `
+        <div style="text-align:left;">
+          <label style="font-weight:600;">Quantidade</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="qtd" type="number" class="swal2-input" placeholder="Quantidade" value="1" min="1" style="flex:1;">
+            <span style="font-weight:600;">ou</span>
+            <select id="percentual" class="swal2-input" style="flex:1;">
+              <option value="">Selecione %</option>
+              <option value="10">+10%</option>
+              <option value="25">+25%</option>
+              <option value="50">+50%</option>
+              <option value="100">+100%</option>
+            </select>
+          </div>
+          <small style="color:#888;">Estoque atual: ${med.quantidade} unidade(s)</small>
+        </div>
+      `,
+      focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "Adicionar",
+      confirmButtonColor: "#2563eb",
+      preConfirm: () => {
+        let qtd = parseInt(document.getElementById("qtd").value) || 0;
+        const percentual = document.getElementById("percentual").value;
+        if (percentual) {
+          qtd = Math.ceil((parseInt(percentual) / 100) * med.quantidade);
+        }
+        if (qtd < 1) {
+          Swal.showValidationMessage("Quantidade inválida");
+          return false;
+        }
+        return qtd;
+      },
     });
-    if (quantidade && quantidade > 0) {
-      const novaQtd = med.quantidade + parseInt(quantidade);
+
+    if (result) {
+      const novaQtd = med.quantidade + result;
       await estoqueService.atualizarMedicamento(med.id, { quantidade: novaQtd });
       setMedicamentos((prev) =>
         prev.map((m) =>

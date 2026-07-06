@@ -1,8 +1,4 @@
-import { getAll, get, insert, update, deleteItem, query, STORES } from "../data/database";
-
-// ============================================================
-// SERVICO DE EXAMES (SUS Conectado)
-// ============================================================
+import { getAll, get, insert, update, deleteItem, STORES } from "../data/database";
 
 export const examesService = {
   async listar() {
@@ -53,9 +49,7 @@ export const examesService = {
   async criar(exame) {
     try {
       const allExames = await getAll(STORES.exames);
-      const newId = allExames.length > 0 
-        ? Math.max(...allExames.map(e => e.id)) + 1 
-        : 1;
+      const newId = allExames.length > 0 ? Math.max(...allExames.map(e => e.id)) + 1 : 1;
 
       const data = {
         id: newId,

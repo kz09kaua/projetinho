@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   HiUser, HiClock, HiCheckCircle, HiEye, HiRefresh,
-  HiLogout, HiInformationCircle, HiArrowRight,
+  HiLogout, HiInformationCircle, HiArrowRight, HiSpeakerphone,
 } from "react-icons/hi";
 import { FaStethoscope, FaUserMd, FaHospitalAlt } from "react-icons/fa";
 import Swal from "sweetalert2";
@@ -17,14 +17,22 @@ const FilasAtendimento = () => {
   const [suaFila, setSuaFila] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [foiChamado, setFoiChamado] = useState(false);
 
   const carregarFilas = useCallback(async () => {
     try {
       setError(null);
       const filas = await filasService.listar();
       const minha = filas.find(f => f.paciente === user?.name);
-      const restante = filas.filter(f => f.paciente !== user?.name);
       setSuaFila(minha || null);
+
+      if (minha?.status === "Em Atendimento") {
+        setFoiChamado(true);
+      } else {
+        setFoiChamado(false);
+      }
+
+      const restante = filas.filter(f => f.paciente !== user?.name);
       setOutrasFilas(restante);
     } catch (err) {
       console.error("Erro ao carregar filas:", err);
@@ -35,6 +43,8 @@ const FilasAtendimento = () => {
   useEffect(() => {
     if (user) {
       carregarFilas();
+      const interval = setInterval(carregarFilas, 5000); // 5s para detectar chamada
+      return () => clearInterval(interval);
     } else {
       setOutrasFilas([]);
       setSuaFila(null);
@@ -71,8 +81,10 @@ const FilasAtendimento = () => {
             especialidade: fila.especialidade,
             status: "Aguardando",
             posicao: novaPosicao,
+            ubs: fila.ubs || "UBS Central",
           });
           setSuaFila(nova);
+          setFoiChamado(false);
           Swal.fire({ icon: "success", title: "Fila atualizada!", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
           await carregarFilas();
         } catch (err) {
@@ -95,8 +107,10 @@ const FilasAtendimento = () => {
           especialidade: fila.especialidade,
           status: "Aguardando",
           posicao: novaPosicao,
+          ubs: fila.ubs || "UBS Central",
         });
         setSuaFila(nova);
+        setFoiChamado(false);
         Swal.fire({ icon: "success", title: "Você entrou na fila!", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
         await carregarFilas();
       } catch (err) {
@@ -122,6 +136,7 @@ const FilasAtendimento = () => {
       try {
         await filasService.remover(suaFila.id);
         setSuaFila(null);
+        setFoiChamado(false);
         Swal.fire({ icon: "info", title: "Fila cancelada", toast: true, position: "top-end", showConfirmButton: false, timer: 1500 });
         await carregarFilas();
       } catch (err) {
@@ -131,37 +146,11 @@ const FilasAtendimento = () => {
     }
   };
 
-  const verDetalhesFila = (fila) => {
-    Swal.fire({
-      title: `Detalhes - ${fila.especialidade}`,
-      html: `<div style="text-align:left; line-height:1.8;">
-        <p><strong>Especialidade:</strong> ${fila.especialidade}</p>
-        <p><strong>Prioridade:</strong> ${fila.prioridade}</p>
-        <p><strong>Senha atual:</strong> ${fila.senha}</p>
-        <p><strong>Tempo estimado:</strong> ${fila.tempo}</p>
-        <p><strong>Posição:</strong> ${fila.posicao ?? "—"}</p>
-        <p><strong>Status:</strong> ${fila.status}</p>
-      </div>`,
-      icon: "info",
-      confirmButtonColor: "#2563eb",
-      confirmButtonText: "Fechar",
-    });
-  };
-
-  const verDetalhesSuaFila = () => {
-    if (!suaFila) return;
-    Swal.fire({
-      title: "Sua Fila",
-      html: `<div style="text-align:left; line-height:1.8;">
-        <p><strong>Especialidade:</strong> ${suaFila.especialidade}</p>
-        <p><strong>Senha:</strong> ${suaFila.senha}</p>
-        <p><strong>Posição:</strong> ${suaFila.posicao}º</p>
-        <p><strong>Tempo estimado:</strong> ${suaFila.tempo}</p>
-      </div>`,
-      icon: "info",
-      confirmButtonColor: "#2563eb",
-    });
-  };
+  const pessoasNaFrente = suaFila && !foiChamado
+    ? outrasFilas
+        .filter(f => f.especialidade === suaFila.especialidade && f.posicao < suaFila.posicao)
+        .length
+    : 0;
 
   if (error) {
     return (
@@ -190,37 +179,66 @@ const FilasAtendimento = () => {
         </div>
 
         {suaFila ? (
-          <div className="relative bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 mb-10 text-white shadow-xl overflow-hidden">
-            <div className="absolute right-0 top-0 opacity-10"><FaHospitalAlt size={160} /></div>
-            <div className="relative z-10 grid md:grid-cols-3 gap-6 items-center">
-              <div className="md:col-span-2">
-                <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <span className="bg-green-400/30 px-4 py-1.5 rounded-full text-xs font-bold">ATENDIMENTO ATIVO</span>
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs">Posição {suaFila.posicao}º</span>
-                </div>
-                <h2 className="text-2xl font-bold">{suaFila.especialidade}</h2>
-                <p className="opacity-80 text-sm">Senha {suaFila.senha} • {suaFila.tempo} de espera</p>
-                <div className="flex flex-wrap gap-3 mt-4">
-                  <button onClick={verDetalhesSuaFila} className="bg-white text-blue-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-md flex items-center gap-2">
-                    <HiInformationCircle /> Detalhes
-                  </button>
-                  <button onClick={handleSairFila} className="border border-white/60 hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2">
-                    <HiLogout /> Sair da Fila
-                  </button>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl text-center">
-                <p className="text-sm opacity-80 uppercase tracking-wider">Sua Senha</p>
-                <p className="text-5xl font-black tracking-wider">{suaFila.senha}</p>
-                <div className="mt-3">
-                  <div className="h-2 bg-white/30 rounded-full">
-                    <div className="h-full bg-green-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, 100 - ((suaFila.posicao - 1) * 20))}%` }} />
+          foiChamado ? (
+            <div className="relative bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-6 mb-10 text-white shadow-xl overflow-hidden animate-pulse">
+              <div className="absolute right-0 top-0 opacity-10"><FaHospitalAlt size={160} /></div>
+              <div className="relative z-10 grid md:grid-cols-3 gap-6 items-center">
+                <div className="md:col-span-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className="bg-white/30 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
+                      <HiSpeakerphone /> VOCÊ FOI CHAMADO!
+                    </span>
                   </div>
-                  <p className="text-sm mt-2 opacity-80">Faltam {suaFila.posicao} pessoa(s) na sua frente</p>
+                  <h2 className="text-2xl font-bold">{suaFila.especialidade}</h2>
+                  <p className="opacity-90 text-lg mt-2">Compareça ao consultório imediatamente!</p>
+                  <p className="opacity-80 text-sm mt-1">Senha <strong className="text-2xl">{suaFila.senha}</strong></p>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <button onClick={handleSairFila} className="border border-white/60 hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2">
+                      <HiLogout /> Sair da Fila
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl text-center">
+                  <p className="text-sm opacity-80 uppercase tracking-wider">Sua Senha</p>
+                  <p className="text-5xl font-black tracking-wider">{suaFila.senha}</p>
+                  <p className="text-lg mt-2 font-bold">CHAMADO!</p>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 mb-10 text-white shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-0 opacity-10"><FaHospitalAlt size={160} /></div>
+              <div className="relative z-10 grid md:grid-cols-3 gap-6 items-center">
+                <div className="md:col-span-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className="bg-green-400/30 px-4 py-1.5 rounded-full text-xs font-bold">SUA POSIÇÃO</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs">Posição {suaFila.posicao}º</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs">{pessoasNaFrente} pessoa(s) na frente</span>
+                  </div>
+                  <h2 className="text-2xl font-bold">{suaFila.especialidade}</h2>
+                  <p className="opacity-80 text-sm">Senha <strong>{suaFila.senha}</strong> • {suaFila.tempo} de espera estimada</p>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <button onClick={() => Swal.fire({ title: "Sua Fila", html: `<div style="text-align:left"><p><strong>Especialidade:</strong> ${suaFila.especialidade}</p><p><strong>Senha:</strong> ${suaFila.senha}</p><p><strong>Posição:</strong> ${suaFila.posicao}º</p><p><strong>Pessoas na frente:</strong> ${pessoasNaFrente}</p></div>`, icon: "info", confirmButtonColor: "#2563eb" })} className="bg-white text-blue-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-md flex items-center gap-2">
+                      <HiInformationCircle /> Detalhes
+                    </button>
+                    <button onClick={handleSairFila} className="border border-white/60 hover:bg-white/10 px-5 py-2.5 rounded-xl font-semibold transition flex items-center gap-2">
+                      <HiLogout /> Sair da Fila
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl text-center">
+                  <p className="text-sm opacity-80 uppercase tracking-wider">Sua Senha</p>
+                  <p className="text-5xl font-black tracking-wider">{suaFila.senha}</p>
+                  <div className="mt-3">
+                    <div className="h-2 bg-white/30 rounded-full">
+                      <div className="h-full bg-green-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, 100 - (pessoasNaFrente * 15))}%` }} />
+                    </div>
+                    <p className="text-sm mt-2 opacity-80">Faltam {pessoasNaFrente} pessoa(s)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-10 text-center shadow-sm">
             <HiUser className="text-5xl text-gray-300 mx-auto mb-3" />
@@ -257,7 +275,14 @@ const FilasAtendimento = () => {
                     {loading ? "..." : isActive ? <HiCheckCircle className="text-green-600" /> : <HiArrowRight />}
                     {isActive ? "Na Fila" : "Entrar"}
                   </button>
-                  <button onClick={() => verDetalhesFila(fila)} className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition" title="Ver detalhes">
+                  <button onClick={() => {
+                    Swal.fire({
+                      title: `Detalhes - ${fila.especialidade}`,
+                      html: `<div style="text-align:left"><p><strong>Especialidade:</strong> ${fila.especialidade}</p><p><strong>Prioridade:</strong> ${fila.prioridade}</p><p><strong>Senha atual:</strong> ${fila.senha}</p><p><strong>Tempo estimado:</strong> ${fila.tempo}</p><p><strong>Posição:</strong> ${fila.posicao ?? "—"}</p></div>`,
+                      icon: "info",
+                      confirmButtonColor: "#2563eb",
+                    });
+                  }} className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition" title="Ver detalhes">
                     <HiEye size={18} />
                   </button>
                 </div>

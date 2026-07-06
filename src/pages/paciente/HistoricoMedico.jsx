@@ -1,9 +1,10 @@
 // src/pages/paciente/HistoricoMedico.jsx
-import { useState, useEffect, useMemo } from "react";
-import { HiClipboardList, HiEye, HiSearch, HiFilter, HiDownload, HiUser } from "react-icons/hi";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { HiClipboardList, HiEye, HiSearch, HiFilter, HiDownload } from "react-icons/hi";
 import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
 import { historicoService } from "../../services/historicoService";
+import { consultasService } from "../../services/consultasService";
 
 const HistoricoMedico = () => {
   const { user } = useAuth();
@@ -11,14 +12,64 @@ const HistoricoMedico = () => {
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState("Todas");
 
-  useEffect(() => {
-    if (user?.name) {
-      historicoService.listarPorPaciente(user.name).then(setHistorico);
+  const carregarHistorico = useCallback(async () => {
+    if (!user?.name) {
+      setHistorico([]);
+      return;
+    }
+
+    try {
+      // 1. Busca registros da tabela historico_medico
+      const registrosHist = await historicoService.listarPorPaciente(user.name);
+
+      // 2. Busca todas as consultas do paciente (case‑insensitive)
+      const todasConsultas = await consultasService.listar();
+      const consultasDoPaciente = todasConsultas.filter(
+        c => c.paciente && c.paciente.toLowerCase() === user.name.toLowerCase()
+      );
+
+      const consultasMapeadas = consultasDoPaciente.map(c => ({
+        id: `consulta-${c.id}`,
+        data: c.data,
+        medico: c.medico || "Médico designado",
+        especialidade: c.especialidade,
+        ubs: c.ubs || "Não informada",
+        diagnostico: c.observacoes || c.status || "Consulta realizada",
+        status: c.status === "Confirmado" ? "Realizada" : c.status,
+        origem: "consulta",
+      }));
+
+      const historicoMapeado = registrosHist.map(h => ({
+        id: `hist-${h.id}`,
+        data: h.data,
+        medico: h.medico || "Médico",
+        especialidade: h.especialidade,
+        ubs: h.ubs || "Não informada",
+        diagnostico: h.diagnostico || "Sem diagnóstico",
+        status: h.status || "Realizada",
+        origem: "historico",
+      }));
+
+      // Combina e ordena por data (mais recente primeiro)
+      const combinado = [...historicoMapeado, ...consultasMapeadas].sort((a, b) => {
+        const [diaA, mesA, anoA] = (a.data || "01/01/2000").split("/").map(Number);
+        const [diaB, mesB, anoB] = (b.data || "01/01/2000").split("/").map(Number);
+        return new Date(anoB, mesB - 1, diaB) - new Date(anoA, mesA - 1, diaA);
+      });
+
+      setHistorico(combinado);
+    } catch (error) {
+      console.error("Erro ao carregar histórico:", error);
+      setHistorico([]);
     }
   }, [user]);
 
+  useEffect(() => {
+    carregarHistorico();
+  }, [carregarHistorico]);
+
   const especialidadesUnicas = useMemo(() => {
-    const esp = historico.map((h) => h.especialidade);
+    const esp = (historico || []).map((h) => h.especialidade).filter(Boolean);
     return ["Todas", ...new Set(esp)];
   }, [historico]);
 
@@ -28,10 +79,10 @@ const HistoricoMedico = () => {
       const termo = termoBusca.toLowerCase();
       resultado = resultado.filter(
         (h) =>
-          h.medico.toLowerCase().includes(termo) ||
-          h.diagnostico?.toLowerCase().includes(termo) ||
-          h.especialidade.toLowerCase().includes(termo) ||
-          h.ubs.toLowerCase().includes(termo)
+          (h.medico || "").toLowerCase().includes(termo) ||
+          (h.diagnostico || "").toLowerCase().includes(termo) ||
+          (h.especialidade || "").toLowerCase().includes(termo) ||
+          (h.ubs || "").toLowerCase().includes(termo)
       );
     }
     if (filtroEspecialidade !== "Todas") {
@@ -42,17 +93,17 @@ const HistoricoMedico = () => {
 
   const totalConsultas = historico.length;
   const ultimaConsulta = historico.length > 0 ? historico[0].data : "Nenhuma";
-  const especialidadesAtendidas = new Set(historico.map((h) => h.especialidade)).size;
+  const especialidadesAtendidas = new Set(historico.map((h) => h.especialidade).filter(Boolean)).size;
 
   const handleBaixarRelatorio = () => {
     let conteudo = "RELATÓRIO DE HISTÓRICO MÉDICO\n\n";
-    conteudo += `Paciente: ${user?.name}\n`;
+    conteudo += `Paciente: ${user?.name || "Paciente"}\n`;
     conteudo += "Data de emissão: " + new Date().toLocaleDateString("pt-BR") + "\n\n";
     historico.forEach((h, i) => {
       conteudo += `${i + 1}. Data: ${h.data}\n`;
-      conteudo += `   Médico: ${h.medico}\n`;
-      conteudo += `   Especialidade: ${h.especialidade}\n`;
-      conteudo += `   UBS: ${h.ubs}\n`;
+      conteudo += `   Médico: ${h.medico || "—"}\n`;
+      conteudo += `   Especialidade: ${h.especialidade || "—"}\n`;
+      conteudo += `   UBS: ${h.ubs || "—"}\n`;
       conteudo += `   Diagnóstico: ${h.diagnostico || "—"}\n\n`;
     });
     const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
@@ -71,11 +122,11 @@ const HistoricoMedico = () => {
       html: `
         <div style="text-align:left; line-height:1.8;">
           <p><strong>Data:</strong> ${consulta.data}</p>
-          <p><strong>Médico:</strong> ${consulta.medico}</p>
-          <p><strong>Especialidade:</strong> ${consulta.especialidade}</p>
-          <p><strong>UBS:</strong> ${consulta.ubs}</p>
+          <p><strong>Médico:</strong> ${consulta.medico || "—"}</p>
+          <p><strong>Especialidade:</strong> ${consulta.especialidade || "—"}</p>
+          <p><strong>UBS:</strong> ${consulta.ubs || "—"}</p>
           <p><strong>Diagnóstico:</strong> ${consulta.diagnostico || "—"}</p>
-          <p><strong>Status:</strong> <span class="text-green-600">${consulta.status}</span></p>
+          <p><strong>Status:</strong> <span class="text-green-600">${consulta.status || "—"}</span></p>
         </div>
       `,
       icon: "info",
@@ -181,10 +232,10 @@ const HistoricoMedico = () => {
                     <tr key={h.id} className="hover:bg-blue-50 transition group">
                       <td className="px-6 py-4 text-sm font-medium">{h.data}</td>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-800">{h.medico}</div>
-                        <div className="text-xs text-gray-500">{h.especialidade}</div>
+                        <div className="font-medium text-gray-800">{h.medico || "—"}</div>
+                        <div className="text-xs text-gray-500">{h.especialidade || "—"}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm">{h.ubs}</td>
+                      <td className="px-6 py-4 text-sm">{h.ubs || "—"}</td>
                       <td className="px-6 py-4">
                         <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                           {h.diagnostico || "—"}
