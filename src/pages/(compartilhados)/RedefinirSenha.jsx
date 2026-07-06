@@ -1,41 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiLockClosed } from 'react-icons/hi';
 import { Activity } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 const RedefinirSenha = () => {
   const navigate = useNavigate();
-  const { updatePassword } = useAuth();
+  const { updatePassword, resetPassword } = useAuth();
 
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-
-  // Supabase envia o usuario de volta com um token no URL hash
-  // O onAuthStateChange detecta o evento PASSWORD_RECOVERY
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setSessionReady(true);
-        }
-      }
-    );
-
-    // Verificar se ja tem sessao ativa (usuario pode ter vindo do link)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true);
-      }
-    });
-
-    return () => subscription?.unsubscribe();
-  }, []);
+  const [email, setEmail] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,12 +84,87 @@ const RedefinirSenha = () => {
     }
   };
 
-  if (!sessionReady) {
+  const handleEmailReset = async (e) => {
+    e.preventDefault();
+    
+    if (!email) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Digite seu e-mail.',
+        confirmButtonColor: '#0057B8',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const success = await resetPassword(email);
+      if (success) {
+        setEmailSent(true);
+        Swal.fire({
+          icon: 'success',
+          title: 'Sucesso!',
+          text: 'Se o e-mail existir, um link de redefinição foi enviado.',
+          confirmButtonColor: '#0057B8',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: 'Erro ao enviar e-mail de redefinição.',
+          confirmButtonColor: '#0057B8',
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Erro ao enviar e-mail.',
+        confirmButtonColor: '#0057B8',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (emailSent) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-on-surface text-lg">
-          Validando link...
-        </p>
+      <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[10%] left-[5%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[5%] w-[35%] h-[35%] bg-secondary/10 rounded-full blur-[100px]" />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="relative z-10 max-w-md w-full bg-surface/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-outline-variant p-8"
+        >
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-primary rounded-2xl shadow-lg">
+                <Activity size={28} className="text-on-primary" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-black text-on-surface tracking-tight">
+              Verifique seu e-mail
+            </h2>
+            <p className="text-on-surface-variant mt-2">
+              Enviamos um link de redefinição para o e-mail informado.
+            </p>
+          </div>
+          
+          <button
+            onClick={() => navigate('/login')}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-on-primary font-bold text-base rounded-xl shadow-lg transition-all active:scale-95"
+          >
+            Voltar ao login
+          </button>
+        </motion.div>
       </div>
     );
   }

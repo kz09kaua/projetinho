@@ -1,105 +1,85 @@
-import { supabase } from "../lib/supabase";
-
-// ============================================================
-// SERVICO DE FILAS DE ATENDIMENTO
-// ============================================================
+import { getAll, get, insert, update, deleteItem, query, STORES } from "../data/database";
 
 export const filasService = {
-  // Buscar todas as filas
   async listar() {
-    const { data, error } = await supabase
-      .from("filas_atendimento")
-      .select("*")
-      .order("posicao", { ascending: true });
-
-    if (error) {
+    try {
+      const data = await getAll(STORES.filas_atendimento);
+      return data.map((f) => ({
+        id: f.id,
+        posicao: f.posicao,
+        paciente: f.paciente_nome,
+        prioridade: f.prioridade,
+        tempo: f.tempo,
+        senha: f.senha,
+        status: f.status,
+        especialidade: f.especialidade,
+      }));
+    } catch (error) {
       console.error("Erro ao listar filas:", error);
       return [];
     }
-
-    return data.map((f) => ({
-      id: f.id,
-      posicao: f.posicao,
-      paciente: f.paciente_nome,
-      prioridade: f.prioridade,
-      tempo: f.tempo,
-      senha: f.senha,
-      status: f.status,
-      especialidade: f.especialidade,
-    }));
   },
 
-  // Adicionar paciente a fila
   async adicionar(entrada) {
-    const { data, error } = await supabase
-      .from("filas_atendimento")
-      .insert({
-        posicao: entrada.posicao,
+    try {
+      const allFilas = await getAll(STORES.filas_atendimento);
+      const newId = allFilas.length > 0 ? Math.max(...allFilas.map(f => f.id)) + 1 : 1;
+      const data = {
+        id: newId,
+        posicao: entrada.posicao || 1,
         paciente_nome: entrada.paciente,
         prioridade: entrada.prioridade || "Normal",
-        tempo: entrada.tempo,
-        senha: entrada.senha,
+        tempo: entrada.tempo || "10 min",
+        senha: entrada.senha || `P-${Math.floor(Math.random() * 900) + 100}`,
         status: entrada.status || "Aguardando",
-        especialidade: entrada.especialidade,
-      })
-      .select()
-      .single();
-
-    if (error) {
+        especialidade: entrada.especialidade || "Clínica Geral",
+        created_at: new Date().toISOString(),
+      };
+      await insert(STORES.filas_atendimento, data);
+      return data;
+    } catch (error) {
       console.error("Erro ao adicionar na fila:", error);
       return null;
     }
-
-    return {
-      id: data.id,
-      posicao: data.posicao,
-      paciente: data.paciente_nome,
-      prioridade: data.prioridade,
-      tempo: data.tempo,
-      senha: data.senha,
-      status: data.status,
-      especialidade: data.especialidade,
-    };
   },
 
-  // Atualizar status na fila
   async atualizarStatus(id, status) {
-    const { error } = await supabase
-      .from("filas_atendimento")
-      .update({ status })
-      .eq("id", id);
-
-    if (error) {
+    try {
+      const fila = await get(STORES.filas_atendimento, id);
+      if (!fila) return false;
+      const updated = { ...fila, status };
+      await update(STORES.filas_atendimento, updated);
+      return true;
+    } catch (error) {
       console.error("Erro ao atualizar fila:", error);
       return false;
     }
-    return true;
   },
 
-  // Remover da fila
   async remover(id) {
-    const { error } = await supabase
-      .from("filas_atendimento")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
+    try {
+      await deleteItem(STORES.filas_atendimento, id);
+      return true;
+    } catch (error) {
       console.error("Erro ao remover da fila:", error);
       return false;
     }
-    return true;
   },
 
-  // Reordenar posicoes
   async reordenar(idsOrdenados) {
-    const promises = idsOrdenados.map((id, index) =>
-      supabase
-        .from("filas_atendimento")
-        .update({ posicao: index + 1 })
-        .eq("id", id)
-    );
-
-    const results = await Promise.all(promises);
-    return results.every((r) => !r.error);
+    try {
+      const promises = idsOrdenados.map((id, index) => {
+        return get(STORES.filas_atendimento, id).then((fila) => {
+          if (fila) {
+            return update(STORES.filas_atendimento, { ...fila, posicao: index + 1 });
+          }
+          return Promise.resolve();
+        });
+      });
+      await Promise.all(promises);
+      return true;
+    } catch (error) {
+      return false;
+    }
   },
 };

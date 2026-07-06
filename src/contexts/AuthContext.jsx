@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { authService } from "../services/authService";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
-// Contador de tentativas de login (por sessao)
+// Contador de tentativas de login (por sessão)
 const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
 const BLOCK_TIME_MS = 60000; // 1 minuto
@@ -12,51 +12,32 @@ const BLOCK_TIME_MS = 60000; // 1 minuto
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ubsSelecionada, setUbsSelecionada] = useState(() => {
+    // Recupera do localStorage se existir
+    return localStorage.getItem("atendente_ubs") || null;
+  });
 
-  // Busca o perfil do usuario na tabela profiles
-  const fetchProfile = async (userId) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      console.error("Erro ao buscar perfil:", error);
-      return null;
+  // Salva no localStorage sempre que mudar
+  useEffect(() => {
+    if (ubsSelecionada) {
+      localStorage.setItem("atendente_ubs", ubsSelecionada);
+    } else {
+      localStorage.removeItem("atendente_ubs");
     }
-    return data;
-  };
+  }, [ubsSelecionada]);
 
-  // Monta o objeto user a partir do perfil
-  const buildUser = (profile) => {
-    if (!profile) return null;
-    return {
-      id: profile.id,
-      name: profile.nome,
-      nome: profile.nome,
-      role: profile.role,
-      email: profile.email,
-      cpf: profile.cpf,
-      telefone: profile.telefone,
-      dataNascimento: profile.data_nascimento,
-      endereco: profile.endereco,
-      bio: profile.bio,
-      genero: profile.genero,
-    };
-  };
-
-  // Inicializa o estado do usuario ao carregar
+  // Inicializa o estado do usuário ao carregar
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setUser(buildUser(profile));
+        const session = authService.getSession();
+        if (session) {
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            authService.clearSession();
+          }
         }
       } catch (error) {
         console.error("Erro ao inicializar auth:", error);
@@ -66,20 +47,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
-
-    // Escuta mudancas de autenticacao
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setUser(buildUser(profile));
-      } else if (event === "SIGNED_OUT") {
-        setUser(null);
-      }
-    });
-
-    return () => subscription?.unsubscribe();
   }, []);
 
   // Login com email e senha
@@ -94,16 +61,13 @@ export const AuthProvider = ({ children }) => {
           `Muitas tentativas. Tente novamente em ${remaining} segundos.`
         );
       }
-      // Reset apos o tempo de bloqueio
+      // Reset após o tempo de bloqueio
       delete loginAttempts[email];
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const userData = await authService.login(email, password);
 
-    if (error) {
+    if (!userData) {
       // Incrementar contador de tentativas
       if (!loginAttempts[email]) {
         loginAttempts[email] = { count: 0, lastAttempt: 0 };
@@ -115,106 +79,49 @@ export const AuthProvider = ({ children }) => {
 
     // Login bem-sucedido - resetar tentativas
     delete loginAttempts[email];
-
-    const profile = await fetchProfile(data.user.id);
-    const userData = buildUser(profile);
     setUser(userData);
+
+    // Se for atendente, limpa a UBS selecionada anterior (força nova escolha)
+    if (userData.role === "atendente") {
+      setUbsSelecionada(null);
+      localStorage.removeItem("atendente_ubs");
+    }
+
     return userData;
   };
 
   // Logout
   const logout = async () => {
-    await supabase.auth.signOut();
+    await authService.logout();
     setUser(null);
+    setUbsSelecionada(null);
   };
 
-  // Registro de novo usuario
+  // Registro de novo usuário
   const register = async (userData) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.senha,
-      options: {
-        data: {
-          nome: userData.nome,
-          cpf: userData.cpf,
-          telefone: userData.telefone,
-          role: "paciente",
-        },
-      },
-    });
-
-    if (error) {
-      console.error("Erro no registro:", error);
-      return false;
-    }
-
-    return true;
+    const success = await authService.register(userData);
+    return success;
   };
 
-  // Atualizar perfil do usuario logado
+  // Atualizar perfil do usuário logado
   const updateUser = async (updatedData) => {
     if (!user?.id) return;
 
-    const updateFields = {};
-    if (updatedData.name !== undefined) updateFields.nome = updatedData.name;
-    if (updatedData.nome !== undefined) updateFields.nome = updatedData.nome;
-    if (updatedData.telefone !== undefined)
-      updateFields.telefone = updatedData.telefone;
-    if (updatedData.dataNascimento !== undefined)
-      updateFields.data_nascimento = updatedData.dataNascimento;
-    if (updatedData.endereco !== undefined)
-      updateFields.endereco = updatedData.endereco;
-    if (updatedData.bio !== undefined) updateFields.bio = updatedData.bio;
-    if (updatedData.genero !== undefined)
-      updateFields.genero = updatedData.genero;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update(updateFields)
-      .eq("id", user.id);
-
-    if (error) {
-      console.error("Erro ao atualizar perfil:", error);
-      return;
+    const success = await authService.updateUser(user.id, updatedData);
+    if (success) {
+      setUser((prev) => ({
+        ...prev,
+        ...updatedData,
+        name: updatedData.nome || updatedData.name || prev.name,
+        nome: updatedData.nome || updatedData.name || prev.nome,
+      }));
     }
-
-    // Atualiza o state local
-    const updatedUser = {
-      ...user,
-      ...updatedData,
-      name: updatedData.nome || updatedData.name || user.name,
-      nome: updatedData.nome || updatedData.name || user.nome,
-    };
-    setUser(updatedUser);
   };
 
-  // Atualizar outro usuario (usado pelo admin)
+  // Atualizar outro usuário (usado pelo admin)
   const updateOtherUser = async (email, newData) => {
-    const { data: profiles, error: fetchError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (fetchError || !profiles) return;
-
-    const updateFields = {};
-    if (newData.nome !== undefined) updateFields.nome = newData.nome;
-    if (newData.role !== undefined) updateFields.role = newData.role;
-    if (newData.email !== undefined) updateFields.email = newData.email;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update(updateFields)
-      .eq("id", profiles.id);
-
-    if (error) {
-      console.error("Erro ao atualizar outro usuario:", error);
-      return;
-    }
-
-    // Se for o proprio usuario, atualiza o state
-    if (user?.email === email) {
+    const success = await authService.updateOtherUser(email, newData);
+    if (success) {
       setUser((prev) => ({
         ...prev,
         name: newData.nome || prev.name,
@@ -224,35 +131,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Buscar lista de usuarios (para admin)
+  // Buscar lista de usuários (para admin)
   const fetchUsersList = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erro ao buscar usuarios:", error);
-      return [];
-    }
-
-    return data.map((p) => ({
-      nome: p.nome,
-      email: p.email,
-      cpf: p.cpf,
-      telefone: p.telefone,
-      role: p.role,
-      dataNascimento: p.data_nascimento,
-    }));
+    return await authService.fetchUsersList();
   };
 
-  // Enviar email de redefinicao de senha
+  // Enviar email de redefinição de senha
   const resetPassword = async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/redefinir-senha`,
-    });
-    if (error) {
-      console.error("Erro ao enviar reset:", error);
+    const success = await authService.resetPassword(email);
+    if (!success) {
       return false;
     }
     return true;
@@ -260,14 +147,9 @@ export const AuthProvider = ({ children }) => {
 
   // Atualizar senha
   const updatePassword = async (newPassword) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    if (error) {
-      console.error("Erro ao atualizar senha:", error);
-      return false;
-    }
-    return true;
+    if (!user?.id) return false;
+    const success = await authService.updatePassword(user.id, newPassword);
+    return success;
   };
 
   return (
@@ -283,6 +165,8 @@ export const AuthProvider = ({ children }) => {
         fetchUsersList,
         resetPassword,
         updatePassword,
+        ubsSelecionada,
+        setUbsSelecionada,
       }}
     >
       {children}

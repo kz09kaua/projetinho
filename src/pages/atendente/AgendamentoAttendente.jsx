@@ -1,4 +1,4 @@
-// src/pages/AgendamentoAttendente.jsx
+// src/pages/atendente/AgendamentoAttendente.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { pacientesService } from "../../services/pacientesService";
@@ -24,7 +24,7 @@ import {
 import Swal from "sweetalert2";
 
 const AgendamentoAttendente = () => {
-  const { user } = useAuth();
+  const { user, ubsSelecionada } = useAuth();
   if (user?.role !== "atendente") {
     return (
       <div className="flex items-center justify-center h-64">
@@ -40,23 +40,20 @@ const AgendamentoAttendente = () => {
   const [especialidadeSelecionada, setEspecialidadeSelecionada] = useState("");
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
-  const [ubsSelecionada, setUbsSelecionada] = useState("UBS Central");
 
   // Filtros da tabela
   const [filtroTexto, setFiltroTexto] = useState("");
-  const [filtroUbs, setFiltroUbs] = useState("Todas");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
 
   // Histórico (modal)
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [pacienteHistorico, setPacienteHistorico] = useState(null);
 
-  // ----- DADOS DO SUPABASE -----
+  // ----- DADOS DO BANCO LOCAL -----
   const [pacientes, setPacientes] = useState([]);
   const [consultas, setConsultas] = useState([]);
-  const [historicoPacientes, setHistoricoPacientes] = useState({});
 
-  // Carrega dados do Supabase ao montar
+  // Carrega dados do banco local ao montar
   useEffect(() => {
     const carregarDados = async () => {
       const [pacientesData, consultasData] = await Promise.all([
@@ -64,10 +61,12 @@ const AgendamentoAttendente = () => {
         consultasService.listar(),
       ]);
       setPacientes(pacientesData);
-      setConsultas(consultasData);
+      // Filtra consultas pela UBS do atendente
+      const consultasFiltradas = consultasData.filter(c => c.ubs === ubsSelecionada);
+      setConsultas(consultasFiltradas);
     };
-    carregarDados();
-  }, []);
+    if (ubsSelecionada) carregarDados();
+  }, [ubsSelecionada]);
 
   // ----- ESTATÍSTICAS -----
   const totalConsultas = consultas.length;
@@ -78,13 +77,12 @@ const AgendamentoAttendente = () => {
   // ----- FILTROS -----
   const consultasFiltradas = consultas.filter((consulta) => {
     const matchTexto = consulta.paciente.toLowerCase().includes(filtroTexto.toLowerCase());
-    const matchUbs = filtroUbs === "Todas" || consulta.ubs === filtroUbs;
     const matchStatus = filtroStatus === "Todos" || consulta.status === filtroStatus;
-    return matchTexto && matchUbs && matchStatus;
+    return matchTexto && matchStatus;
   });
 
   // ============================================================
-  // FUNÇÃO PARA CADASTRAR NOVO PACIENTE (com máscaras e validação)
+  // FUNÇÃO PARA CADASTRAR NOVO PACIENTE
   // ============================================================
   const cadastrarNovoPaciente = async () => {
     const { value: formValues } = await Swal.fire({
@@ -141,17 +139,17 @@ const AgendamentoAttendente = () => {
         }
         const cpfLimpo = cpf.replace(/\D/g, "");
         if (cpfLimpo.length !== 11) {
-          Swal.showValidationMessage("CPF deve ter 11 dígitos (formato: 000.000.000-00).");
+          Swal.showValidationMessage("CPF deve ter 11 dígitos.");
           return false;
         }
         const susLimpo = sus.replace(/\D/g, "");
         if (susLimpo.length !== 15) {
-          Swal.showValidationMessage("CNS deve ter 15 dígitos (formato: 0000 0000 0000 000).");
+          Swal.showValidationMessage("CNS deve ter 15 dígitos.");
           return false;
         }
         const dataLimpa = dataNasc.replace(/\D/g, "");
         if (dataLimpa.length !== 8) {
-          Swal.showValidationMessage("Data de nascimento deve ter 8 dígitos (formato: dd/mm/aaaa).");
+          Swal.showValidationMessage("Data de nascimento deve ter 8 dígitos.");
           return false;
         }
         const dia = parseInt(dataLimpa.substring(0, 2), 10);
@@ -164,16 +162,6 @@ const AgendamentoAttendente = () => {
         }
         if (!sexo) {
           Swal.showValidationMessage("Selecione o sexo.");
-          return false;
-        }
-        const alergiasLimpo = alergias.replace(/[^a-zA-ZÀ-ú\s,]/g, "");
-        if (alergias && alergias !== alergiasLimpo) {
-          Swal.showValidationMessage("Alergias: use apenas letras, vírgulas e espaços.");
-          return false;
-        }
-        const tipoLimpo = tipoSanguineo.replace(/[^a-zA-Z+-\s]/g, "");
-        if (tipoSanguineo && tipoSanguineo !== tipoLimpo) {
-          Swal.showValidationMessage("Tipo sanguíneo: use apenas letras, +, - e espaços.");
           return false;
         }
 
@@ -194,10 +182,9 @@ const AgendamentoAttendente = () => {
     });
 
     if (formValues) {
-      // Verifica duplicidade no Supabase
       const existe = await pacientesService.verificarDuplicidade(formValues.cpf, formValues.sus);
       if (existe) {
-        Swal.fire("Erro", "Ja existe um paciente com esse CPF ou CNS.", "error");
+        Swal.fire("Erro", "Já existe um paciente com esse CPF ou CNS.", "error");
         return;
       }
 
@@ -233,7 +220,6 @@ const AgendamentoAttendente = () => {
         setConsultas((prev) => [...prev, novaConsulta]);
       }
 
-      // Seleciona o paciente para continuar agendando (opcional)
       setPacienteSelecionado(novoPaciente);
       setBuscaPaciente(novoPaciente.nome);
 
@@ -296,7 +282,7 @@ const AgendamentoAttendente = () => {
 
   const handleNovoAgendamento = async () => {
     if (!pacienteSelecionado || !especialidadeSelecionada || !horarioSelecionado) {
-      Swal.fire("Atencao", "Preencha todos os campos!", "warning");
+      Swal.fire("Atenção", "Preencha todos os campos!", "warning");
       return;
     }
     const dataFormatada = `${String(dataSelecionada.getDate()).padStart(2, "0")}/${String(
@@ -353,7 +339,6 @@ const AgendamentoAttendente = () => {
   // ----- LIMPAR FILTROS -----
   const limparFiltros = () => {
     setFiltroTexto("");
-    setFiltroUbs("Todas");
     setFiltroStatus("Todos");
   };
 
@@ -384,7 +369,7 @@ const AgendamentoAttendente = () => {
               <FaCalendarCheck className="text-blue-600" /> Central de Agendamentos
             </h1>
             <p className="text-gray-500 mt-1">
-              Gerencie consultas e cadastre novos pacientes.
+              Gerencie consultas e cadastre novos pacientes – {ubsSelecionada}
             </p>
           </div>
           <button
@@ -418,7 +403,7 @@ const AgendamentoAttendente = () => {
           ))}
         </div>
 
-        {/* ===== MODAL NOVO AGENDAMENTO (com cadastro de paciente) ===== */}
+        {/* ===== MODAL NOVO AGENDAMENTO ===== */}
         {mostrarNovoAgendamento && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -519,7 +504,7 @@ const AgendamentoAttendente = () => {
                   )}
                 </div>
 
-                {/* Especialidade, UBS, Data, Horários */}
+                {/* Especialidade, Data, Horários */}
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block font-semibold mb-3">Especialidade</label>
@@ -542,19 +527,12 @@ const AgendamentoAttendente = () => {
                   </div>
 
                   <div>
-                    <label className="block font-semibold mb-3">Unidade de Saúde</label>
-                    <select
-                      value={ubsSelecionada}
-                      onChange={(e) => setUbsSelecionada(e.target.value)}
-                      className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 transition"
-                    >
-                      <option>UBS Central</option>
-                      <option>UBS Norte</option>
-                      <option>UBS Sul</option>
-                      <option>UBS Leste</option>
-                    </select>
+                    <div className="mb-4 p-3 bg-gray-50 rounded-xl">
+                      <p className="text-sm font-medium text-gray-500">Unidade de Saúde</p>
+                      <p className="font-bold text-gray-800">{ubsSelecionada}</p>
+                    </div>
 
-                    <div className="mt-6">
+                    <div>
                       <label className="block font-semibold mb-3">Data</label>
                       <div className="bg-white p-4 rounded-xl border">
                         <div className="flex justify-between items-center mb-3">
@@ -689,17 +667,6 @@ const AgendamentoAttendente = () => {
             />
           </div>
           <select
-            value={filtroUbs}
-            onChange={(e) => setFiltroUbs(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="Todas">Todas as UBS</option>
-            <option value="UBS Central">UBS Central</option>
-            <option value="UBS Norte">UBS Norte</option>
-            <option value="UBS Sul">UBS Sul</option>
-            <option value="UBS Leste">UBS Leste</option>
-          </select>
-          <select
             value={filtroStatus}
             onChange={(e) => setFiltroStatus(e.target.value)}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition"
@@ -753,7 +720,6 @@ const AgendamentoAttendente = () => {
                           </div>
                           <div>
                             <p className="font-semibold">{consulta.paciente}</p>
-                            <p className="text-xs text-gray-500">{consulta.ubs}</p>
                           </div>
                         </div>
                       </td>

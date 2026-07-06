@@ -1,4 +1,4 @@
-// src/pages/GerenciarFilas.jsx
+// src/pages/atendente/GerenciarFilas.jsx
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { HiUserGroup, HiSearch, HiPlus, HiX } from "react-icons/hi";
@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { filasService } from "../../services/filasService";
 
 const GerenciarFilas = () => {
-  const { user } = useAuth();
+  const { user, ubsSelecionada } = useAuth();
 
   if (user?.role !== "atendente") {
     return (
@@ -19,40 +19,44 @@ const GerenciarFilas = () => {
     );
   }
 
-  const [filas, setFilas] = useState([
-    {
-      id: 1,
-      especialidade: "Clínica Geral",
-      pacientes: [
-        { nome: "José Souza", cpf: "123.456.789-00", dataNasc: "15/03/1980" },
-        { nome: "Maria Lima", cpf: "987.654.321-00", dataNasc: "22/07/1990" },
-        { nome: "Pedro Santos", cpf: "456.789.123-00", dataNasc: "10/12/1975" },
-      ],
-    },
-    {
-      id: 2,
-      especialidade: "Pediatria",
-      pacientes: [
-        { nome: "Lucas Mendes", cpf: "111.222.333-44", dataNasc: "05/05/2020" },
-        { nome: "Sofia Costa", cpf: "555.666.777-88", dataNasc: "12/12/2021" },
-      ],
-    },
-    {
-      id: 3,
-      especialidade: "Vacinação",
-      pacientes: [
-        {
-          nome: "Fernanda Rocha",
-          cpf: "999.888.777-66",
-          dataNasc: "30/04/1995",
-        },
-        { nome: "Rafael Alves", cpf: "444.555.666-77", dataNasc: "17/09/1988" },
-      ],
-    },
-  ]);
-
-  const [searchTerms, setSearchTerms] = useState({ 0: "", 1: "", 2: "" });
+  const [filas, setFilas] = useState([]);
+  const [searchTerms, setSearchTerms] = useState({});
   const [logRemocoes, setLogRemocoes] = useState([]);
+
+  // Carrega as filas apenas da UBS selecionada
+  useEffect(() => {
+    if (ubsSelecionada) {
+      filasService.listar().then(data => {
+        const filasDaUbs = data.filter(f => f.ubs === ubsSelecionada);
+        // Agrupar por especialidade
+        const grouped = {};
+        filasDaUbs.forEach(f => {
+          const key = f.especialidade;
+          if (!grouped[key]) {
+            grouped[key] = {
+              id: key,
+              especialidade: key,
+              pacientes: [],
+            };
+          }
+          grouped[key].pacientes.push({
+            nome: f.paciente,
+            cpf: f.cpf || "Não informado",
+            dataNasc: f.dataNasc || "Não informado",
+            id: f.id,
+          });
+        });
+        const filasArray = Object.values(grouped);
+        setFilas(filasArray);
+        // Inicializar searchTerms
+        const initialTerms = {};
+        filasArray.forEach((_, idx) => {
+          initialTerms[idx] = "";
+        });
+        setSearchTerms(initialTerms);
+      });
+    }
+  }, [ubsSelecionada]);
 
   const handleSearchChange = (idx, value) => {
     setSearchTerms((prev) => ({ ...prev, [idx]: value }));
@@ -62,25 +66,29 @@ const GerenciarFilas = () => {
     if (!termo.trim()) return pacientes;
     const lowerTermo = termo.toLowerCase();
     return pacientes.filter(
-      (p) => p.nome.toLowerCase().includes(lowerTermo) || p.cpf.includes(termo),
+      (p) => p.nome.toLowerCase().includes(lowerTermo) || (p.cpf && p.cpf.includes(termo)),
     );
   };
 
   const chamarProximo = (idx) => {
     const fila = filas[idx];
-    if (fila.pacientes.length === 0) {
+    if (!fila || fila.pacientes.length === 0) {
       Swal.fire("Fila vazia", "Não há pacientes na fila.", "info");
       return;
     }
     const paciente = fila.pacientes[0];
     Swal.fire({
       title: "Chamar próximo",
-      html: `<strong>${paciente.nome}</strong><br>CPF: ${paciente.cpf}`,
+      html: `<strong>${paciente.nome}</strong><br>CPF: ${paciente.cpf || "N/A"}`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Chamar",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
+        // Remove do banco
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
         const novasFilas = [...filas];
         novasFilas[idx].pacientes.shift();
         setFilas(novasFilas);
@@ -98,9 +106,13 @@ const GerenciarFilas = () => {
       confirmButtonText: "Sim, chamar agora",
       input: "text",
       inputPlaceholder: "Justificativa (opcional)",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const justificativa = result.value || "Não informada";
+        // Remove do banco
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
         const novasFilas = [...filas];
         novasFilas[idx].pacientes.splice(pacienteIndex, 1);
         setFilas(novasFilas);
@@ -135,8 +147,12 @@ const GerenciarFilas = () => {
       inputValidator: (value) => {
         if (!value) return "A justificativa é obrigatória!";
       },
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
+        // Remove do banco
+        if (paciente.id) {
+          await filasService.remover(paciente.id);
+        }
         const novasFilas = [...filas];
         const removido = novasFilas[idx].pacientes.splice(pacienteIndex, 1)[0];
         setFilas(novasFilas);
@@ -194,8 +210,26 @@ const GerenciarFilas = () => {
         Swal.fire("Erro", "CPF já está na fila.", "error");
         return;
       }
+      // Adiciona ao banco
+      const novoPaciente = await filasService.adicionar({
+        paciente: formValues.nome,
+        cpf: formValues.cpf,
+        dataNasc: formValues.dataNasc,
+        prioridade: "Normal",
+        tempo: "10 min",
+        senha: `G-${Math.floor(Math.random() * 900) + 100}`,
+        especialidade: filas[idx].especialidade,
+        status: "Aguardando",
+        posicao: filas[idx].pacientes.length + 1,
+        ubs: ubsSelecionada,
+      });
       const novasFilas = [...filas];
-      novasFilas[idx].pacientes.push(formValues);
+      novasFilas[idx].pacientes.push({
+        nome: formValues.nome,
+        cpf: formValues.cpf,
+        dataNasc: formValues.dataNasc,
+        id: novoPaciente.id,
+      });
       setFilas(novasFilas);
       Swal.fire(
         "Adicionado!",
@@ -213,8 +247,7 @@ const GerenciarFilas = () => {
             <HiUserGroup className="text-blue-600" /> Gerenciar Filas
           </h1>
           <p className="text-gray-500 mt-1">
-            Chame o próximo paciente, adicione manualmente ou pesquise por
-            nome/CPF.
+            Chame o próximo paciente, adicione manualmente ou pesquise por nome/CPF – {ubsSelecionada}
           </p>
         </div>
 
@@ -222,7 +255,7 @@ const GerenciarFilas = () => {
           {filas.map((fila, idx) => {
             const pacientesFiltrados = filtrarPacientes(
               fila.pacientes,
-              searchTerms[idx],
+              searchTerms[idx] || "",
             );
             return (
               <div
@@ -239,7 +272,7 @@ const GerenciarFilas = () => {
                   <input
                     type="text"
                     placeholder="Pesquisar..."
-                    value={searchTerms[idx]}
+                    value={searchTerms[idx] || ""}
                     onChange={(e) => handleSearchChange(idx, e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500"
                   />
@@ -257,7 +290,7 @@ const GerenciarFilas = () => {
                     ) : (
                       pacientesFiltrados.map((p, i) => {
                         const originalIndex = fila.pacientes.findIndex(
-                          (pac) => pac.cpf === p.cpf,
+                          (pac) => pac.nome === p.nome && pac.cpf === p.cpf,
                         );
                         return (
                           <div
@@ -269,10 +302,7 @@ const GerenciarFilas = () => {
                                 {p.nome}
                               </p>
                               <p className="text-xs text-gray-500">
-                                CPF: {p.cpf}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Nasc: {p.dataNasc}
+                                CPF: {p.cpf || "N/A"}
                               </p>
                             </div>
                             <div className="flex gap-1">

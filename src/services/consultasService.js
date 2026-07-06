@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { getAll, get, insert, update, deleteItem, query, STORES } from "../data/database";
 
 // ============================================================
 // SERVICO DE CONSULTAS / AGENDAMENTOS
@@ -7,66 +7,63 @@ import { supabase } from "../lib/supabase";
 export const consultasService = {
   // Buscar todas as consultas
   async listar() {
-    const { data, error } = await supabase
-      .from("consultas")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (error) {
+    try {
+      const data = await getAll(STORES.consultas);
+      return data.map((c) => ({
+        id: c.id,
+        paciente: c.paciente_nome,
+        paciente_id: c.paciente_id,
+        data: c.data,
+        horario: c.horario,
+        medico: c.medico,
+        especialidade: c.especialidade,
+        status: c.status,
+        senha: c.senha,
+        ubs: c.ubs,
+        observacoes: c.observacoes,
+        arquivado: c.arquivado,
+      }));
+    } catch (error) {
       console.error("Erro ao listar consultas:", error);
       return [];
     }
-
-    return data.map((c) => ({
-      id: c.id,
-      paciente: c.paciente_nome,
-      paciente_id: c.paciente_id,
-      data: c.data,
-      horario: c.horario,
-      medico: c.medico,
-      especialidade: c.especialidade,
-      status: c.status,
-      senha: c.senha,
-      ubs: c.ubs,
-      observacoes: c.observacoes,
-      arquivado: c.arquivado,
-    }));
   },
 
-  // Buscar consultas nao arquivadas
+  // Buscar consultas não arquivadas
   async listarAtivas() {
-    const { data, error } = await supabase
-      .from("consultas")
-      .select("*")
-      .eq("arquivado", false)
-      .order("id", { ascending: true });
-
-    if (error) {
+    try {
+      const data = await query(STORES.consultas, { eq: { field: "arquivado", value: false } });
+      return data.map((c) => ({
+        id: c.id,
+        paciente: c.paciente_nome,
+        paciente_id: c.paciente_id,
+        data: c.data,
+        horario: c.horario,
+        medico: c.medico,
+        especialidade: c.especialidade,
+        status: c.status,
+        senha: c.senha,
+        ubs: c.ubs,
+        observacoes: c.observacoes,
+        arquivado: c.arquivado,
+      }));
+    } catch (error) {
       console.error("Erro ao listar consultas ativas:", error);
       return [];
     }
-
-    return data.map((c) => ({
-      id: c.id,
-      paciente: c.paciente_nome,
-      paciente_id: c.paciente_id,
-      data: c.data,
-      horario: c.horario,
-      medico: c.medico,
-      especialidade: c.especialidade,
-      status: c.status,
-      senha: c.senha,
-      ubs: c.ubs,
-      observacoes: c.observacoes,
-      arquivado: c.arquivado,
-    }));
   },
 
   // Criar nova consulta
   async criar(consulta) {
-    const { data, error } = await supabase
-      .from("consultas")
-      .insert({
+    try {
+      // Buscar o maior ID atual
+      const allConsultas = await getAll(STORES.consultas);
+      const newId = allConsultas.length > 0 
+        ? Math.max(...allConsultas.map(c => c.id)) + 1 
+        : 1;
+
+      const data = {
+        id: newId,
         paciente_id: consulta.paciente_id || null,
         paciente_nome: consulta.paciente,
         data: consulta.data,
@@ -77,70 +74,59 @@ export const consultasService = {
         senha: consulta.senha,
         ubs: consulta.ubs,
         observacoes: consulta.observacoes || null,
-      })
-      .select()
-      .single();
+        arquivado: false,
+        created_at: new Date().toISOString(),
+      };
 
-    if (error) {
+      await insert(STORES.consultas, data);
+      return data;
+    } catch (error) {
       console.error("Erro ao criar consulta:", error);
       return null;
     }
-
-    return {
-      id: data.id,
-      paciente: data.paciente_nome,
-      paciente_id: data.paciente_id,
-      data: data.data,
-      horario: data.horario,
-      medico: data.medico,
-      especialidade: data.especialidade,
-      status: data.status,
-      senha: data.senha,
-      ubs: data.ubs,
-      observacoes: data.observacoes,
-      arquivado: data.arquivado,
-    };
   },
 
   // Atualizar status da consulta
   async atualizarStatus(id, status, senha) {
-    const updateFields = { status };
-    if (senha !== undefined) updateFields.senha = senha;
+    try {
+      const consulta = await get(STORES.consultas, id);
+      if (!consulta) return false;
 
-    const { error } = await supabase
-      .from("consultas")
-      .update(updateFields)
-      .eq("id", id);
+      const updateFields = { status };
+      if (senha !== undefined) updateFields.senha = senha;
 
-    if (error) {
+      const updated = { ...consulta, ...updateFields };
+      await update(STORES.consultas, updated);
+      return true;
+    } catch (error) {
       console.error("Erro ao atualizar status:", error);
       return false;
     }
-    return true;
   },
 
   // Arquivar consulta
   async arquivar(id) {
-    const { error } = await supabase
-      .from("consultas")
-      .update({ arquivado: true })
-      .eq("id", id);
+    try {
+      const consulta = await get(STORES.consultas, id);
+      if (!consulta) return false;
 
-    if (error) {
+      const updated = { ...consulta, arquivado: true };
+      await update(STORES.consultas, updated);
+      return true;
+    } catch (error) {
       console.error("Erro ao arquivar consulta:", error);
       return false;
     }
-    return true;
   },
 
   // Deletar consulta
   async deletar(id) {
-    const { error } = await supabase.from("consultas").delete().eq("id", id);
-
-    if (error) {
+    try {
+      await deleteItem(STORES.consultas, id);
+      return true;
+    } catch (error) {
       console.error("Erro ao deletar consulta:", error);
       return false;
     }
-    return true;
   },
 };

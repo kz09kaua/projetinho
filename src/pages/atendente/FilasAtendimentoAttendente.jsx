@@ -1,7 +1,8 @@
-// src/pages/FilasAtendimentoAttendente.jsx
+// src/pages/atendente/FilasAtendimentoAttendente.jsx
 import { useState, useEffect } from "react";
 import { HiUserGroup, HiClock, HiUsers, HiExclamation, HiSearch, HiX, HiCheck, HiBan } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
+import { filasService } from "../../services/filasService";
 import ChatAtendimento from "../../components/ChatAtendimento";
 import Swal from "sweetalert2";
 
@@ -26,7 +27,7 @@ const MetricCard = ({ title, value, icon: Icon, color = "blue" }) => {
 };
 
 const FilasAtendimentoAttendente = () => {
-  const { user } = useAuth();
+  const { user, ubsSelecionada } = useAuth();
 
   if (user?.role !== "atendente") {
     return (
@@ -36,72 +37,29 @@ const FilasAtendimentoAttendente = () => {
     );
   }
 
-  // --- Estados ---
-  const [fila, setFila] = useState([
-    {
-      id: 1,
-      posicao: 1,
-      paciente: "José Souza",
-      prioridade: "Normal",
-      tempo: "10 min",
-      senha: "G-108",
-      status: "Aguardando",
-      especialidade: "Clínica Geral",
-    },
-    {
-      id: 2,
-      posicao: 2,
-      paciente: "Maria Lima",
-      prioridade: "Alta",
-      tempo: "5 min",
-      senha: "P-042",
-      status: "Aguardando",
-      especialidade: "Cardiologia",
-    },
-    {
-      id: 3,
-      posicao: 3,
-      paciente: "Pedro Santos",
-      prioridade: "Normal",
-      tempo: "15 min",
-      senha: "G-110",
-      status: "Aguardando",
-      especialidade: "Clínica Geral",
-    },
-    {
-      id: 4,
-      posicao: 4,
-      paciente: "Ana Oliveira",
-      prioridade: "Alta",
-      tempo: "8 min",
-      senha: "P-045",
-      status: "Aguardando",
-      especialidade: "Pediatria",
-    },
-    {
-      id: 5,
-      posicao: 5,
-      paciente: "Carlos Ferreira",
-      prioridade: "Normal",
-      tempo: "20 min",
-      senha: "G-115",
-      status: "Aguardando",
-      especialidade: "Ortopedia",
-    },
-  ]);
-
+  const [fila, setFila] = useState([]);
   const [emAtendimento, setEmAtendimento] = useState(null);
   const [filtro, setFiltro] = useState("");
   const [filtroPrioridade, setFiltroPrioridade] = useState("todas");
 
-  // --- Estatísticas dinâmicas ---
+  useEffect(() => {
+    if (ubsSelecionada) {
+      filasService.listar().then(data => {
+        // Filtra apenas pacientes da UBS do atendente
+        const filaFiltrada = data.filter(f => f.ubs === ubsSelecionada);
+        setFila(filaFiltrada);
+      });
+    } else {
+      setFila([]);
+    }
+  }, [ubsSelecionada]);
+
   const totalPacientes = fila.length + (emAtendimento ? 1 : 0);
   const emAtendimentoCount = emAtendimento ? 1 : 0;
   const prioridades = fila.filter(p => p.prioridade === "Alta").length;
-  const tempoMedio = fila.length > 0 ? "12 min" : "0 min"; // mock
+  const tempoMedio = fila.length > 0 ? "12 min" : "0 min";
 
-  // --- Funções ---
-  const chamarProximo = () => {
+  const chamarProximo = async () => {
     if (emAtendimento) {
       Swal.fire({
         icon: "info",
@@ -120,6 +78,7 @@ const FilasAtendimentoAttendente = () => {
     }
     const proximo = fila[0];
     setEmAtendimento(proximo);
+    await filasService.remover(proximo.id);
     setFila(prev => prev.slice(1));
     Swal.fire({
       icon: "success",
@@ -130,7 +89,7 @@ const FilasAtendimentoAttendente = () => {
     });
   };
 
-  const finalizarAtendimento = () => {
+  const finalizarAtendimento = async () => {
     if (!emAtendimento) {
       Swal.fire({
         icon: "info",
@@ -138,45 +97,44 @@ const FilasAtendimentoAttendente = () => {
       });
       return;
     }
-    Swal.fire({
+    const result = await Swal.fire({
       title: `Finalizar atendimento de ${emAtendimento.paciente}?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sim, finalizar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEmAtendimento(null);
-        Swal.fire({
-          icon: "success",
-          title: "Atendimento finalizado",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      }
     });
+    if (result.isConfirmed) {
+      setEmAtendimento(null);
+      Swal.fire({
+        icon: "success",
+        title: "Atendimento finalizado",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   };
 
-  const cancelarPaciente = (id, nome) => {
-    Swal.fire({
+  const cancelarPaciente = async (id, nome) => {
+    const result = await Swal.fire({
       title: `Cancelar ${nome}?`,
       text: "O paciente será removido da fila.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sim, cancelar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setFila(prev => prev.filter(p => p.id !== id));
-        Swal.fire({
-          icon: "success",
-          title: "Paciente removido",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      }
     });
+    if (result.isConfirmed) {
+      await filasService.remover(id);
+      setFila(prev => prev.filter(p => p.id !== id));
+      Swal.fire({
+        icon: "success",
+        title: "Paciente removido",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   };
 
-  const chamarPaciente = (paciente) => {
+  const chamarPaciente = async (paciente) => {
     if (emAtendimento) {
       Swal.fire({
         icon: "info",
@@ -185,68 +143,73 @@ const FilasAtendimentoAttendente = () => {
       });
       return;
     }
-    Swal.fire({
+    const result = await Swal.fire({
       title: `Chamar ${paciente.paciente}?`,
       text: `Senha: ${paciente.senha}`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sim, chamar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEmAtendimento(paciente);
-        setFila(prev => prev.filter(p => p.id !== paciente.id));
-        Swal.fire({
-          icon: "success",
-          title: "Chamado!",
-          text: `${paciente.paciente} foi chamado.`,
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      }
     });
+    if (result.isConfirmed) {
+      setEmAtendimento(paciente);
+      await filasService.remover(paciente.id);
+      setFila(prev => prev.filter(p => p.id !== paciente.id));
+      Swal.fire({
+        icon: "success",
+        title: "Chamado!",
+        text: `${paciente.paciente} foi chamado.`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   };
 
-  const novaFila = () => {
-    Swal.fire({
+  const novaFila = async () => {
+    const result = await Swal.fire({
       title: "Criar nova fila?",
       text: "Isso irá reiniciar a fila com base nos pacientes aguardando.",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sim, criar nova",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // Reinicia a fila (mock - poderia vir de uma API)
-        const novaLista = [
-          { id: 1, posicao: 1, paciente: "José Souza", prioridade: "Normal", tempo: "10 min", senha: "G-108", status: "Aguardando", especialidade: "Clínica Geral" },
-          { id: 2, posicao: 2, paciente: "Maria Lima", prioridade: "Alta", tempo: "5 min", senha: "P-042", status: "Aguardando", especialidade: "Cardiologia" },
-          { id: 3, posicao: 3, paciente: "Pedro Santos", prioridade: "Normal", tempo: "15 min", senha: "G-110", status: "Aguardando", especialidade: "Clínica Geral" },
-        ];
-        setFila(novaLista);
-        setEmAtendimento(null);
-        Swal.fire({
-          icon: "success",
-          title: "Nova fila criada",
-          text: `${novaLista.length} pacientes na fila.`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      }
     });
+    if (result.isConfirmed) {
+      // Remove todas as entradas atuais da UBS e cria novas
+      const filasAtuais = await filasService.listar();
+      const filasDaUbs = filasAtuais.filter(f => f.ubs === ubsSelecionada);
+      for (const f of filasDaUbs) {
+        await filasService.remover(f.id);
+      }
+
+      const novas = [
+        { paciente: "José Souza", prioridade: "Normal", tempo: "10 min", senha: "G-108", status: "Aguardando", especialidade: "Clínica Geral", posicao: 1, ubs: ubsSelecionada },
+        { paciente: "Maria Lima", prioridade: "Alta", tempo: "5 min", senha: "P-042", status: "Aguardando", especialidade: "Cardiologia", posicao: 2, ubs: ubsSelecionada },
+        { paciente: "Pedro Santos", prioridade: "Normal", tempo: "15 min", senha: "G-110", status: "Aguardando", especialidade: "Clínica Geral", posicao: 3, ubs: ubsSelecionada },
+      ];
+
+      for (const item of novas) {
+        await filasService.adicionar(item);
+      }
+
+      const novaLista = await filasService.listar();
+      const filaFiltrada = novaLista.filter(f => f.ubs === ubsSelecionada);
+      setFila(filaFiltrada);
+      setEmAtendimento(null);
+      Swal.fire({
+        icon: "success",
+        title: "Nova fila criada",
+        text: `${novas.length} pacientes na fila.`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
   };
 
-  // Atualiza posições da fila (para exibição correta)
-  useEffect(() => {
-    setFila(prev => prev.map((p, index) => ({ ...p, posicao: index + 1 })));
-  }, [fila.length]);
-
-  // --- Filtros ---
   const filaFiltrada = fila.filter(p => {
     const matchNome = p.paciente.toLowerCase().includes(filtro.toLowerCase());
     const matchPrioridade = filtroPrioridade === "todas" || p.prioridade === filtroPrioridade;
     return matchNome && matchPrioridade;
   });
 
-  // --- Cores de status ---
   const statusBadge = (status) => {
     if (status === "Em Atendimento") return "bg-green-100 text-green-700";
     return "bg-blue-100 text-blue-700";
@@ -261,7 +224,7 @@ const FilasAtendimentoAttendente = () => {
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <HiUserGroup className="text-blue-600" /> Painel de Filas
             </h1>
-            <p className="text-gray-500 mt-1">Gerencie as filas e atendimentos da unidade.</p>
+            <p className="text-gray-500 mt-1">Gerencie as filas e atendimentos da unidade {ubsSelecionada}.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -360,9 +323,7 @@ const FilasAtendimentoAttendente = () => {
               {filaFiltrada.map((item) => (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition ${
-                    item.prioridade === "Alta" ? "border-l-4 border-l-red-500" : ""
-                  }`}
+                  className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition ${item.prioridade === "Alta" ? "border-l-4 border-l-red-500" : ""}`}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">

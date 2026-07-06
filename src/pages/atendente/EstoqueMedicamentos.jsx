@@ -32,7 +32,7 @@ const EstoqueMedicamentos = () => {
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Carregar medicamentos do Supabase
+  // Carregar medicamentos do banco local
   useEffect(() => {
     estoqueService.listarMedicamentos().then(setMedicamentos);
   }, []);

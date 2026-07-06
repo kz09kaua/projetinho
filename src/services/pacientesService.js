@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { getAll, get, insert, update, deleteItem, query, STORES } from "../data/database";
 
 // ============================================================
 // SERVICO DE PACIENTES
@@ -7,58 +7,57 @@ import { supabase } from "../lib/supabase";
 export const pacientesService = {
   // Buscar todos os pacientes
   async listar() {
-    const { data, error } = await supabase
-      .from("pacientes")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (error) {
+    try {
+      const data = await getAll(STORES.pacientes);
+      return data.map((p) => ({
+        id: p.id,
+        nome: p.nome,
+        cpf: p.cpf,
+        sus: p.numero_sus,
+        dataNasc: p.data_nascimento,
+        sexo: p.sexo,
+        alergias: p.alergias || ["Nenhuma"],
+        tipoSanguineo: p.tipo_sanguineo || "Nao informado",
+        ultimaConsulta: p.ultima_consulta || "Nunca",
+      }));
+    } catch (error) {
       console.error("Erro ao listar pacientes:", error);
       return [];
     }
-
-    // Mapeia para o formato usado no frontend
-    return data.map((p) => ({
-      id: p.id,
-      nome: p.nome,
-      cpf: p.cpf,
-      sus: p.numero_sus,
-      dataNasc: p.data_nascimento,
-      sexo: p.sexo,
-      alergias: p.alergias || ["Nenhuma"],
-      tipoSanguineo: p.tipo_sanguineo || "Nao informado",
-      ultimaConsulta: p.ultima_consulta || "Nunca",
-    }));
   },
 
   // Buscar paciente por ID
   async buscarPorId(id) {
-    const { data, error } = await supabase
-      .from("pacientes")
-      .select("*")
-      .eq("id", id)
-      .single();
+    try {
+      const data = await get(STORES.pacientes, id);
+      if (!data) return null;
 
-    if (error) return null;
-
-    return {
-      id: data.id,
-      nome: data.nome,
-      cpf: data.cpf,
-      sus: data.numero_sus,
-      dataNasc: data.data_nascimento,
-      sexo: data.sexo,
-      alergias: data.alergias || ["Nenhuma"],
-      tipoSanguineo: data.tipo_sanguineo || "Nao informado",
-      ultimaConsulta: data.ultima_consulta || "Nunca",
-    };
+      return {
+        id: data.id,
+        nome: data.nome,
+        cpf: data.cpf,
+        sus: data.numero_sus,
+        dataNasc: data.data_nascimento,
+        sexo: data.sexo,
+        alergias: data.alergias || ["Nenhuma"],
+        tipoSanguineo: data.tipo_sanguineo || "Nao informado",
+        ultimaConsulta: data.ultima_consulta || "Nunca",
+      };
+    } catch (error) {
+      return null;
+    }
   },
 
   // Criar novo paciente
   async criar(paciente) {
-    const { data, error } = await supabase
-      .from("pacientes")
-      .insert({
+    try {
+      const allPacientes = await getAll(STORES.pacientes);
+      const newId = allPacientes.length > 0 
+        ? Math.max(...allPacientes.map(p => p.id)) + 1 
+        : 1;
+
+      const data = {
+        id: newId,
         nome: paciente.nome,
         cpf: paciente.cpf,
         numero_sus: paciente.sus,
@@ -67,74 +66,70 @@ export const pacientesService = {
         alergias: paciente.alergias || ["Nenhuma"],
         tipo_sanguineo: paciente.tipoSanguineo || "Nao informado",
         ultima_consulta: paciente.ultimaConsulta || "Nunca",
-      })
-      .select()
-      .single();
+        created_at: new Date().toISOString(),
+      };
 
-    if (error) {
+      await insert(STORES.pacientes, data);
+      return {
+        id: data.id,
+        nome: data.nome,
+        cpf: data.cpf,
+        sus: data.numero_sus,
+        dataNasc: data.data_nascimento,
+        sexo: data.sexo,
+        alergias: data.alergias,
+        tipoSanguineo: data.tipo_sanguineo,
+        ultimaConsulta: data.ultima_consulta,
+      };
+    } catch (error) {
       console.error("Erro ao criar paciente:", error);
       return null;
     }
-
-    return {
-      id: data.id,
-      nome: data.nome,
-      cpf: data.cpf,
-      sus: data.numero_sus,
-      dataNasc: data.data_nascimento,
-      sexo: data.sexo,
-      alergias: data.alergias,
-      tipoSanguineo: data.tipo_sanguineo,
-      ultimaConsulta: data.ultima_consulta,
-    };
   },
 
   // Atualizar paciente
   async atualizar(id, dados) {
-    const updateFields = {};
-    if (dados.nome !== undefined) updateFields.nome = dados.nome;
-    if (dados.cpf !== undefined) updateFields.cpf = dados.cpf;
-    if (dados.sus !== undefined) updateFields.numero_sus = dados.sus;
-    if (dados.dataNasc !== undefined)
-      updateFields.data_nascimento = dados.dataNasc;
-    if (dados.sexo !== undefined) updateFields.sexo = dados.sexo;
-    if (dados.alergias !== undefined) updateFields.alergias = dados.alergias;
-    if (dados.tipoSanguineo !== undefined)
-      updateFields.tipo_sanguineo = dados.tipoSanguineo;
-    if (dados.ultimaConsulta !== undefined)
-      updateFields.ultima_consulta = dados.ultimaConsulta;
+    try {
+      const paciente = await get(STORES.pacientes, id);
+      if (!paciente) return false;
 
-    const { error } = await supabase
-      .from("pacientes")
-      .update(updateFields)
-      .eq("id", id);
+      const updateFields = {};
+      if (dados.nome !== undefined) updateFields.nome = dados.nome;
+      if (dados.cpf !== undefined) updateFields.cpf = dados.cpf;
+      if (dados.sus !== undefined) updateFields.numero_sus = dados.sus;
+      if (dados.dataNasc !== undefined) updateFields.data_nascimento = dados.dataNasc;
+      if (dados.sexo !== undefined) updateFields.sexo = dados.sexo;
+      if (dados.alergias !== undefined) updateFields.alergias = dados.alergias;
+      if (dados.tipoSanguineo !== undefined) updateFields.tipo_sanguineo = dados.tipoSanguineo;
+      if (dados.ultimaConsulta !== undefined) updateFields.ultima_consulta = dados.ultimaConsulta;
 
-    if (error) {
+      const updated = { ...paciente, ...updateFields };
+      await update(STORES.pacientes, updated);
+      return true;
+    } catch (error) {
       console.error("Erro ao atualizar paciente:", error);
       return false;
     }
-    return true;
   },
 
   // Deletar paciente
   async deletar(id) {
-    const { error } = await supabase.from("pacientes").delete().eq("id", id);
-
-    if (error) {
+    try {
+      await deleteItem(STORES.pacientes, id);
+      return true;
+    } catch (error) {
       console.error("Erro ao deletar paciente:", error);
       return false;
     }
-    return true;
   },
 
   // Verificar duplicidade por CPF ou SUS
   async verificarDuplicidade(cpf, sus) {
-    const { data, error } = await supabase
-      .from("pacientes")
-      .select("id")
-      .or(`cpf.eq.${cpf},numero_sus.eq.${sus}`);
-
-    if (error) return false;
-    return data.length > 0;
+    try {
+      const data = await getAll(STORES.pacientes);
+      return data.some(p => p.cpf === cpf || p.numero_sus === sus);
+    } catch (error) {
+      return false;
+    }
   },
 };

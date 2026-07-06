@@ -1,19 +1,21 @@
-// src/pages/AtendenteDashboard.jsx
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
-  HiUsers,
-  HiCalendar,
-  HiBell,
-  HiTrendingUp,
-  HiUserAdd,
-  HiClipboardList,
-  HiClock,
+  HiUsers, HiCalendar, HiBell, HiTrendingUp, HiUserAdd,
+  HiClipboardList, HiClock, HiOfficeBuilding,
 } from "react-icons/hi";
-import { Link } from "react-router-dom";
 
 const AtendenteDashboard = () => {
-  const { user } = useAuth();
+  const { user, ubsSelecionada, setUbsSelecionada } = useAuth();
+  const navigate = useNavigate();
+
+  // Redireciona se for atendente e não tiver UBS selecionada
+  useEffect(() => {
+    if (user?.role === "atendente" && !ubsSelecionada) {
+      navigate("/selecionar-ubs", { replace: true });
+    }
+  }, [user, ubsSelecionada, navigate]);
 
   if (user?.role !== "atendente") {
     return (
@@ -77,6 +79,25 @@ const AtendenteDashboard = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Indicador de UBS */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <HiOfficeBuilding className="text-blue-600" size={20} />
+            <span className="text-sm font-medium text-blue-700">
+              🏥 Atendendo: <strong>{ubsSelecionada}</strong>
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              setUbsSelecionada(null);
+              navigate("/selecionar-ubs");
+            }}
+            className="text-blue-600 underline text-xs"
+          >
+            Trocar UBS
+          </button>
+        </div>
+
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -120,7 +141,7 @@ const AtendenteDashboard = () => {
             title="Atendimentos Hoje"
             value={stats.atendimentosHoje}
             icon={HiTrendingUp}
-            link="/historico-medico" // ✅ Corrigido para rota existente
+            link="/historico-medico"
             linkText="Ver histórico"
           />
         </div>
@@ -136,7 +157,7 @@ const AtendenteDashboard = () => {
               agendar consultas.
             </p>
             <Link
-              to="/historico-medico" // ✅ Link para a página de histórico (que possui busca)
+              to="/historico-medico"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md"
             >
               <HiUserAdd size={20} /> Buscar Paciente

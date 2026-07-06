@@ -32,6 +32,7 @@ import AtendenteDashboard from "./pages/atendente/AtendenteDashboard";
 import GerenciarFilas from "./pages/atendente/GerenciarFilas";
 import EstoqueVacinas from "./pages/atendente/EstoqueVacinas";
 import EstoqueMedicamentos from "./pages/atendente/EstoqueMedicamentos";
+import SelecionarUBS from "./pages/atendente/SelecionarUBS"; // <-- NOVA
 
 // Páginas do admin
 import FilasAtendimentoAdmin from "./pages/admim/FilasAtendimentoAdmin";
@@ -41,12 +42,12 @@ import VacinaçãoAdmin from "./pages/admim/VacinaçãoAdmin";
 import SusConectadoAdmin from "./pages/admim/SusConectadoAdmin";
 import DashboardAdmin from "./pages/admim/DashboardAdmin";
 
-// Dashboard do paciente (na pasta paciente)
+// Dashboard do paciente
 import DashboardPaciente from "./pages/paciente/DashboardPaciente";
 
 import { useAuth } from "./contexts/AuthContext";
 
-// Roteadores por perfil
+// Roteadores por perfil (já existentes)
 const FilasRouter = () => {
   const { user } = useAuth();
   if (user?.role === "admin") return <FilasAtendimentoAdmin />;
@@ -184,6 +185,16 @@ function App() {
                   <Layout>
                     <SusConectadoRouter />
                   </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rota exclusiva do ATENDENTE para selecionar UBS */}
+            <Route
+              path="/selecionar-ubs"
+              element={
+                <ProtectedRoute allowedRoles={["atendente"]}>
+                  <SelecionarUBS />
                 </ProtectedRoute>
               }
             />

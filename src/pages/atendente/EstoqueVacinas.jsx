@@ -27,7 +27,7 @@ const EstoqueVacinas = () => {
   const [termoBusca, setTermoBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Carregar vacinas do Supabase
+  // Carregar vacinas do banco local
   useEffect(() => {
     estoqueService.listarVacinas().then(setVacinas);
   }, []);
