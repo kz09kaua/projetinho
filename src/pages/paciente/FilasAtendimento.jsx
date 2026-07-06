@@ -9,6 +9,41 @@ import Swal from "sweetalert2";
 import { useAuth } from "../../contexts/AuthContext";
 import { filasService } from "../../services/filasService";
 
+// Função para remover acentos
+const removerAcentos = (str) => {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
+// Mapeamento de sinônimos para nomes padronizados
+const MAPA_ESPECIALIDADES = {
+  "cardiologista": "Cardiologista",
+  "clinica geral": "Clínica Geral",
+  "clinico geral": "Clínica Geral",
+  "ginecologista": "Ginecologista",
+  "urologista": "Urologista",
+  "pediatra": "Pediatra",
+  "ortopedista": "Ortopedista",
+  "dermatologista": "Dermatologista",
+  "oftalmologista": "Oftalmologista",
+  "psicologo": "Psicólogo",
+  "psicologia": "Psicólogo",
+  "a agendar": null,
+  "agendar": null,
+};
+
+// === LISTA FIXA DE ESPECIALIDADES PARA EXIBIR ===
+const ESPECIALIDADES_FIXAS = [
+  { especialidade: "Cardiologista", tempoMedio: "8 min", senhaAtual: "C-101" },
+  { especialidade: "Clínica Geral", tempoMedio: "6 min", senhaAtual: "CG-205" },
+  { especialidade: "Ginecologista", tempoMedio: "10 min", senhaAtual: "G-312" },
+  { especialidade: "Urologista", tempoMedio: "7 min", senhaAtual: "U-418" },
+  { especialidade: "Pediatra", tempoMedio: "9 min", senhaAtual: "P-529" },
+  { especialidade: "Ortopedista", tempoMedio: "12 min", senhaAtual: "O-631" },
+  { especialidade: "Dermatologista", tempoMedio: "11 min", senhaAtual: "D-742" },
+  { especialidade: "Oftalmologista", tempoMedio: "8 min", senhaAtual: "OF-853" },
+  { especialidade: "Psicólogo", tempoMedio: "15 min", senhaAtual: "PS-964" },
+];
+
 const FilasAtendimento = () => {
   const auth = useAuth();
   const user = auth?.user;
@@ -18,32 +53,39 @@ const FilasAtendimento = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Carrega e agrupa as filas por especialidade
+  const normalizarEspecialidade = (nome) => {
+    if (!nome) return null;
+    const chave = removerAcentos(nome).toLowerCase().trim();
+    if (MAPA_ESPECIALIDADES[chave] !== undefined) return MAPA_ESPECIALIDADES[chave];
+    for (const [key, value] of Object.entries(MAPA_ESPECIALIDADES)) {
+      if (chave.includes(key) || key.includes(chave)) return value;
+    }
+    return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+  };
+
+  // ===== CARREGA E MESCLA COM ESPECIALIDADES FIXAS =====
   const carregarFilas = useCallback(async () => {
     try {
       setError(null);
       const todas = await filasService.listar();
-      
-      // Fila do usuário (se existir)
+
       const minha = todas.find(f => f.paciente === user?.name);
       setSuaFila(minha || null);
 
-      // Fila dos outros pacientes
       const outras = todas.filter(f => f.paciente !== user?.name);
 
-      // Agrupa por especialidade
-      const grupos = {};
+      // 1. Agrupa filas reais
+      const gruposReais = {};
       outras.forEach(f => {
-        if (!grupos[f.especialidade]) {
-          grupos[f.especialidade] = [];
-        }
-        grupos[f.especialidade].push(f);
+        let esp = normalizarEspecialidade(f.especialidade);
+        if (!esp) return;
+        if (!gruposReais[esp]) gruposReais[esp] = [];
+        gruposReais[esp].push(f);
       });
 
-      // Converte para array de objetos com metadados
-      const agrupadas = Object.keys(grupos).map(esp => {
-        const lista = grupos[esp];
-        // Ordena por posição (se existir) ou por ordem de chegada
+      // 2. Converte para objetos
+      const filasExistentes = Object.keys(gruposReais).map(esp => {
+        const lista = gruposReais[esp];
         lista.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
         const primeiro = lista[0];
         return {
@@ -51,12 +93,35 @@ const FilasAtendimento = () => {
           total: lista.length,
           senhaAtual: primeiro?.senha || "---",
           tempoMedio: primeiro?.tempo || "5 min",
-          prioridade: lista.some(p => p.prioridade === "Alta") ? "Alta" : "Normal",
           pacientes: lista,
         };
       });
 
-      setFilasAgrupadas(agrupadas);
+      // 3. Cria um mapa das existentes
+      const mapaExistentes = {};
+      filasExistentes.forEach(f => mapaExistentes[f.especialidade] = f);
+
+      // 4. Monta a lista final mesclando com as fixas
+      const listaFinal = ESPECIALIDADES_FIXAS.map(fixa => {
+        if (mapaExistentes[fixa.especialidade]) {
+          // Se já existe, usa os dados reais (mantém total e pacientes)
+          return mapaExistentes[fixa.especialidade];
+        } else {
+          // Se não existe, cria com 0 pacientes
+          return {
+            especialidade: fixa.especialidade,
+            total: 0,
+            senhaAtual: fixa.senhaAtual,
+            tempoMedio: fixa.tempoMedio,
+            pacientes: [],
+          };
+        }
+      });
+
+      // Ordena por total (mais cheias primeiro)
+      listaFinal.sort((a, b) => b.total - a.total);
+
+      setFilasAgrupadas(listaFinal);
     } catch (err) {
       console.error("Erro ao carregar filas:", err);
       setError("Erro ao carregar filas. Tente novamente.");
@@ -64,15 +129,14 @@ const FilasAtendimento = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      carregarFilas();
-    } else {
+    if (user) carregarFilas();
+    else {
       setFilasAgrupadas([]);
       setSuaFila(null);
     }
   }, [user, carregarFilas]);
 
-  // Entrar em uma fila (por especialidade)
+  // ===== ENTRA NA FILA (cria se não existir) =====
   const handleEntrarFila = async (grupo) => {
     if (!user) {
       Swal.fire("Erro", "Usuário não autenticado.", "error");
@@ -82,13 +146,11 @@ const FilasAtendimento = () => {
 
     const especialidade = grupo.especialidade;
 
-    // Se já está na mesma especialidade
     if (suaFila && suaFila.especialidade === especialidade) {
       Swal.fire("Aviso", "Você já está nesta fila.", "info");
       return;
     }
 
-    // Se está em outra fila, pergunta se quer trocar
     if (suaFila) {
       const result = await Swal.fire({
         title: "Trocar de fila?",
@@ -104,10 +166,8 @@ const FilasAtendimento = () => {
 
       setLoading(true);
       try {
-        // Remove da fila atual
         await filasService.remover(suaFila.id);
         setSuaFila(null);
-        // Recarrega para sincronizar
         await carregarFilas();
       } catch (err) {
         console.error(err);
@@ -117,10 +177,8 @@ const FilasAtendimento = () => {
       }
     }
 
-    // Entra na nova fila
     setLoading(true);
     try {
-      // Recarrega as filas para obter posição correta
       const todas = await filasService.listar();
       const daEspecialidade = todas.filter(f => f.especialidade === especialidade && f.paciente !== user.name);
       const novaPosicao = daEspecialidade.length + 1;
@@ -136,7 +194,7 @@ const FilasAtendimento = () => {
       });
 
       setSuaFila(nova);
-      await carregarFilas(); // recarrega tudo
+      await carregarFilas();
 
       Swal.fire({
         icon: "success",
@@ -189,9 +247,10 @@ const FilasAtendimento = () => {
   };
 
   const verDetalhesGrupo = (grupo) => {
-    const pacientesList = grupo.pacientes.map(p => 
-      `• ${p.paciente} (Senha: ${p.senha})`
-    ).join('<br>');
+    const pacientesList = grupo.pacientes.length > 0
+      ? grupo.pacientes.map(p => `• ${p.paciente} (Senha: ${p.senha})`).join('<br>')
+      : "Nenhum paciente no momento.";
+
     Swal.fire({
       title: `Fila - ${grupo.especialidade}`,
       html: `
@@ -199,10 +258,9 @@ const FilasAtendimento = () => {
           <p><strong>Total de pacientes:</strong> ${grupo.total}</p>
           <p><strong>Senha atual:</strong> ${grupo.senhaAtual}</p>
           <p><strong>Tempo médio:</strong> ${grupo.tempoMedio}</p>
-          <p><strong>Prioridade:</strong> ${grupo.prioridade}</p>
           <hr>
           <p><strong>Pacientes na fila:</strong></p>
-          <div style="font-size:0.9rem;">${pacientesList || "Nenhum"}</div>
+          <div style="font-size:0.9rem;">${pacientesList}</div>
         </div>
       `,
       icon: "info",
@@ -235,7 +293,7 @@ const FilasAtendimento = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
@@ -312,16 +370,18 @@ const FilasAtendimento = () => {
           ) : (
             filasAgrupadas.map((grupo) => {
               const isActive = suaFila && suaFila.especialidade === grupo.especialidade;
-              const isFull = grupo.total >= 20; // exemplo
+              const isFull = grupo.total >= 20;
+              const isEmpty = grupo.total === 0;
               return (
-                <div key={grupo.especialidade} className={`group bg-white rounded-2xl p-5 border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isActive ? "border-blue-400 shadow-md ring-1 ring-blue-200" : isFull ? "border-red-200" : "border-gray-200 hover:border-blue-300"}`}>
+                <div key={grupo.especialidade} className={`group bg-white rounded-2xl p-5 border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isActive ? "border-blue-400 shadow-md ring-1 ring-blue-200" : isFull ? "border-red-200" : isEmpty ? "border-gray-300 opacity-70" : "border-gray-200 hover:border-blue-300"}`}>
                   <div className="flex justify-between items-start mb-4">
-                    <div className={`p-3 rounded-xl ${grupo.prioridade === "Alta" ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+                    <div className="p-3 rounded-xl bg-blue-50 text-blue-700">
                       <FaStethoscope size={24} />
                     </div>
                     <div className="flex gap-2">
                       {isActive && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Você está aqui</span>}
                       {isFull && <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-semibold">Fila cheia</span>}
+                      {isEmpty && <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full font-semibold">Vazia</span>}
                       <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">{grupo.total} pacientes</span>
                     </div>
                   </div>

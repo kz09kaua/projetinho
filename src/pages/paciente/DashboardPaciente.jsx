@@ -40,7 +40,6 @@ const DashboardPaciente = () => {
 
   // Simula dados de consultas e vacinas (pode integrar com serviços reais)
   useEffect(() => {
-    // Exemplo: buscar dados de agendamentos/vacinas
     setProximasConsultas([
       { data: "15/07/2026", especialidade: "Clínica Geral", horario: "14:30" },
     ]);
@@ -96,7 +95,7 @@ const DashboardPaciente = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
